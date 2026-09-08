@@ -1,6 +1,0 @@
-[submodule "student-id-discord-dms-service"]
-	path = student-id-discord-dms-service
-	url = https://github.com/m3ower/student-id-discord-dms-service
-[submodule "student-id-moderation-service"]
-	path = student-id-moderation-service
-	url = https://github.com/m3ower/student-id-moderation-service
