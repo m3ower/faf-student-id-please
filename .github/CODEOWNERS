@@ -1,0 +1,23 @@
+# CODEOWNERS — reviewers are requested automatically by path.
+# Later rules override earlier ones, so order matters:
+# the last matching line wins.
+
+# Fallback: anything not claimed below goes to the whole team.
+*                                    @vasiok11 @Andreiisthebest @CmMarin @m3ower
+
+# Shared contract. Everyone reviews, because a change here
+# breaks somebody else's service.
+/contracts/                          @vasiok11 @Andreiisthebest @CmMarin @m3ower
+/docs/                               @vasiok11 @Andreiisthebest @CmMarin @m3ower
+/README.md                           @vasiok11 @Andreiisthebest @CmMarin @m3ower
+/docker-compose.yml                  @vasiok11 @Andreiisthebest @CmMarin @m3ower
+
+# Service ownership.
+/services/player-service/            @vasiok11
+/services/session-service/           @vasiok11
+/services/applicant-service/         @Andreiisthebest
+/services/university-record-service/ @Andreiisthebest
+/services/credential-service/        @CmMarin
+/services/rules-service/             @CmMarin
+/services/moderation-service/        @m3ower
+/services/discord-dms-service/       @m3ower
