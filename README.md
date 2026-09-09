@@ -1094,7 +1094,7 @@ whether it works.
 
 Work is tracked on the GitHub Project linked to this repository:
 
-**[Student ID, please — project board](https://github.com/orgs/<org>/projects/<n>)**
+**[Student ID, please — project board]((https://github.com/users/m3ower/projects/1/views/2))**
 
 Columns are **Backlog → In Progress → In Review → Done**. Every PR is linked to an
 issue, and every issue is assigned to the owner of the affected service.
