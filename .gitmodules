@@ -16,3 +16,9 @@
 [submodule "services/session-service"]
 	path = services/session-service
 	url = https://github.com/Vasiok11/student-id-session-service
+[submodule "services/applicant-service"]
+	path = services/applicant-service
+	url = https://github.com/Andreiisthebest/student-id-applicant-service
+[submodule "services/university-record-service"]
+	path = services/university-record-service
+	url = https://github.com/Andreiisthebest/student-id-university-record-service
