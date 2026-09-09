@@ -988,7 +988,7 @@ the same row.
 │   ├── session-service/             (submodule, private, Go)
 │   ├── applicant-service/           (submodule, private, Java)
 │   ├── credential-service/          (submodule, private, Java)
-│   ├── university-record-service/   (submodule, private, Go)
+│   ├── credential-service/          (submodule, private, Go)
 │   ├── rules-service/               (submodule, private, Go)
 │   ├── moderation-service/          (submodule, private, Java)
 │   └── discord-dms-service/         (submodule, private, Go)
