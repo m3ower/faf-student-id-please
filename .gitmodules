@@ -4,9 +4,9 @@
 [submodule "services/discord-dms-service"]
 	path = services/discord-dms-service
 	url = https://github.com/m3ower/student-id-discord-dms-service.git
-[submodule "services/university-record-service"]
-	path = services/university-record-service
-	url = https://github.com/CmMarin/student-id-university-record-service
+[submodule "services/credential-service"]
+	path = services/credential-service
+	url = https://github.com/CmMarin/student-id-credential-service
 [submodule "services/rules-service"]
 	path = services/rules-service
 	url = https://github.com/CmMarin/student-id-rules-service
