@@ -10,3 +10,9 @@
 [submodule "services/rules-service"]
 	path = services/rules-service
 	url = https://github.com/CmMarin/student-id-rules-service
+[submodule "services/player-service"]
+	path = services/player-service
+	url = https://github.com/Vasiok11/student-id-player-service
+[submodule "services/session-service"]
+	path = services/session-service
+	url = https://github.com/Vasiok11/student-id-session-service
