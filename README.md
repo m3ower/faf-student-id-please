@@ -28,6 +28,10 @@ traumatize Mr. Pumpkin with the emojis.
    - [WebSocket protocol](#websocket-protocol)
    - [Asynchronous events](#asynchronous-events)
    - [Error envelope and status mapping](#error-envelope-and-status-mapping)
+   - [Docker Hub images](#docker-hub-images)
+   - [Running the system](#running-the-system)
+   - [Testing with Postman](#testing-with-postman)
+   - [Mocks in Lab 1](#mocks-in-lab-1)
 6. [Repository structure](#repository-structure)
 7. [Contribution guide](#contribution-guide)
 8. [Project board](#project-board)
@@ -191,13 +195,13 @@ Credential and University Record services is described in
 
 | Service | Language | Framework | Database | Surfaces exposed |
 | --- | --- | --- | --- | --- |
-| Player | Java 21 | Spring Boot | PostgreSQL | REST |
+| Player | Java 21 | Quarkus | PostgreSQL | REST |
 | Moderation Session | Go | Fiber | PostgreSQL + Redis | REST, gRPC |
-| Applicant | Java 21 | Spring Boot | PostgreSQL | gRPC |
-| Credential | Java 21 | Spring Boot | PostgreSQL | REST, gRPC |
+| Applicant | Java 21 | Quarkus | PostgreSQL | gRPC |
+| Credential | Java 21 | Quarkus | PostgreSQL | REST, gRPC |
 | University Record | Go | Fiber | PostgreSQL | REST, gRPC |
 | Server Rules | Go | Fiber | PostgreSQL | REST, gRPC |
-| Moderation | Java 21 | Spring Boot | PostgreSQL | REST, gRPC |
+| Moderation | Java 21 | Quarkus | PostgreSQL | REST, gRPC |
 | Discord DMs | Go | Gorilla WebSocket | Redis | WebSocket, REST |
 
 Message broker: **RabbitMQ**. API gateway: **Traefik**. Everything runs under
@@ -964,6 +968,110 @@ the same row.
 | 429 | `RESOURCE_EXHAUSTED` | Rate limit exceeded |
 | 500 | `INTERNAL` | Unhandled server error |
 | 503 | `UNAVAILABLE` | Downstream dependency unavailable |
+
+---
+
+## Docker Hub images
+
+All images are public and tagged with the service's semantic version
+(`<user>/<service>:<version>`). The CPR's `docker-compose.yml` pulls them from Docker Hub;
+it never builds from a Dockerfile.
+
+|Service|Image|Host port|Database|
+|-|-|-|-|
+|Moderation|[`m3ower/student-id-moderation-service:0.1.0`](https://hub.docker.com/r/m3ower/student-id-moderation-service)|8087|PostgreSQL 16 (`moderation-db`, volume `moderation-pg-data`)|
+|Discord DMs|[`m3ower/student-id-discord-dms-service:0.1.0`](https://hub.docker.com/r/m3ower/student-id-discord-dms-service)|8088|Redis 7.4 with AOF (`dms-redis`, volume `dms-redis-data`)|
+
+## Running the system
+
+**Requirements:** Docker Engine 24+ with Compose v2, about 3 GB of free RAM (the Java
+services are the heavy part), and free host ports for every service in the
+table above.
+
+```bash
+git clone --recurse-submodules https://github.com/m3ower/faf-student-id-please.git
+cd faf-student-id-please
+cp .env.example .env      # set every \*\_PASSWORD to a value of your own
+docker compose up -d
+docker compose ps         # wait until every service is "healthy"
+```
+
+Data survives `docker compose down` because every database uses a named volume;
+`docker compose down -v` wipes it.
+
+Credentials exist only in `.env`, which is git-ignored. `.env.example` holds
+placeholders so everyone knows which variables to set.
+
+## Testing with Postman
+
+Collections live in [`postman/`](postman). Import one and run it with the Collection
+Runner; each starts a fresh session id, so it can be re-run.
+
+|Collection|Base URL|
+|-|-|
+|`moderation-service.postman\_collection.json`|`http://localhost:8087`|
+|`discord-dms-service.postman\_collection.json`|`http://localhost:8088`|
+
+## Mocks in Lab 1
+
+Until the services are connected in Lab 2, every service replaces its dependencies with
+mocks that use the contract's data types. The Moderation and Discord DMs services share
+the same demo players, so the collections line up:
+
+|Player id|Role|
+|-|-|
+|`11111111-1111-1111-1111-111111111111`|Moderator|
+|`22222222-2222-2222-2222-222222222222`|Junior (enrollment list, `#enrollment-check`)|
+|`33333333-3333-3333-3333-333333333333`|Junior (Outlook groups, `#faculty-check`)|
+|`44444444-4444-4444-4444-444444444444`|Junior (course catalog, `#course-registration`)|
+
+Demo applicants `a0000000-0000-0000-0000-00000000000{1..8}` each carry a fixed deception
+(none, impersonation, forged document, ...); see the Moderation Service README.
+
+## Communication contract: Lab 1 changes
+
+Additive only, so no MAJOR version bump.
+
+**Moderation Service**
+
+* Added `GET /api/v1/decisions?sessionId\&moderatorId`, `PATCH /api/v1/decisions/{id}`
+(reason only, author only) and `DELETE /api/v1/decisions/{id}` (moderator only, reverts
+the score) to complete CRUD.
+* Added penalty policies: `POST/GET/PUT/DELETE /api/v1/penalty-policies\[/{id}]` and
+`GET /api/v1/penalty-policies/effective`. They override the default penalty per
+(expected, actual) pair.
+* Decision responses now always carry the full record (`sessionId`, `applicantId`,
+`moderatorId`, `action`, `reason`, `appealStatus`, `penaltyRefunded`, `decidedAt`);
+`sessionScore` appears only in the submit response.
+* `violatedRules` now also lists the applicant's deception type (e.g. `IMPERSONATION`).
+* Appeal outcome is defined: a wrong `FLAG` is overturned with half the penalty refunded;
+everything else is upheld. One appeal per decision, within 10 minutes.
+* New error codes: `NOT\_MODERATOR`, `NOT\_DECISION\_AUTHOR`, `DECISION\_EXISTS`,
+`ALREADY\_APPEALED`, `APPEAL\_WINDOW\_CLOSED`, `POLICY\_EXISTS`, `POLICY\_SAME\_ACTION`,
+`POLICY\_NOT\_FOUND`, `VALIDATION\_FAILED`, `MALFORMED\_REQUEST`.
+
+**Discord DMs Service**
+
+* Added channel CRUD (`POST /api/v1/channels`, `GET/PUT/DELETE /api/v1/channels/{channel}`),
+moderator-only for writes, with a `readOnly` flag.
+* Added REST messaging next to the WebSocket: `POST /api/v1/channels/{channel}/messages`,
+`PATCH` and `DELETE /api/v1/messages/{messageId}`.
+* Channel names in URL paths are written without `#`, because `#` starts a URL fragment.
+* The caller is identified by the `X-Player-Id` header (JWT subject from Lab 2).
+* New WebSocket server frames: `MESSAGE\_EDITED`, `MESSAGE\_DELETED`, `USER\_TYPING`,
+`CHANNEL\_JOINED`.
+* Internal endpoints that stand in for RabbitMQ consumers until Lab 2:
+`POST /api/v1/internal/sessions/{id}/channels/defaults` (ShiftStarted) and
+`POST /api/v1/internal/sessions/{id}/broadcast` (Session events). Not routed through
+the gateway.
+
+## Contract change: Moderation Service stack
+
+The Moderation Service moved from Spring Boot to **Quarkus 3.15** (still Java 21 and
+PostgreSQL). Update its row in the tech-stack table. The REST paths, request and response
+bodies, error envelope and gRPC contract are unchanged. The only visible difference is the health
+endpoint, which is now `GET /q/health/ready` (and `/q/health/live`) instead of
+`/actuator/health`.
 
 ---
 
