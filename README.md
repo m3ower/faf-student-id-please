@@ -35,6 +35,7 @@ traumatize Mr. Pumpkin with the emojis.
 6. [Repository structure](#repository-structure)
 7. [Contribution guide](#contribution-guide)
 8. [Project board](#project-board)
+9. [Lab 1 deployment](#lab-1-deployment)
 
 ---
 
@@ -538,6 +539,22 @@ Response: 200 { "types": ["STUDENT_ID", "UNIVERSITY_EMAIL",
                           "ENROLLMENT_CONFIRMATION", "COURSE_REGISTRATION"] }
 ```
 
+```
+POST /api/v1/credentials
+Request:  { "applicantId": "uuid", "type": "STUDENT_ID", "issuedAt": "2024-09-01",
+            "expiresAt": "2028-07-01", "fields": { "studentId": "FAF-221", "photoUrl": "string" } }
+Response: 201 { "credentialId": "uuid", "applicantId": "uuid", "type": "STUDENT_ID", ... }
+Errors:   400 malformed request | 422 invalid credential fields
+```
+
+```
+GET    /api/v1/credentials/{credentialId}
+PUT    /api/v1/credentials/{credentialId}
+DELETE /api/v1/credentials/{credentialId}
+Responses: 200 credential | 204 deletion complete
+Errors:    404 credential not found
+```
+
 #### University Record Service
 
 Every lookup requires `X-Session-Id` and `X-Player-Id`, and is rejected with 403
@@ -600,6 +617,33 @@ Response: 200 {
   ]
 }
 Errors:   404 session not found
+```
+
+```
+POST /api/v1/rules
+Request:  { "code": "MIN_2_YEARS", "description": "Must be enrolled for at least 2 years",
+            "type": "MIN_ENROLLMENT_YEARS", "severity": "MAJOR", "active": true,
+            "minimumYears": 2 }
+Response: 201 { "ruleId": "uuid", "code": "MIN_2_YEARS", ... }
+Errors:   400 malformed request | 422 invalid rule
+```
+
+```
+GET    /api/v1/rules
+GET    /api/v1/rules/{ruleId}
+PUT    /api/v1/rules/{ruleId}
+DELETE /api/v1/rules/{ruleId}
+Responses: 200 rule or list | 204 deletion complete
+Errors:    404 rule not found
+```
+
+```
+POST /api/v1/rules/evaluate
+Request:  { "applicantId": "uuid", "major": "FAF", "enrollmentYears": 2,
+            "role": "STUDENT", "previouslyBanned": false, "requestedChannel": "#general" }
+Response: 200 { "applicantId": "uuid", "rulesetVersion": 1, "violations": [],
+                "recommendedAction": "ACCEPT" }
+Errors:   400 malformed request | 422 invalid applicant data
 ```
 
 #### Moderation Service
@@ -1074,6 +1118,34 @@ endpoint, which is now `GET /q/health/ready` (and `/q/health/live`) instead of
 `/actuator/health`.
 
 ---
+## Lab 1 deployment
+
+The shared [`docker-compose.yml`](docker-compose.yml) also deploys the Credential
+and Server Rules services owned by Clima Marin. They share one PostgreSQL
+container while using separate databases, users, and the `postgres-data` Docker
+volume; the Moderation and Discord DMs services retain their own database and
+Redis volumes.
+
+Configured versioned Docker Hub image locations (to be published before a full
+Compose deployment):
+
+- `cmmarin/student-id-credential-service:0.1.0`
+- `cmmarin/student-id-rules-service:0.1.0`
+
+Copy `.env.example` to `.env`, replace its example passwords, then run:
+
+```bash
+docker compose up
+```
+
+The Compose file references image tags only, never the services' local
+Dockerfiles. Until an image is published, build and tag it locally using the
+matching command in its service README. Publishing is intentionally a manual
+step because it requires Docker Hub authorization.
+
+The PostgreSQL initialization script runs only when the volume is first
+created. To recreate development databases, intentionally remove the named
+volume and start Compose again.
 
 ## Repository structure
 
