@@ -1,0 +1,70 @@
+# Moderation Service + Discord DMs Service (owner: Gurev Andreea)
+#
+# Merge these services and volumes into the team's docker-compose.yml in the CPR root.
+# Images come from Docker Hub; nothing here builds from a Dockerfile.
+# Secrets are read from the CPR's .env (git-ignored), see .env.example.
+#
+# Run on its own for testing:
+#   docker compose -f deploy/docker-compose.moderation-dms.yml --env-file .env up
+
+services:
+  moderation-service:
+    image: ${DOCKERHUB_USER:-m3ower}/student-id-moderation-service:${MODERATION_VERSION:-0.1.0}
+    restart: unless-stopped
+    environment:
+      DB_URL: jdbc:postgresql://moderation-db:5432/${MODERATION_DB_NAME:-moderation}
+      DB_USER: ${MODERATION_DB_USER:-moderation}
+      DB_PASSWORD: ${MODERATION_DB_PASSWORD:?set MODERATION_DB_PASSWORD in .env}
+    ports:
+      - "8087:8080"
+    depends_on:
+      moderation-db:
+        condition: service_healthy
+
+  moderation-db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${MODERATION_DB_NAME:-moderation}
+      POSTGRES_USER: ${MODERATION_DB_USER:-moderation}
+      POSTGRES_PASSWORD: ${MODERATION_DB_PASSWORD:?set MODERATION_DB_PASSWORD in .env}
+    volumes:
+      - moderation-pg-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  discord-dms-service:
+    image: ${DOCKERHUB_USER:-m3ower}/student-id-discord-dms-service:${DMS_VERSION:-0.1.0}
+    restart: unless-stopped
+    environment:
+      STORE: redis
+      REDIS_ADDR: dms-redis:6379
+      REDIS_PASSWORD: ${DMS_REDIS_PASSWORD:?set DMS_REDIS_PASSWORD in .env}
+      SESSION_CLIENT: mock
+      WS_ALLOWED_ORIGINS: "*"
+    ports:
+      - "8088:8080"
+    depends_on:
+      dms-redis:
+        condition: service_healthy
+
+  dms-redis:
+    image: redis:7.4-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes", "--requirepass", "${DMS_REDIS_PASSWORD}"]
+    environment:
+      REDISCLI_AUTH: ${DMS_REDIS_PASSWORD}
+    volumes:
+      - dms-redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  moderation-pg-data:
+  dms-redis-data:

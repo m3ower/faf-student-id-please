@@ -1,0 +1,1153 @@
+{
+  "info": {
+    "name": "Student ID - Discord DMs Service",
+    "description": "Discord DMs Service (Go). Run the whole collection with the Runner; the first request starts a fresh session id.\n\nWebSocket (use Postman's New > WebSocket, collections cannot store WS requests):\nws://localhost:8088/ws/v1/sessions/{{sessionId}}?playerId=22222222-2222-2222-2222-222222222222&token=dev\nSend: {\"type\":\"MESSAGE_SEND\",\"channel\":\"#enrollment-check\",\"content\":\"hello\"}\nOpen a second tab as the moderator (1111...) to watch it arrive, and one as 3333... to see that it does not.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8088"
+    },
+    {
+      "key": "sessionId",
+      "value": ""
+    },
+    {
+      "key": "moderatorId",
+      "value": "11111111-1111-1111-1111-111111111111"
+    },
+    {
+      "key": "junior1Id",
+      "value": "22222222-2222-2222-2222-222222222222"
+    },
+    {
+      "key": "junior2Id",
+      "value": "33333333-3333-3333-3333-333333333333"
+    },
+    {
+      "key": "junior3Id",
+      "value": "44444444-4444-4444-4444-444444444444"
+    },
+    {
+      "key": "messageId",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "Setup",
+      "item": [
+        {
+          "name": "Health (starts a fresh session)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "health"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set(\"sessionId\", pm.variables.replaceIn(\"{{$guid}}\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create default channels (internal)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/internal/sessions/{{sessionId}}/channels/defaults",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "internal",
+                "sessions",
+                "{{sessionId}}",
+                "channels",
+                "defaults"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 201\", () => pm.response.to.have.status(201));",
+                  "pm.test(\"4 channels\", () => pm.expect(pm.response.json().channels.length).to.eql(4));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Channels",
+      "item": [
+        {
+          "name": "List - moderator sees all",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Player-Id",
+                "value": "{{moderatorId}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/channels?sessionId={{sessionId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "channels"
+              ],
+              "query": [
+                {
+                  "key": "sessionId",
+                  "value": "{{sessionId}}"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"4\", () => pm.expect(pm.response.json().channels.length).to.eql(4));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List - junior sees assigned only",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Player-Id",
+                "value": "{{junior1Id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/channels?sessionId={{sessionId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "channels"
+              ],
+              "query": [
+                {
+                  "key": "sessionId",
+                  "value": "{{sessionId}}"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", () => pm.response.to.have.status(200));",
+                  "const names = pm.response.json().channels.map(c => c.name);",
+                  "pm.test(\"enrollment + general only\", () => pm.expect(names).to.have.members([\"#enrollment-check\", \"#general-mod-chat\"]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List - outsider (403)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Player-Id",
+                "value": "99999999-9999-9999-9999-999999999999"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/channels?sessionId={{sessionId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "channels"
+              ],
+              "query": [
+                {
+                  "key": "sessionId",
+                  "value": "{{sessionId}}"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 403\", () => pm.response.to.have.status(403));",
+                  "pm.test(\"error code PLAYER_NOT_IN_SESSION\", () => pm.expect(pm.response.json().error.code).to.eql(\"PLAYER_NOT_IN_SESSION\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create channel",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Player-Id",
+                "value": "{{moderatorId}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/channels",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "channels"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sessionId\": \"{{sessionId}}\",\n  \"name\": \"evidence\",\n  \"topic\": \"Screenshots and proofs\",\n  \"readOnly\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 201\", () => pm.response.to.have.status(201));",
+                  "pm.test(\"named #evidence\", () => pm.expect(pm.response.json().name).to.eql(\"#evidence\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create channel - junior (403)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Player-Id",
+                "value": "{{junior1Id}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/channels",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "channels"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sessionId\": \"{{sessionId}}\",\n  \"name\": \"junior-room\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 403\", () => pm.response.to.have.status(403));",
+                  "pm.test(\"error code MODERATOR_ONLY\", () => pm.expect(pm.response.json().error.code).to.eql(\"MODERATOR_ONLY\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create channel - duplicate (409)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Player-Id",
+                "value": "{{moderatorId}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/channels",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "channels"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sessionId\": \"{{sessionId}}\",\n  \"name\": \"evidence\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 409\", () => pm.response.to.have.status(409));",
+                  "pm.test(\"error code CHANNEL_EXISTS\", () => pm.expect(pm.response.json().error.code).to.eql(\"CHANNEL_EXISTS\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create channel - invalid name (422)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Player-Id",
+                "value": "{{moderatorId}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/channels",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "channels"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sessionId\": \"{{sessionId}}\",\n  \"name\": \"Bad Name!\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 422\", () => pm.response.to.have.status(422));",
+                  "pm.test(\"error code INVALID_CHANNEL_NAME\", () => pm.expect(pm.response.json().error.code).to.eql(\"INVALID_CHANNEL_NAME\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get channel",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Player-Id",
+                "value": "{{moderatorId}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/channels/evidence?sessionId={{sessionId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "channels",
+                "evidence"
+              ],
+              "query": [
+                {
+                  "key": "sessionId",
+                  "value": "{{sessionId}}"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update channel - make read-only",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "X-Player-Id",
+                "value": "{{moderatorId}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/channels/evidence?sessionId={{sessionId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "channels",
+                "evidence"
+              ],
+              "query": [
+                {
+                  "key": "sessionId",
+                  "value": "{{sessionId}}"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"topic\": \"Moderator notes only\",\n  \"readOnly\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"read-only\", () => pm.expect(pm.response.json().readOnly).to.be.true);"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Messages",
+      "item": [
+        {
+          "name": "Send - junior to own channel",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Player-Id",
+                "value": "{{junior1Id}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/channels/enrollment-check/messages?sessionId={{sessionId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "channels",
+                "enrollment-check",
+                "messages"
+              ],
+              "query": [
+                {
+                  "key": "sessionId",
+                  "value": "{{sessionId}}"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"content\": \"FAF-221 is not on the enrollment list\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 201\", () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set(\"messageId\", pm.response.json().messageId);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Send - junior to foreign channel (403)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Player-Id",
+                "value": "{{junior1Id}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/channels/faculty-check/messages?sessionId={{sessionId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "channels",
+                "faculty-check",
+                "messages"
+              ],
+              "query": [
+                {
+                  "key": "sessionId",
+                  "value": "{{sessionId}}"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"content\": \"sneaky\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 403\", () => pm.response.to.have.status(403));",
+                  "pm.test(\"error code CHANNEL_FORBIDDEN\", () => pm.expect(pm.response.json().error.code).to.eql(\"CHANNEL_FORBIDDEN\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Send - moderator to read-only channel",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Player-Id",
+                "value": "{{moderatorId}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/channels/evidence/messages?sessionId={{sessionId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "channels",
+                "evidence",
+                "messages"
+              ],
+              "query": [
+                {
+                  "key": "sessionId",
+                  "value": "{{sessionId}}"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"content\": \"Keep screenshots here\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 201\", () => pm.response.to.have.status(201));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Send - empty (422)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Player-Id",
+                "value": "{{junior2Id}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/channels/general-mod-chat/messages?sessionId={{sessionId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "channels",
+                "general-mod-chat",
+                "messages"
+              ],
+              "query": [
+                {
+                  "key": "sessionId",
+                  "value": "{{sessionId}}"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"content\": \"   \"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 422\", () => pm.response.to.have.status(422));",
+                  "pm.test(\"error code EMPTY_MESSAGE\", () => pm.expect(pm.response.json().error.code).to.eql(\"EMPTY_MESSAGE\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "History",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Player-Id",
+                "value": "{{moderatorId}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/channels/enrollment-check/history?sessionId={{sessionId}}&limit=50",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "channels",
+                "enrollment-check",
+                "history"
+              ],
+              "query": [
+                {
+                  "key": "sessionId",
+                  "value": "{{sessionId}}"
+                },
+                {
+                  "key": "limit",
+                  "value": "50"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"1 message\", () => pm.expect(pm.response.json().messages.length).to.eql(1));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Edit - not author (403)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "X-Player-Id",
+                "value": "{{junior2Id}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/messages/{{messageId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "messages",
+                "{{messageId}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"content\": \"edited\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 403\", () => pm.response.to.have.status(403));",
+                  "pm.test(\"error code NOT_MESSAGE_AUTHOR\", () => pm.expect(pm.response.json().error.code).to.eql(\"NOT_MESSAGE_AUTHOR\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Edit - author",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "X-Player-Id",
+                "value": "{{junior1Id}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/messages/{{messageId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "messages",
+                "{{messageId}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"content\": \"Correction: FAF-221 IS enrolled\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"editedAt set\", () => pm.expect(pm.response.json().editedAt).to.exist);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Delete - moderator",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "X-Player-Id",
+                "value": "{{moderatorId}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/messages/{{messageId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "messages",
+                "{{messageId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 204\", () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Delete - again (404)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "X-Player-Id",
+                "value": "{{moderatorId}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/messages/{{messageId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "messages",
+                "{{messageId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 404\", () => pm.response.to.have.status(404));",
+                  "pm.test(\"error code MESSAGE_NOT_FOUND\", () => pm.expect(pm.response.json().error.code).to.eql(\"MESSAGE_NOT_FOUND\"));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Session events (internal)",
+      "item": [
+        {
+          "name": "Broadcast APPLICANT_CHANGED",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/internal/sessions/{{sessionId}}/broadcast",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "internal",
+                "sessions",
+                "{{sessionId}}",
+                "broadcast"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"APPLICANT_CHANGED\",\n  \"applicantId\": \"a0000000-0000-0000-0000-000000000003\",\n  \"position\": 2\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 202\", () => pm.response.to.have.status(202));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Broadcast unknown type (422)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/internal/sessions/{{sessionId}}/broadcast",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "internal",
+                "sessions",
+                "{{sessionId}}",
+                "broadcast"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"NOPE\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 422\", () => pm.response.to.have.status(422));",
+                  "pm.test(\"error code UNKNOWN_EVENT_TYPE\", () => pm.expect(pm.response.json().error.code).to.eql(\"UNKNOWN_EVENT_TYPE\"));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Cleanup",
+      "item": [
+        {
+          "name": "Delete channel",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "X-Player-Id",
+                "value": "{{moderatorId}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/channels/evidence?sessionId={{sessionId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "channels",
+                "evidence"
+              ],
+              "query": [
+                {
+                  "key": "sessionId",
+                  "value": "{{sessionId}}"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 204\", () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get deleted channel (404)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Player-Id",
+                "value": "{{moderatorId}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/channels/evidence?sessionId={{sessionId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "channels",
+                "evidence"
+              ],
+              "query": [
+                {
+                  "key": "sessionId",
+                  "value": "{{sessionId}}"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 404\", () => pm.response.to.have.status(404));",
+                  "pm.test(\"error code CHANNEL_NOT_FOUND\", () => pm.expect(pm.response.json().error.code).to.eql(\"CHANNEL_NOT_FOUND\"));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
