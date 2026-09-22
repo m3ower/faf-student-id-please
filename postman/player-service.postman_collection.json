@@ -1,0 +1,106 @@
+{
+  "info": {
+    "name": "Student ID - Player Service",
+    "description": "Player Service Lab 1 collection. Run the collection in order; it creates a fresh player and stores its ID as a collection variable.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8080" },
+    { "key": "playerId", "value": "" },
+    { "key": "username", "value": "" },
+    { "key": "email", "value": "" },
+    { "key": "updatedUsername", "value": "" },
+    { "key": "updatedEmail", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Health and setup",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": { "raw": "{{baseUrl}}/q/health", "host": ["{{baseUrl}}"], "path": ["q", "health"] }
+      },
+      "event": [{
+        "listen": "test",
+        "script": { "type": "text/javascript", "exec": [
+          "pm.test(\"status is 200\", () => pm.response.to.have.status(200));",
+          "pm.test(\"service is UP\", () => pm.expect(pm.response.json().status).to.eql(\"UP\"));",
+          "const suffix = pm.variables.replaceIn(\"{{$guid}}\");",
+          "pm.collectionVariables.set(\"username\", \"player-\" + suffix);",
+          "pm.collectionVariables.set(\"email\", \"player-\" + suffix + \"@example.com\");",
+          "pm.collectionVariables.set(\"updatedUsername\", \"updated-\" + suffix);",
+          "pm.collectionVariables.set(\"updatedEmail\", \"updated-\" + suffix + \"@example.com\");"
+        ] }
+      }]
+    },
+    {
+      "name": "Register player",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"username\": \"{{username}}\",\n  \"email\": \"{{email}}\",\n  \"password\": \"password123\"\n}", "options": { "raw": { "language": "json" } } },
+        "url": { "raw": "{{baseUrl}}/api/v1/players/register", "host": ["{{baseUrl}}"], "path": ["api", "v1", "players", "register"] }
+      },
+      "event": [{
+        "listen": "test",
+        "script": { "type": "text/javascript", "exec": [
+          "pm.test(\"status is 201\", () => pm.response.to.have.status(201));",
+          "const body = pm.response.json();",
+          "pm.collectionVariables.set(\"playerId\", body.playerId);",
+          "pm.test(\"starts at level one\", () => pm.expect(body.level).to.eql(1));",
+          "pm.test(\"starts with zero XP\", () => pm.expect(body.xp).to.eql(0));"
+        ] }
+      }]
+    },
+    {
+      "name": "Get registered player",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": { "raw": "{{baseUrl}}/api/v1/players/{{playerId}}", "host": ["{{baseUrl}}"], "path": ["api", "v1", "players", "{{playerId}}"] }
+      },
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test(\"status is 200\", () => pm.response.to.have.status(200));",
+        "pm.test(\"username matches\", () => pm.expect(pm.response.json().username).to.eql(pm.collectionVariables.get(\"username\")));"
+      ] } }]
+    },
+    {
+      "name": "Update player profile",
+      "request": {
+        "method": "PUT",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"username\": \"{{updatedUsername}}\",\n  \"email\": \"{{updatedEmail}}\"\n}", "options": { "raw": { "language": "json" } } },
+        "url": { "raw": "{{baseUrl}}/api/v1/players/{{playerId}}", "host": ["{{baseUrl}}"], "path": ["api", "v1", "players", "{{playerId}}"] }
+      },
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test(\"status is 200\", () => pm.response.to.have.status(200));",
+        "pm.test(\"username updated\", () => pm.expect(pm.response.json().username).to.eql(pm.collectionVariables.get(\"updatedUsername\")));"
+      ] } }]
+    },
+    {
+      "name": "Get updated player",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": { "raw": "{{baseUrl}}/api/v1/players/{{playerId}}", "host": ["{{baseUrl}}"], "path": ["api", "v1", "players", "{{playerId}}"] }
+      },
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test(\"status is 200\", () => pm.response.to.have.status(200));",
+        "pm.test(\"updated username persists\", () => pm.expect(pm.response.json().username).to.eql(pm.collectionVariables.get(\"updatedUsername\")));"
+      ] } }]
+    },
+    {
+      "name": "Register duplicate player (409)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"username\": \"{{updatedUsername}}\",\n  \"email\": \"{{updatedEmail}}\",\n  \"password\": \"password123\"\n}", "options": { "raw": { "language": "json" } } },
+        "url": { "raw": "{{baseUrl}}/api/v1/players/register", "host": ["{{baseUrl}}"], "path": ["api", "v1", "players", "register"] }
+      },
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test(\"status is 409\", () => pm.response.to.have.status(409));",
+        "pm.test(\"duplicate error code\", () => pm.expect(pm.response.json().error.code).to.eql(\"PLAYER_ALREADY_EXISTS\"));"
+      ] } }]
+    }
+  ]
+}

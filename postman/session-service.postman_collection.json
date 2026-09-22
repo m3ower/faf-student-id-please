@@ -1,0 +1,108 @@
+{
+  "info": {
+    "name": "Student ID - Session Service",
+    "description": "Session Service Lab 1 collection. Run the collection in order; it creates a fresh session and uses temporary X-Player-Id host authentication.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8080" },
+    { "key": "teamId", "value": "" },
+    { "key": "hostPlayerId", "value": "" },
+    { "key": "juniorPlayerId", "value": "" },
+    { "key": "sessionId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Health and setup",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": { "raw": "{{baseUrl}}/health", "host": ["{{baseUrl}}"], "path": ["health"] }
+      },
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test(\"status is 200\", () => pm.response.to.have.status(200));",
+        "pm.test(\"service is UP\", () => pm.expect(pm.response.json().status).to.eql(\"UP\"));",
+        "pm.collectionVariables.set(\"teamId\", pm.variables.replaceIn(\"{{$guid}}\"));",
+        "pm.collectionVariables.set(\"hostPlayerId\", pm.variables.replaceIn(\"{{$guid}}\"));",
+        "pm.collectionVariables.set(\"juniorPlayerId\", pm.variables.replaceIn(\"{{$guid}}\"));"
+      ] } }]
+    },
+    {
+      "name": "Create session",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"teamId\": \"{{teamId}}\",\n  \"hostPlayerId\": \"{{hostPlayerId}}\",\n  \"difficulty\": \"NORMAL\"\n}", "options": { "raw": { "language": "json" } } },
+        "url": { "raw": "{{baseUrl}}/api/v1/sessions", "host": ["{{baseUrl}}"], "path": ["api", "v1", "sessions"] }
+      },
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test(\"status is 201\", () => pm.response.to.have.status(201));",
+        "const body = pm.response.json();",
+        "pm.collectionVariables.set(\"sessionId\", body.sessionId);",
+        "pm.test(\"starts in lobby\", () => pm.expect(body.state).to.eql(\"LOBBY\"));"
+      ] } }]
+    },
+    {
+      "name": "Join junior player",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{ \"playerId\": \"{{juniorPlayerId}}\" }", "options": { "raw": { "language": "json" } } },
+        "url": { "raw": "{{baseUrl}}/api/v1/sessions/{{sessionId}}/join", "host": ["{{baseUrl}}"], "path": ["api", "v1", "sessions", "{{sessionId}}", "join"] }
+      },
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test(\"status is 200\", () => pm.response.to.have.status(200));",
+        "pm.test(\"two players joined\", () => pm.expect(pm.response.json().players.length).to.eql(2));"
+      ] } }]
+    },
+    {
+      "name": "Start before roles (422)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "X-Player-Id", "value": "{{hostPlayerId}}" }],
+        "url": { "raw": "{{baseUrl}}/api/v1/sessions/{{sessionId}}/start", "host": ["{{baseUrl}}"], "path": ["api", "v1", "sessions", "{{sessionId}}", "start"] }
+      },
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test(\"status is 422\", () => pm.response.to.have.status(422));",
+        "pm.test(\"roles required\", () => pm.expect(pm.response.json().error.code).to.eql(\"ROLES_NOT_ASSIGNED\"));"
+      ] } }]
+    },
+    {
+      "name": "Assign roles",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "X-Player-Id", "value": "{{hostPlayerId}}" }],
+        "body": { "mode": "raw", "raw": "{\n  \"assignments\": [\n    { \"playerId\": \"{{hostPlayerId}}\", \"role\": \"MODERATOR\" },\n    { \"playerId\": \"{{juniorPlayerId}}\", \"role\": \"JUNIOR_MODERATOR\" }\n  ]\n}", "options": { "raw": { "language": "json" } } },
+        "url": { "raw": "{{baseUrl}}/api/v1/sessions/{{sessionId}}/roles", "host": ["{{baseUrl}}"], "path": ["api", "v1", "sessions", "{{sessionId}}", "roles"] }
+      },
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test(\"status is 200\", () => pm.response.to.have.status(200));",
+        "pm.test(\"host is moderator\", () => pm.expect(pm.response.json().players[0].role).to.eql(\"MODERATOR\"));"
+      ] } }]
+    },
+    {
+      "name": "Start session",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "X-Player-Id", "value": "{{hostPlayerId}}" }],
+        "url": { "raw": "{{baseUrl}}/api/v1/sessions/{{sessionId}}/start", "host": ["{{baseUrl}}"], "path": ["api", "v1", "sessions", "{{sessionId}}", "start"] }
+      },
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test(\"status is 200\", () => pm.response.to.have.status(200));",
+        "pm.test(\"session is active\", () => pm.expect(pm.response.json().state).to.eql(\"ACTIVE\"));"
+      ] } }]
+    },
+    {
+      "name": "End session",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "url": { "raw": "{{baseUrl}}/api/v1/sessions/{{sessionId}}/end", "host": ["{{baseUrl}}"], "path": ["api", "v1", "sessions", "{{sessionId}}", "end"] }
+      },
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test(\"status is 200\", () => pm.response.to.have.status(200));",
+        "pm.test(\"session is completed\", () => pm.expect(pm.response.json().state).to.eql(\"COMPLETED\"));"
+      ] } }]
+    }
+  ]
+}
