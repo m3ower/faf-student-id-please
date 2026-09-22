@@ -1,13 +1,57 @@
-# Moderation Service + Discord DMs Service (owner: Gurev Andreea)
-#
-# Merge these services and volumes into the team's docker-compose.yml in the CPR root.
-# Images come from Docker Hub; nothing here builds from a Dockerfile.
-# Secrets are read from the CPR's .env (git-ignored), see .env.example.
-#
-# Run on its own for testing:
-#   docker compose -f deploy/docker-compose.moderation-dms.yml --env-file .env up
+# Shared Lab 1 deployment. Images are pulled from Docker Hub; no local Dockerfile is built.
+# Copy .env.example to .env and supply all password values before starting the stack.
 
 services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      CREDENTIAL_DB_NAME: ${CREDENTIAL_DB_NAME:-credential_db}
+      CREDENTIAL_DB_USER: ${CREDENTIAL_DB_USER:-credential_user}
+      CREDENTIAL_DB_PASSWORD: ${CREDENTIAL_DB_PASSWORD:?set CREDENTIAL_DB_PASSWORD in .env}
+      RULES_DB_NAME: ${RULES_DB_NAME:-rules_db}
+      RULES_DB_USER: ${RULES_DB_USER:-rules_user}
+      RULES_DB_PASSWORD: ${RULES_DB_PASSWORD:?set RULES_DB_PASSWORD in .env}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./docker/postgres-init-owned-services.sh:/docker-entrypoint-initdb.d/10-owned-services.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  credential-service:
+    image: ${CREDENTIAL_IMAGE:-cmmarin/student-id-credential-service:0.1.0}
+    ports:
+      - "8080:8080"
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${CREDENTIAL_DB_NAME:-credential_db}
+      DB_USER: ${CREDENTIAL_DB_USER:-credential_user}
+      DB_PASSWORD: ${CREDENTIAL_DB_PASSWORD:?set CREDENTIAL_DB_PASSWORD in .env}
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  rules-service:
+    image: ${RULES_IMAGE:-cmmarin/student-id-rules-service:0.1.0}
+    ports:
+      - "8081:8081"
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${RULES_DB_NAME:-rules_db}
+      DB_USER: ${RULES_DB_USER:-rules_user}
+      DB_PASSWORD: ${RULES_DB_PASSWORD:?set RULES_DB_PASSWORD in .env}
+    depends_on:
+      postgres:
+        condition: service_healthy
+
   moderation-service:
     image: ${DOCKERHUB_USER:-m3ower}/student-id-moderation-service:${MODERATION_VERSION:-0.1.0}
     restart: unless-stopped
@@ -66,5 +110,6 @@ services:
       retries: 10
 
 volumes:
+  postgres-data:
   moderation-pg-data:
   dms-redis-data:

@@ -1,0 +1,46 @@
+{
+  "info": {
+    "name": "Student ID - Server Rules Service",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8081" },
+    { "key": "ruleId", "value": "" },
+    { "key": "sessionId", "value": "lab1-session" },
+    { "key": "applicantId", "value": "11111111-1111-1111-1111-111111111111" }
+  ],
+  "item": [
+    {
+      "name": "Create rule",
+      "event": [{ "listen": "test", "script": { "exec": ["pm.collectionVariables.set('ruleId', pm.response.json().ruleId);"] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"code\": \"MIN_2_YEARS\",\n  \"description\": \"Must be enrolled for at least 2 years\",\n  \"type\": \"MIN_ENROLLMENT_YEARS\",\n  \"severity\": \"MAJOR\",\n  \"active\": true,\n  \"minimumYears\": 2\n}" },
+        "url": "{{baseUrl}}/api/v1/rules"
+      }
+    },
+    { "name": "List rules", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/rules" } },
+    { "name": "Get rule", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/rules/{{ruleId}}" } },
+    {
+      "name": "Update rule",
+      "request": {
+        "method": "PUT",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"code\": \"MIN_2_YEARS\",\n  \"description\": \"Must be enrolled for at least 2 years\",\n  \"type\": \"MIN_ENROLLMENT_YEARS\",\n  \"severity\": \"MAJOR\",\n  \"active\": true,\n  \"minimumYears\": 3\n}" },
+        "url": "{{baseUrl}}/api/v1/rules/{{ruleId}}"
+      }
+    },
+    { "name": "Current ruleset", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/rules/current?sessionId={{sessionId}}" } },
+    {
+      "name": "Evaluate applicant",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"applicantId\": \"{{applicantId}}\",\n  \"major\": \"FAF\",\n  \"enrollmentYears\": 1,\n  \"role\": \"STUDENT\",\n  \"previouslyBanned\": false,\n  \"requestedChannel\": \"#general\"\n}" },
+        "url": "{{baseUrl}}/api/v1/rules/evaluate"
+      }
+    },
+    { "name": "Delete rule", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/v1/rules/{{ruleId}}" } }
+  ]
+}
