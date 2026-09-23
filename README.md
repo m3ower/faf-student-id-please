@@ -32,6 +32,7 @@ traumatize Mr. Pumpkin with the emojis.
    - [Running the system](#running-the-system)
    - [Testing with Postman](#testing-with-postman)
    - [Mocks in Lab 1](#mocks-in-lab-1)
+   - [Communication contract: Lab 1 changes](#communication-contract-lab-1-changes)
 6. [Repository structure](#repository-structure)
 7. [Contribution guide](#contribution-guide)
 8. [Project board](#project-board)
@@ -1057,8 +1058,8 @@ be published publicly before a fresh machine can pull it.
 
 |Service|Image|Host port|Database|
 |-|-|-|-|
-|Moderation|[`m3ower/student-id-moderation-service:0.1.0`](https://hub.docker.com/r/m3ower/student-id-moderation-service)|8087|PostgreSQL 16 (`moderation-db`, volume `moderation-pg-data`)|
-|Discord DMs|[`m3ower/student-id-discord-dms-service:0.1.0`](https://hub.docker.com/r/m3ower/student-id-discord-dms-service)|8088|Redis 7.4 with AOF (`dms-redis`, volume `dms-redis-data`)|
+|Moderation| [`meow3r/student-id-moderation-service:0.2.0`](https://hub.docker.com/r/meow3r/student-id-moderation-service) | 8087 | PostgreSQL 16 (`moderation-db`, volume `moderation-pg-data`) |
+|Discord DMs| [`meow3r/student-id-discord-dms-service:0.2.0`](https://hub.docker.com/r/meow3r/student-id-discord-dms-service) | 8088 | Redis 7.4 with AOF (`dms-redis`, volume `dms-redis-data`) |
 |Credential|[`cmmarin/student-id-credential-service:0.1.0`](https://hub.docker.com/r/cmmarin/student-id-credential-service)|8080|PostgreSQL 17 (`credential_db`, volume `postgres-data`)|
 |Server Rules|[`cmmarin/student-id-rules-service:0.1.0`](https://hub.docker.com/r/cmmarin/student-id-rules-service)|8081|PostgreSQL 17 (`rules_db`, volume `postgres-data`)|
 |Player|[`vasiok11/student-id-player-service:0.2.0`](https://hub.docker.com/r/vasiok11/student-id-player-service)|8082|PostgreSQL 16 (`player-db`, volume `player-pg-data`)|
@@ -1089,6 +1090,22 @@ Data survives `docker compose down` because every database uses a named volume;
 Credentials exist only in `.env`, which is git-ignored. `.env.example` holds
 placeholders so everyone knows which variables to set.
 
+### Moderation and Discord DMs: what they need
+
+| Variable | Used by | Meaning |
+| --- | --- | --- |
+| `MODERATION_DB_PASSWORD` | `moderation-db`, `moderation-service` | PostgreSQL password; the same value in both |
+| `DMS_REDIS_PASSWORD` | `dms-redis`, `discord-dms-service` | Redis password |
+| `DOCKERHUB_USER` | both | `meow3r` |
+| `MODERATION_VERSION`, `DMS_VERSION` | both | image tags, see the table above |
+
+Health checks: `GET http://localhost:8087/q/health/ready` (Quarkus, reports the database
+too) and `GET http://localhost:8088/health`. Both must report `UP` before the Postman
+collections will pass.
+
+Both services keep their data in named volumes, so a `docker compose restart` preserves
+decisions and chat history; only `docker compose down -v` clears them.
+
 ## Testing with Postman
 
 Collections live in [`postman/`](postman). Import one and run it with the Collection
@@ -1097,8 +1114,8 @@ test records in one run.
 
 |Collection|Base URL|
 |-|-|
-|`moderation-service.postman\_collection.json`|`http://localhost:8087`|
-|`discord-dms-service.postman\_collection.json`|`http://localhost:8088`|
+|`moderation-service.postman_collection.json`|`http://localhost:8087`|
+|`discord-dms-service.postman_collection.json`|`http://localhost:8088`|
 |`credential-service.postman_collection.json`|`http://localhost:8080`|
 |`server-rules-service.postman_collection.json`|`http://localhost:8081`|
 |`player-service.postman_collection.json`|`http://localhost:8082`|
@@ -1120,16 +1137,19 @@ the same demo players, so the collections line up:
 Demo applicants `a0000000-0000-0000-0000-00000000000{1..8}` each carry a fixed deception
 (none, impersonation, forged document, ...); see the Moderation Service README.
 
+The three Grade 9 fixtures (F1–F3) and the decision precedence are specified under
+[Communication contract: Lab 1 changes](#communication-contract-lab-1-changes).
+
 ## Communication contract: Lab 1 changes
 
 Additive only, so no MAJOR version bump.
 
 **Moderation Service**
 
-* Added `GET /api/v1/decisions?sessionId\&moderatorId`, `PATCH /api/v1/decisions/{id}`
+* Added `GET /api/v1/decisions?sessionId&moderatorId`, `PATCH /api/v1/decisions/{id}`
 (reason only, author only) and `DELETE /api/v1/decisions/{id}` (moderator only, reverts
 the score) to complete CRUD.
-* Added penalty policies: `POST/GET/PUT/DELETE /api/v1/penalty-policies\[/{id}]` and
+* Added penalty policies: `POST/GET/PUT/DELETE /api/v1/penalty-policies[/{id}]` and
 `GET /api/v1/penalty-policies/effective`. They override the default penalty per
 (expected, actual) pair.
 * Decision responses now always carry the full record (`sessionId`, `applicantId`,
@@ -1138,9 +1158,9 @@ the score) to complete CRUD.
 * `violatedRules` now also lists the applicant's deception type (e.g. `IMPERSONATION`).
 * Appeal outcome is defined: a wrong `FLAG` is overturned with half the penalty refunded;
 everything else is upheld. One appeal per decision, within 10 minutes.
-* New error codes: `NOT\_MODERATOR`, `NOT\_DECISION\_AUTHOR`, `DECISION\_EXISTS`,
-`ALREADY\_APPEALED`, `APPEAL\_WINDOW\_CLOSED`, `POLICY\_EXISTS`, `POLICY\_SAME\_ACTION`,
-`POLICY\_NOT\_FOUND`, `VALIDATION\_FAILED`, `MALFORMED\_REQUEST`.
+* New error codes: `NOT_MODERATOR`, `NOT_DECISION_AUTHOR`, `DECISION_EXISTS`,
+`ALREADY_APPEALED`, `APPEAL_WINDOW_CLOSED`, `POLICY_EXISTS`, `POLICY_SAME_ACTION`,
+`POLICY_NOT_FOUND`, `VALIDATION_FAILED`, `MALFORMED_REQUEST`.
 
 **Discord DMs Service**
 
@@ -1150,20 +1170,74 @@ moderator-only for writes, with a `readOnly` flag.
 `PATCH` and `DELETE /api/v1/messages/{messageId}`.
 * Channel names in URL paths are written without `#`, because `#` starts a URL fragment.
 * The caller is identified by the `X-Player-Id` header (JWT subject from Lab 2).
-* New WebSocket server frames: `MESSAGE\_EDITED`, `MESSAGE\_DELETED`, `USER\_TYPING`,
-`CHANNEL\_JOINED`.
+* New WebSocket server frames: `MESSAGE_EDITED`, `MESSAGE_DELETED`, `USER_TYPING`,
+`CHANNEL_JOINED`.
 * Internal endpoints that stand in for RabbitMQ consumers until Lab 2:
 `POST /api/v1/internal/sessions/{id}/channels/defaults` (ShiftStarted) and
 `POST /api/v1/internal/sessions/{id}/broadcast` (Session events). Not routed through
 the gateway.
 
-## Contract change: Moderation Service stack
+### Moderation Service: Grade 9 decisions
 
-The Moderation Service moved from Spring Boot to **Quarkus 3.15** (still Java 21 and
-PostgreSQL). Update its row in the tech-stack table. The REST paths, request and response
-bodies, error envelope and gRPC contract are unchanged. The only visible difference is the health
-endpoint, which is now `GET /q/health/ready` (and `/q/health/live`) instead of
-`/actuator/health`.
+**Fixtures.** Session `55555555-5555-5555-5555-555555555555`, ruleset version 1. All three
+applicants claim major FAF, year 2, ENROLLED, STUDENT, with a matching ACTIVE university
+enrollment since 2024-09-01 and `enrollmentYears = 2`. That is fixed fixture data, not a
+calculation from today's date.
+
+| # | Applicant id | Name, group, seed | Deception | Credentials | Rules | Rules says | Expected |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| F1 | `a0000000-…-000000000001` | Vlad Cebotari, FAF-221, 918273 | NONE | valid, authentic | – | ACCEPT | **ACCEPT** |
+| F2 | `a0000000-…-000000000002` | Ana Rusu, FAF-222, 918274 | FORGED_DOCUMENT | STUDENT_ID structurally valid, `authentic=false`, issue `SIGNATURE_MISMATCH` | – | ACCEPT | **REJECT** |
+| F3 | `a0000000-…-000000000003` | Mihai Lupu, FAF-223, 918275 | PREVIOUSLY_BANNED | valid, authentic | `NO_BANNED` (CRITICAL) | BAN | **BAN** |
+
+**Decision precedence**, owned by the Moderation Service:
+
+1. a prior ban, or any CRITICAL rule violation → **BAN**
+2. a credential that is invalid, inauthentic or expired, any remaining rule violation, or
+   any other declared deception → **REJECT**
+3. nothing against the applicant → **ACCEPT**
+
+Rules' `recommendedAction` is **advisory**. F2 is the case that proves it: Rules sees no
+violation and recommends ACCEPT, but the forged document is credential evidence, so the
+expected action is REJECT.
+
+Unknown ids are never treated as clean: an unknown applicant is `404 APPLICANT_NOT_FOUND`,
+an unknown session has no members, and an unknown credential is reported invalid.
+
+**PROPOSED, additive: `decisionId`.** The Moderation Service sends `decisionId` to
+`ApplyScoreDelta` and publishes it in `DecisionRecorded`. It is the idempotency key for the
+score change: applying the same `decisionId` twice must leave the session score unchanged,
+so a retried call or a redelivered event cannot score a decision twice. A consumer that
+ignores the field still works, so this is additive and needs no MAJOR bump. **This one needs
+the Session Service owner's agreement.**
+
+In the fixture session the scenarios have pinned ids so every owner can refer to the same
+decision: F1 `d0000000-0000-0000-0000-000000000001`, F2 `…002`, F3 `…003`. A correct F1
+ACCEPT scores `+100` with penalty `0`.
+
+### Discord DMs Service: Grade 9 membership
+
+The service depends on Session `VerifyMembership` only, never on Credential or Rules.
+It uses the same fixture session and players as the Moderation Service:
+
+| Player id | Role | Channels |
+| --- | --- | --- |
+| `11111111-1111-1111-1111-111111111111` | MODERATOR | all four |
+| `22222222-2222-2222-2222-222222222222` | JUNIOR_MODERATOR | `#enrollment-check`, `#general-mod-chat` |
+| `33333333-3333-3333-3333-333333333333` | JUNIOR_MODERATOR | `#faculty-check`, `#general-mod-chat` |
+| `44444444-4444-4444-4444-444444444444` | JUNIOR_MODERATOR | `#course-registration`, `#general-mod-chat` |
+
+An unknown session id or player id is not a member: REST returns
+`403 PLAYER_NOT_IN_SESSION` and a WebSocket upgrade is refused before any frame is sent.
+Deception and credential authenticity never appear in this service's payloads; it
+transports messages and judges nothing.
+
+### Moderation Service: framework
+
+The Moderation Service runs on **Quarkus 3.15** (Java 21, PostgreSQL). REST paths, request
+and response bodies, the error envelope and the gRPC contract are unchanged. The only
+visible difference is the health endpoint: `GET /q/health/ready` and `/q/health/live`
+instead of `/actuator/health`.
 
 ---
 ## Lab 1 deployment
@@ -1214,7 +1288,7 @@ volume and start Compose again.
 │   ├── session-service/             (submodule, private, Go)
 │   ├── applicant-service/           (submodule, private, Java)
 │   ├── credential-service/          (submodule, private, Java)
-│   ├── credential-service/          (submodule, private, Go)
+│   ├── university-record-service/   (submodule, private, Go)
 │   ├── rules-service/               (submodule, private, Go)
 │   ├── moderation-service/          (submodule, private, Java)
 │   └── discord-dms-service/         (submodule, private, Go)
@@ -1320,7 +1394,7 @@ whether it works.
 
 Work is tracked on the GitHub Project linked to this repository:
 
-**[Student ID, please — project board]((https://github.com/users/m3ower/projects/1/views/2))**
+**[Student ID, please — project board](https://github.com/users/m3ower/projects/1/views/2)**
 
 Columns are **Backlog → In Progress → In Review → Done**. Every PR is linked to an
 issue, and every issue is assigned to the owner of the affected service.
