@@ -102,6 +102,56 @@ services:
       timeout: 3s
       retries: 10
 
+  applicant-service:
+    image: ${APPLICANT_IMAGE:-andreiisthebest/student-id-applicant-service:0.1.1}
+    ports:
+      - "8084:8080"
+    environment:
+      DB_URL: jdbc:postgresql://applicant-db:5432/applicant_db
+      DB_USER: applicant_user
+      DB_PASSWORD: ${APPLICANT_DB_PASSWORD:?set APPLICANT_DB_PASSWORD in .env}
+    depends_on:
+      applicant-db:
+        condition: service_healthy
+
+  applicant-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: applicant_db
+      POSTGRES_USER: applicant_user
+      POSTGRES_PASSWORD: ${APPLICANT_DB_PASSWORD:?set APPLICANT_DB_PASSWORD in .env}
+    volumes:
+      - applicant-pg-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  university-record-service:
+    image: ${RECORD_IMAGE:-andreiisthebest/student-id-university-record-service:0.1.1}
+    ports:
+      - "8085:8081"
+    environment:
+      DB_URL: postgres://record_user:${RECORD_DB_PASSWORD:?set RECORD_DB_PASSWORD in .env}@university-record-db:5432/record_db?sslmode=disable
+    depends_on:
+      university-record-db:
+        condition: service_healthy
+
+  university-record-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: record_db
+      POSTGRES_USER: record_user
+      POSTGRES_PASSWORD: ${RECORD_DB_PASSWORD:?set RECORD_DB_PASSWORD in .env}
+    volumes:
+      - record-pg-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
   moderation-service:
     image: ${DOCKERHUB_USER:-m3ower}/student-id-moderation-service:${MODERATION_VERSION:-0.1.0}
     restart: unless-stopped
@@ -163,5 +213,7 @@ volumes:
   postgres-data:
   player-pg-data:
   session-pg-data:
+  applicant-pg-data:
+  record-pg-data:
   moderation-pg-data:
   dms-redis-data:
