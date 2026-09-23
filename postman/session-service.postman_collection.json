@@ -9,7 +9,8 @@
     { "key": "teamId", "value": "" },
     { "key": "hostPlayerId", "value": "" },
     { "key": "juniorPlayerId", "value": "" },
-    { "key": "sessionId", "value": "" }
+    { "key": "sessionId", "value": "" },
+    { "key": "deletableSessionId", "value": "" }
   ],
   "item": [
     {
@@ -40,6 +41,31 @@
         "const body = pm.response.json();",
         "pm.collectionVariables.set(\"sessionId\", body.sessionId);",
         "pm.test(\"starts in lobby\", () => pm.expect(body.state).to.eql(\"LOBBY\"));"
+      ] } }]
+    },
+    {
+      "name": "Update lobby difficulty",
+      "request": {
+        "method": "PUT",
+        "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "X-Player-Id", "value": "{{hostPlayerId}}" }],
+        "body": { "mode": "raw", "raw": "{ \"difficulty\": \"HARD\" }", "options": { "raw": { "language": "json" } } },
+        "url": { "raw": "{{baseUrl}}/api/v1/sessions/{{sessionId}}", "host": ["{{baseUrl}}"], "path": ["api", "v1", "sessions", "{{sessionId}}"] }
+      },
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test(\"status is 200\", () => pm.response.to.have.status(200));",
+        "pm.test(\"difficulty updated\", () => pm.expect(pm.response.json().difficulty).to.eql(\"HARD\"));"
+      ] } }]
+    },
+    {
+      "name": "Get updated session",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": { "raw": "{{baseUrl}}/api/v1/sessions/{{sessionId}}", "host": ["{{baseUrl}}"], "path": ["api", "v1", "sessions", "{{sessionId}}"] }
+      },
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test(\"status is 200\", () => pm.response.to.have.status(200));",
+        "pm.test(\"difficulty persisted\", () => pm.expect(pm.response.json().difficulty).to.eql(\"HARD\"));"
       ] } }]
     },
     {
@@ -102,6 +128,42 @@
       "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
         "pm.test(\"status is 200\", () => pm.response.to.have.status(200));",
         "pm.test(\"session is completed\", () => pm.expect(pm.response.json().state).to.eql(\"COMPLETED\"));"
+      ] } }]
+    },
+    {
+      "name": "Create lobby session for deletion",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"teamId\": \"{{teamId}}\",\n  \"hostPlayerId\": \"{{hostPlayerId}}\",\n  \"difficulty\": \"EASY\"\n}", "options": { "raw": { "language": "json" } } },
+        "url": { "raw": "{{baseUrl}}/api/v1/sessions", "host": ["{{baseUrl}}"], "path": ["api", "v1", "sessions"] }
+      },
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test(\"status is 201\", () => pm.response.to.have.status(201));",
+        "pm.collectionVariables.set(\"deletableSessionId\", pm.response.json().sessionId);"
+      ] } }]
+    },
+    {
+      "name": "Delete lobby session",
+      "request": {
+        "method": "DELETE",
+        "header": [{ "key": "X-Player-Id", "value": "{{hostPlayerId}}" }],
+        "url": { "raw": "{{baseUrl}}/api/v1/sessions/{{deletableSessionId}}", "host": ["{{baseUrl}}"], "path": ["api", "v1", "sessions", "{{deletableSessionId}}"] }
+      },
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test(\"status is 204\", () => pm.response.to.have.status(204));"
+      ] } }]
+    },
+    {
+      "name": "Get deleted session (404)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": { "raw": "{{baseUrl}}/api/v1/sessions/{{deletableSessionId}}", "host": ["{{baseUrl}}"], "path": ["api", "v1", "sessions", "{{deletableSessionId}}"] }
+      },
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test(\"status is 404\", () => pm.response.to.have.status(404));",
+        "pm.test(\"session not found\", () => pm.expect(pm.response.json().error.code).to.eql(\"SESSION_NOT_FOUND\"));"
       ] } }]
     }
   ]
