@@ -1176,22 +1176,60 @@ Redis volumes.
 
 Published versioned Docker Hub images for these two services:
 
-- `cmmarin/student-id-credential-service:0.1.0`
-- `cmmarin/student-id-rules-service:0.1.0`
+- [Credential Service — `cmmarin/student-id-credential-service:0.1.0`](https://hub.docker.com/r/cmmarin/student-id-credential-service)
+- [Server Rules Service — `cmmarin/student-id-rules-service:0.1.0`](https://hub.docker.com/r/cmmarin/student-id-rules-service)
 
-Copy `.env.example` to `.env`, replace its example passwords, then run:
+To run only these two services from the CPR, you need Docker Engine with Compose
+v2 and free host ports 5432, 8080, and 8081. Copy `.env.example` to the
+git-ignored `.env` and replace at least `POSTGRES_PASSWORD`,
+`CREDENTIAL_DB_PASSWORD`, and `RULES_DB_PASSWORD` with your own values. Do not
+commit `.env` or real credentials. Then run:
 
 ```bash
-docker compose up
+docker compose up -d postgres credential-service rules-service
+docker compose ps
 ```
 
-The Compose file references image tags only, never the services' local
-Dockerfiles. On a fresh machine, Docker Compose pulls the published Credential
-and Server Rules images from Docker Hub.
+The Compose file references these published image tags, never the services'
+local Dockerfiles. Both services use separate databases and users in the shared
+PostgreSQL container, with data persisted in the `postgres-data` named volume.
+The private service READMEs explain how to run each service from source.
 
 The PostgreSQL initialization script runs only when the volume is first
 created. To recreate development databases, intentionally remove the named
 volume and start Compose again.
+
+### Credential and Server Rules mock contract
+
+The Grade 9 code in these two private services prepares the existing internal
+contract without changing their Lab 1 HTTP endpoints. Credential models
+`ApplicantInitialized` plus `GenerateCredentials`, `GetCredentials`, and
+`ValidateCredential` in process. An identical initialization event is safe to
+replay; conflicting seed or event data is rejected. Validation reports
+`structurally_valid`, `authentic`, and `issues` separately. The current
+`X-Session-Id` HTTP check is only a session-presence mock, not per-player
+authorization.
+
+Rules models `GetCurrentRuleset(sessionId)` and
+`Evaluate(sessionId, applicantId)` with a session-scoped fact provider. The
+existing HTTP evaluation endpoint still takes applicant facts in its request;
+the internal mock resolves those facts by IDs. Rules returns violations and an
+advisory `recommendedAction`; Moderation owns the final admission decision, so
+the forged-document fixture's `ACCEPT` recommendation is not its final verdict.
+
+For session `55555555-5555-5555-5555-555555555555`, the agreed in-process
+fixtures use ruleset version 1 and fixed `enrollmentYears=2`:
+
+| Applicant ID | Seed and deception | Credential result | Rules result |
+| --- | --- | --- | --- |
+| `a0000000-0000-0000-0000-000000000001` | `918273`, `NONE` | Student ID structurally valid and authentic | No violations; `ACCEPT` recommendation |
+| `a0000000-0000-0000-0000-000000000002` | `918274`, `FORGED_DOCUMENT` | Student ID structurally valid, not authentic; `SIGNATURE_MISMATCH` | No violations; `ACCEPT` recommendation |
+| `a0000000-0000-0000-0000-000000000003` | `918275`, `PREVIOUSLY_BANNED` | Credentials valid; the ban does not invalidate a document | `NO_BANNED` (`CRITICAL`); `BAN` recommendation |
+
+These are in-process mock fixtures, not live gRPC or RabbitMQ integrations.
+The published `0.1.0` Docker images predate the local Grade 9 mock commits;
+run `mvn test` in Credential and `go test ./...` in Rules to test those mocks
+until a new versioned image is published.
 
 ## Repository structure
 
