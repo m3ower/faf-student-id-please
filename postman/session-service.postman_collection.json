@@ -1,11 +1,11 @@
 {
   "info": {
     "name": "Student ID - Session Service",
-    "description": "Session Service Lab 1 collection. Run the collection in order; it creates a fresh session and uses temporary X-Player-Id host authentication.",
+    "description": "Session Service Lab 1 collection. It targets the shared CPR Docker Compose stack by default; change baseUrl to http://localhost:8080 when running Session Service by itself. Run the collection in order; it creates a fresh session and uses temporary X-Player-Id host authentication.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
-    { "key": "baseUrl", "value": "http://localhost:8080" },
+    { "key": "baseUrl", "value": "http://localhost:8083" },
     { "key": "teamId", "value": "" },
     { "key": "hostPlayerId", "value": "" },
     { "key": "juniorPlayerId", "value": "" },

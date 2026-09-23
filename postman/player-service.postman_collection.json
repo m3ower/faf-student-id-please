@@ -1,11 +1,11 @@
 {
   "info": {
     "name": "Student ID - Player Service",
-    "description": "Player Service Lab 1 collection. Run the collection in order; it creates a fresh player and stores its ID as a collection variable.",
+    "description": "Player Service Lab 1 collection. It targets the shared CPR Docker Compose stack by default; change baseUrl to http://localhost:8080 when running Player Service by itself. Run the collection in order; it creates a fresh player and stores its ID as a collection variable.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
-    { "key": "baseUrl", "value": "http://localhost:8080" },
+    { "key": "baseUrl", "value": "http://localhost:8082" },
     { "key": "playerId", "value": "" },
     { "key": "username", "value": "" },
     { "key": "email", "value": "" },
