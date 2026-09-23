@@ -946,6 +946,47 @@ message ScoreDeltaRequest { string session_id = 1; int32 delta = 2; int32 penalt
 Service call to enforce per-player access, so the assignment of records and
 channels is decided in exactly one place.
 
+**Player and Session Lab 1 mock contract.** These are typed, in-process fixtures
+in the service source, not new REST/gRPC endpoints or live RabbitMQ consumers.
+The mock Player team lookup returns
+`{teamId, name, ownerId, members: [playerId]}`; unknown team/player IDs fail.
+For the agreed fixture, team `66666666-6666-6666-6666-666666666666` has owner
+`11111111-1111-1111-1111-111111111111` and the four members listed in
+[Mocks in Lab 1](#mocks-in-lab-1). Session
+`55555555-5555-5555-5555-555555555555` uses ruleset version `1` and a
+one-item queue: applicant `a0000000-0000-0000-0000-000000000001`, seed
+`918273`. This applicant-to-scenario mapping was chosen for Lab 1; the
+applicant claims remain with the fake Applicant client and are relayed only
+after it reports the applicant ready. Its profile is Vlad Cebotari, FAF-221,
+major FAF, year 2, `ENROLLED` `STUDENT`, courses `PAD`, `SO`, `AI`, with
+deception `NONE`.
+
+For this session, `VerifyMembership` gives the Moderator all mock channels but
+no record assignment; the juniors get `ENROLLMENT_LIST` and
+`#enrollment-check`, `OUTLOOK_GROUPS` and `#faculty-check`, or
+`COURSE_CATALOG` plus `FCIM_RECORD` and `#course-registration`, respectively.
+All four get `#general-mod-chat`. Unknown session/player IDs and missing
+permissions fail closed for both Record and Discord DMs checks.
+
+The fixture's correct `ACCEPT` decision has ID
+`d0000000-0000-0000-0000-000000000001`, score delta `+100`, and penalty `0`.
+`ApplyScoreDelta` is the only score/penalty mutation; `DecisionRecorded` then
+advances the queue and counts the decision without scoring it again. Repeated
+delivery is deduplicated. Its completed result is processed `1`, correct `1`,
+incorrect `0`, score `100`, penalties `0`, accuracy `1.0`, outcome `PASSED`.
+`SessionCompleted.players` is an array of player UUIDs; `accuracy` is a
+fraction from `0` to `1`, and `outcome` is `PASSED` or `FAILED`. For this
+fixture, Player grants each listed player `+100` cumulative XP once per
+`(sessionId, playerId)` and emits `PlayerProgressed.xp` as the **new total**.
+The general XP formula remains Player-owned.
+
+**Proposed additive contract fields (not yet agreed):** add UUID
+`decision_id` to `ScoreDeltaRequest` to make retries idempotent by
+`(session_id, decision_id)`, and add matching UUID `decisionId` to the
+`DecisionRecorded` payload for correlation. The event envelope's `eventId`
+remains separate. The current protobuf and event table above remain unchanged
+until the producing/consuming owners agree to these additions.
+
 ---
 
 ### WebSocket protocol
@@ -1066,6 +1107,14 @@ be published publicly before a fresh machine can pull it.
 
 All listed image tags are public on Docker Hub.
 
+For the Player and Session services, the linked Docker Hub repositories above
+are [`vasiok11/student-id-player-service`](https://hub.docker.com/r/vasiok11/student-id-player-service)
+and [`vasiok11/student-id-session-service`](https://hub.docker.com/r/vasiok11/student-id-session-service).
+Their published `0.2.0` images run the PostgreSQL-backed HTTP services. The
+new Lab 1 in-process mock flows are in the service source and tests; these
+`0.2.0` images were published before those mock commits and do not expose the
+mock flows as HTTP endpoints.
+
 ## Running the system
 
 **Requirements:** Docker Engine 24+ with Compose v2, about 3 GB of free RAM (the Java
@@ -1088,6 +1137,22 @@ Data survives `docker compose down` because every database uses a named volume;
 
 Credentials exist only in `.env`, which is git-ignored. `.env.example` holds
 placeholders so everyone knows which variables to set.
+
+**Player and Session run requirements:** set `PLAYER_DB_PASSWORD` and
+`SESSION_DB_PASSWORD` to local values in the ignored `.env` file before
+starting the shared Compose stack. Keep all keys from `.env.example` defined,
+because Compose validates the whole shared file even when starting only two
+services. The Session connection URL currently embeds its password, so use
+URL-safe characters (letters, digits, `_`, `-`) for `SESSION_DB_PASSWORD`.
+Run `docker compose up -d player-service session-service`
+to pull the two published images and start their separate PostgreSQL 16
+containers; ports `8082` (Player) and `8083` (Session) must be free.
+`PLAYER_IMAGE` and `SESSION_IMAGE` can override the default `0.2.0`
+tags. Docker Compose supplies the database URLs, users, and named volumes, so
+Java and Go are not needed on the host for this image-based run. To build or
+test the current source instead, Player needs Java 21 (Maven Wrapper included),
+Session needs Go 1.27, and running either outside Compose needs its PostgreSQL
+database configured separately.
 
 ## Testing with Postman
 
