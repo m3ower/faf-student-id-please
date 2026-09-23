@@ -205,6 +205,10 @@ Credential and University Record services is described in
 | Moderation | Java 21 | Quarkus | PostgreSQL | REST, gRPC |
 | Discord DMs | Go | Gorilla WebSocket | Redis | WebSocket, REST |
 
+This table describes the planned full system. In Lab 1, Credential runs on
+Spring Boot and exposes REST endpoints; Server Rules also exposes REST endpoints.
+Their gRPC contracts below remain integration targets for later labs.
+
 Message broker: **RabbitMQ**. API gateway: **Traefik**. Everything runs under
 `docker compose`.
 
@@ -319,11 +323,11 @@ Access control on the University Record Service is enforced per session and per
 player. Every read is checked against the record assignment for that shift, so a
 junior moderator cannot query records they were not given.
 
-**Deployment note.** All eight databases run inside a single PostgreSQL container
-in development, as eight separate databases with eight separate credentials. This
-is a resource concession for local machines, not a relaxation of the boundary: no
-service holds credentials for another's database and no query crosses a schema.
-In any non-local deployment each service gets its own instance.
+**Deployment note.** The intended full-team setup uses separate databases and
+credentials for each PostgreSQL-backed service. The current Lab 1 Compose file
+deploys four services: Credential and Server Rules use separate databases in one
+PostgreSQL container, Moderation uses its own PostgreSQL container, and Discord
+DMs uses Redis. No service reads another service's database.
 
 ### Applicant initialization
 
@@ -1017,27 +1021,33 @@ the same row.
 
 ## Docker Hub images
 
-All images are public and tagged with the service's semantic version
-(`<user>/<service>:<version>`). The CPR's `docker-compose.yml` pulls them from Docker Hub;
-it never builds from a Dockerfile.
+The Compose file references versioned Docker Hub image tags
+(`<user>/<service>:<version>`); it never builds from a Dockerfile. An image must
+be published publicly before a fresh machine can pull it.
 
 |Service|Image|Host port|Database|
 |-|-|-|-|
 |Moderation|[`m3ower/student-id-moderation-service:0.1.0`](https://hub.docker.com/r/m3ower/student-id-moderation-service)|8087|PostgreSQL 16 (`moderation-db`, volume `moderation-pg-data`)|
 |Discord DMs|[`m3ower/student-id-discord-dms-service:0.1.0`](https://hub.docker.com/r/m3ower/student-id-discord-dms-service)|8088|Redis 7.4 with AOF (`dms-redis`, volume `dms-redis-data`)|
+|Credential|[`cmmarin/student-id-credential-service:0.1.0`](https://hub.docker.com/r/cmmarin/student-id-credential-service)|8080|PostgreSQL 17 (`credential_db`, volume `postgres-data`)|
+|Server Rules|[`cmmarin/student-id-rules-service:0.1.0`](https://hub.docker.com/r/cmmarin/student-id-rules-service)|8081|PostgreSQL 17 (`rules_db`, volume `postgres-data`)|
+
+Both `cmmarin` `0.1.0` tags are public on Docker Hub.
 
 ## Running the system
 
 **Requirements:** Docker Engine 24+ with Compose v2, about 3 GB of free RAM (the Java
-services are the heavy part), and free host ports for every service in the
-table above.
+services are the heavy part), and free host ports 5432, 8080, 8081, 8087,
+and 8088. Copy `.env.example` to `.env` and replace the example passwords.
+The current Compose file contains these four services, not the other four
+team services. A full-team run needs their image names and deployment settings.
 
 ```bash
 git clone --recurse-submodules https://github.com/m3ower/faf-student-id-please.git
 cd faf-student-id-please
-cp .env.example .env      # set every \*\_PASSWORD to a value of your own
+cp .env.example .env      # replace every example password
 docker compose up -d
-docker compose ps         # wait until every service is "healthy"
+docker compose ps
 ```
 
 Data survives `docker compose down` because every database uses a named volume;
@@ -1049,12 +1059,15 @@ placeholders so everyone knows which variables to set.
 ## Testing with Postman
 
 Collections live in [`postman/`](postman). Import one and run it with the Collection
-Runner; each starts a fresh session id, so it can be re-run.
+Runner. The Credential and Server Rules collections create and delete their
+test records in one run.
 
 |Collection|Base URL|
 |-|-|
 |`moderation-service.postman\_collection.json`|`http://localhost:8087`|
 |`discord-dms-service.postman\_collection.json`|`http://localhost:8088`|
+|`credential-service.postman_collection.json`|`http://localhost:8080`|
+|`server-rules-service.postman_collection.json`|`http://localhost:8081`|
 
 ## Mocks in Lab 1
 
@@ -1126,8 +1139,7 @@ container while using separate databases, users, and the `postgres-data` Docker
 volume; the Moderation and Discord DMs services retain their own database and
 Redis volumes.
 
-Configured versioned Docker Hub image locations (to be published before a full
-Compose deployment):
+Published versioned Docker Hub images for these two services:
 
 - `cmmarin/student-id-credential-service:0.1.0`
 - `cmmarin/student-id-rules-service:0.1.0`
@@ -1139,9 +1151,8 @@ docker compose up
 ```
 
 The Compose file references image tags only, never the services' local
-Dockerfiles. Until an image is published, build and tag it locally using the
-matching command in its service README. Publishing is intentionally a manual
-step because it requires Docker Hub authorization.
+Dockerfiles. On a fresh machine, Docker Compose pulls the published Credential
+and Server Rules images from Docker Hub.
 
 The PostgreSQL initialization script runs only when the volume is first
 created. To recreate development databases, intentionally remove the named
