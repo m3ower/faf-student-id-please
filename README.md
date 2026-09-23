@@ -413,6 +413,19 @@ Errors:   404 player not found
 ```
 
 ```
+PUT /api/v1/players/{playerId}
+Request:  { "username": "string", "email": "string" }
+Response: 200 { "playerId": "uuid", "username": "string", "level": 7, "xp": 3420 }
+Errors:   404 player not found | 409 username or email taken | 422 validation failed
+```
+
+```
+DELETE /api/v1/players/{playerId}
+Response: 204 No Content
+Errors:   404 player not found
+```
+
+```
 POST /api/v1/players/{playerId}/friends
 Request:  { "targetPlayerId": "uuid" }
 Response: 202 { "status": "PENDING" }
@@ -486,6 +499,23 @@ Response: 200 {
   "score": 340, "penalties": 1, "timeRemaining": 512
 }
 Errors:   404 session not found
+```
+
+```
+PUT /api/v1/sessions/{sessionId}
+Headers:  X-Player-Id: hostPlayerId
+Request:  { "difficulty": "EASY|NORMAL|HARD" }
+Response: 200 { "sessionId": "uuid", "state": "LOBBY", "difficulty": "HARD" }
+Errors:   403 caller is not the host | 404 session not found
+          | 409 session is not in LOBBY | 422 validation failed
+```
+
+```
+DELETE /api/v1/sessions/{sessionId}
+Headers:  X-Player-Id: hostPlayerId
+Response: 204 No Content
+Errors:   403 caller is not the host | 404 session not found
+          | 409 session is not in LOBBY | 422 validation failed
 ```
 
 ```
