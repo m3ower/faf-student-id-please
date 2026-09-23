@@ -71,7 +71,7 @@
       "name": "Decisions",
       "item": [
         {
-          "name": "Submit - correct BAN on impersonator",
+          "name": "Submit - correct BAN on previously banned applicant",
           "request": {
             "method": "POST",
             "header": [
@@ -140,7 +140,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"sessionId\": \"{{sessionId}}\",\n  \"applicantId\": \"a0000000-0000-0000-0000-000000000002\",\n  \"moderatorId\": \"{{moderatorId}}\",\n  \"action\": \"ACCEPT\",\n  \"reason\": \"Postman run\"\n}",
+              "raw": "{\n  \"sessionId\": \"{{sessionId}}\",\n  \"applicantId\": \"a0000000-0000-0000-0000-000000000008\",\n  \"moderatorId\": \"{{moderatorId}}\",\n  \"action\": \"ACCEPT\",\n  \"reason\": \"Postman run\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -166,7 +166,7 @@
           ]
         },
         {
-          "name": "Submit - correct FLAG on inconsistent claim",
+          "name": "Submit - correct REJECT on inconsistent claim",
           "request": {
             "method": "POST",
             "header": [
@@ -188,7 +188,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"sessionId\": \"{{sessionId}}\",\n  \"applicantId\": \"a0000000-0000-0000-0000-000000000006\",\n  \"moderatorId\": \"{{moderatorId}}\",\n  \"action\": \"FLAG\",\n  \"reason\": \"Postman run\"\n}",
+              "raw": "{\n  \"sessionId\": \"{{sessionId}}\",\n  \"applicantId\": \"a0000000-0000-0000-0000-000000000006\",\n  \"moderatorId\": \"{{moderatorId}}\",\n  \"action\": \"REJECT\",\n  \"reason\": \"Postman run\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -633,7 +633,7 @@
       "name": "Appeals",
       "item": [
         {
-          "name": "Submit - wrong FLAG on forged document",
+          "name": "Submit - wrong FLAG on expired document",
           "request": {
             "method": "POST",
             "header": [
