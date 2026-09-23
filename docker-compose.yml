@@ -153,7 +153,7 @@ services:
       retries: 10
 
   moderation-service:
-    image: ${DOCKERHUB_USER:-m3ower}/student-id-moderation-service:${MODERATION_VERSION:-0.1.0}
+    image: ${DOCKERHUB_USER:-meow3r}/student-id-moderation-service:${MODERATION_VERSION:-0.1.0}
     restart: unless-stopped
     environment:
       DB_URL: jdbc:postgresql://moderation-db:5432/${MODERATION_DB_NAME:-moderation}
@@ -181,7 +181,7 @@ services:
       retries: 10
 
   discord-dms-service:
-    image: ${DOCKERHUB_USER:-m3ower}/student-id-discord-dms-service:${DMS_VERSION:-0.1.0}
+    image: ${DOCKERHUB_USER:-meow3r}/student-id-discord-dms-service:${DMS_VERSION:-0.1.0}
     restart: unless-stopped
     environment:
       STORE: redis
