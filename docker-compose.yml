@@ -52,6 +52,56 @@ services:
       postgres:
         condition: service_healthy
 
+  player-service:
+    image: ${PLAYER_IMAGE:-vasiok11/student-id-player-service:0.2.0}
+    ports:
+      - "8082:8080"
+    environment:
+      PLAYER_DB_URL: jdbc:postgresql://player-db:5432/${PLAYER_DB_NAME:-player}
+      PLAYER_DB_USER: ${PLAYER_DB_USER:-player}
+      PLAYER_DB_PASSWORD: ${PLAYER_DB_PASSWORD:?set PLAYER_DB_PASSWORD in .env}
+    depends_on:
+      player-db:
+        condition: service_healthy
+
+  player-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${PLAYER_DB_NAME:-player}
+      POSTGRES_USER: ${PLAYER_DB_USER:-player}
+      POSTGRES_PASSWORD: ${PLAYER_DB_PASSWORD:?set PLAYER_DB_PASSWORD in .env}
+    volumes:
+      - player-pg-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  session-service:
+    image: ${SESSION_IMAGE:-vasiok11/student-id-session-service:0.2.0}
+    ports:
+      - "8083:8080"
+    environment:
+      SESSION_DB_URL: postgres://${SESSION_DB_USER:-session}:${SESSION_DB_PASSWORD:?set SESSION_DB_PASSWORD in .env}@session-db:5432/${SESSION_DB_NAME:-session}?sslmode=disable
+    depends_on:
+      session-db:
+        condition: service_healthy
+
+  session-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${SESSION_DB_NAME:-session}
+      POSTGRES_USER: ${SESSION_DB_USER:-session}
+      POSTGRES_PASSWORD: ${SESSION_DB_PASSWORD:?set SESSION_DB_PASSWORD in .env}
+    volumes:
+      - session-pg-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
   moderation-service:
     image: ${DOCKERHUB_USER:-m3ower}/student-id-moderation-service:${MODERATION_VERSION:-0.1.0}
     restart: unless-stopped
@@ -111,5 +161,7 @@ services:
 
 volumes:
   postgres-data:
+  player-pg-data:
+  session-pg-data:
   moderation-pg-data:
   dms-redis-data:

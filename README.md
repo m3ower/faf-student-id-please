@@ -1061,16 +1061,19 @@ be published publicly before a fresh machine can pull it.
 |Discord DMs|[`m3ower/student-id-discord-dms-service:0.1.0`](https://hub.docker.com/r/m3ower/student-id-discord-dms-service)|8088|Redis 7.4 with AOF (`dms-redis`, volume `dms-redis-data`)|
 |Credential|[`cmmarin/student-id-credential-service:0.1.0`](https://hub.docker.com/r/cmmarin/student-id-credential-service)|8080|PostgreSQL 17 (`credential_db`, volume `postgres-data`)|
 |Server Rules|[`cmmarin/student-id-rules-service:0.1.0`](https://hub.docker.com/r/cmmarin/student-id-rules-service)|8081|PostgreSQL 17 (`rules_db`, volume `postgres-data`)|
+|Player|[`vasiok11/student-id-player-service:0.2.0`](https://hub.docker.com/r/vasiok11/student-id-player-service)|8082|PostgreSQL 16 (`player-db`, volume `player-pg-data`)|
+|Session|[`vasiok11/student-id-session-service:0.2.0`](https://hub.docker.com/r/vasiok11/student-id-session-service)|8083|PostgreSQL 16 (`session-db`, volume `session-pg-data`)|
 
-Both `cmmarin` `0.1.0` tags are public on Docker Hub.
+All listed image tags are public on Docker Hub.
 
 ## Running the system
 
 **Requirements:** Docker Engine 24+ with Compose v2, about 3 GB of free RAM (the Java
-services are the heavy part), and free host ports 5432, 8080, 8081, 8087,
-and 8088. Copy `.env.example` to `.env` and replace the example passwords.
-The current Compose file contains these four services, not the other four
-team services. A full-team run needs their image names and deployment settings.
+services are the heavy part), and free host ports 5432, 8080, 8081, 8082,
+8083, 8087, and 8088. Copy `.env.example` to `.env` and replace the example
+passwords. The current Compose file contains these six services, not the two
+remaining team services. A full-team run needs their image names and deployment
+settings.
 
 ```bash
 git clone --recurse-submodules https://github.com/m3ower/faf-student-id-please.git
@@ -1098,6 +1101,8 @@ test records in one run.
 |`discord-dms-service.postman\_collection.json`|`http://localhost:8088`|
 |`credential-service.postman_collection.json`|`http://localhost:8080`|
 |`server-rules-service.postman_collection.json`|`http://localhost:8081`|
+|`player-service.postman_collection.json`|`http://localhost:8082`|
+|`session-service.postman_collection.json`|`http://localhost:8083`|
 
 ## Mocks in Lab 1
 
