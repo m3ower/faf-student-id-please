@@ -200,7 +200,7 @@ Credential and University Record services is described in
 | Player | Java 21 | Quarkus | PostgreSQL | REST |
 | Moderation Session | Go | Fiber | PostgreSQL + Redis | REST, gRPC |
 | Applicant | Java 21 | Quarkus | PostgreSQL | gRPC |
-| Credential | Java 21 | Quarkus | PostgreSQL | REST, gRPC |
+| Credential | Java 21 | Spring Boot | PostgreSQL | REST, gRPC |
 | University Record | Go | Fiber | PostgreSQL | REST, gRPC |
 | Server Rules | Go | Fiber | PostgreSQL | REST, gRPC |
 | Moderation | Java 21 | Quarkus | PostgreSQL | REST, gRPC |
@@ -1381,7 +1381,8 @@ fixtures use ruleset version 1 and fixed `enrollmentYears=2`:
 | `a0000000-0000-0000-0000-000000000003` | `918275`, `PREVIOUSLY_BANNED` | Credentials valid; the ban does not invalidate a document | `NO_BANNED` (`CRITICAL`); `BAN` recommendation |
 
 These are in-process mock fixtures, not live gRPC or RabbitMQ integrations.
-The published `0.1.0` Docker images predate the local Grade 9 mock commits;
+The published `0.1.0` Docker images predate the Grade 9 mock code now merged
+into both private repositories;
 run `mvn test` in Credential and `go test ./...` in Rules to test those mocks
 until a new versioned image is published.
 
