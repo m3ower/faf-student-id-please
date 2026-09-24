@@ -1105,6 +1105,8 @@ be published publicly before a fresh machine can pull it.
 |Server Rules|[`cmmarin/student-id-rules-service:0.1.0`](https://hub.docker.com/r/cmmarin/student-id-rules-service)|8081|PostgreSQL 17 (`rules_db`, volume `postgres-data`)|
 |Player|[`vasiok11/student-id-player-service:0.2.0`](https://hub.docker.com/r/vasiok11/student-id-player-service)|8082|PostgreSQL 16 (`player-db`, volume `player-pg-data`)|
 |Session|[`vasiok11/student-id-session-service:0.2.0`](https://hub.docker.com/r/vasiok11/student-id-session-service)|8083|PostgreSQL 16 (`session-db`, volume `session-pg-data`)|
+|Applicant|[`andreiisthebest/student-id-applicant-service:0.1.1`](https://hub.docker.com/r/andreiisthebest/student-id-applicant-service)|8084|PostgreSQL 16 (`applicant-db`, volume `applicant-pg-data`)|
+|University Record|[`andreiisthebest/student-id-university-record-service:0.1.1`](https://hub.docker.com/r/andreiisthebest/student-id-university-record-service)|8085|PostgreSQL 16 (`university-record-db`, volume `record-pg-data`)|
 
 All listed image tags are public on Docker Hub.
 
@@ -1120,10 +1122,9 @@ mock flows as HTTP endpoints.
 
 **Requirements:** Docker Engine 24+ with Compose v2, about 3 GB of free RAM (the Java
 services are the heavy part), and free host ports 5432, 8080, 8081, 8082,
-8083, 8087, and 8088. Copy `.env.example` to `.env` and replace the example
-passwords. The current Compose file contains these six services, not the two
-remaining team services. A full-team run needs their image names and deployment
-settings.
+8083, 8084, 8085, 8087, and 8088. Copy `.env.example` to `.env` and replace
+the example passwords. The Compose file also contains Applicant and University
+Record; their requirements are documented below.
 
 ```bash
 git clone --recurse-submodules https://github.com/m3ower/faf-student-id-please.git
@@ -1170,6 +1171,20 @@ test the current source instead, Player needs Java 21 (Maven Wrapper included),
 Session needs Go 1.27, and running either outside Compose needs its PostgreSQL
 database configured separately.
 
+**Applicant and University Record run requirements:** keep all keys from
+`.env.example` in the ignored `.env`, and replace `APPLICANT_DB_PASSWORD` and
+`RECORD_DB_PASSWORD` with distinct local values. Use URL-safe characters for
+`RECORD_DB_PASSWORD` because its value is embedded in the record service's
+PostgreSQL URL. Docker Engine with Compose v2 and free host ports `8084` and
+`8085` are required; Java and Go are not needed when using the published images.
+Run `docker compose up -d applicant-service university-record-service` to start
+these services and their separate PostgreSQL 16 containers. Data persists in
+the `applicant-pg-data` and `record-pg-data` named volumes. The image tags can
+be overridden with `APPLICANT_IMAGE` and `RECORD_IMAGE`. Check
+`http://localhost:8084/q/health` and `http://localhost:8085/health`.
+The current HTTP and in-process mock contract is documented in
+[Applicant and University Record Lab 1 contract notes](docs/applicant-university-record-lab1.md).
+
 ## Testing with Postman
 
 Collections live in [`postman/`](postman). Import one and run it with the Collection
@@ -1184,6 +1199,7 @@ test records in one run.
 |`server-rules-service.postman_collection.json`|`http://localhost:8081`|
 |`player-service.postman_collection.json`|`http://localhost:8082`|
 |`session-service.postman_collection.json`|`http://localhost:8083`|
+|`Student-ID-Please-Lab-1.postman_collection.json` (Applicant and University Record)|`http://localhost:8084`, `http://localhost:8085`|
 
 ## Mocks in Lab 1
 
