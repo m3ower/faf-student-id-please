@@ -1199,7 +1199,8 @@ test records in one run.
 |`server-rules-service.postman_collection.json`|`http://localhost:8081`|
 |`player-service.postman_collection.json`|`http://localhost:8082`|
 |`session-service.postman_collection.json`|`http://localhost:8083`|
-|`Student-ID-Please-Lab-1.postman_collection.json` (Applicant and University Record)|`http://localhost:8084`, `http://localhost:8085`|
+|`applicant-service.postman_collection.json`|`http://localhost:8084`|
+|`university-record-service.postman_collection.json`|`http://localhost:8085`|
 
 ## Mocks in Lab 1
 
