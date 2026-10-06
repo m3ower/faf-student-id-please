@@ -209,6 +209,18 @@ services:
       timeout: 3s
       retries: 10
 
+  gateway-service:
+    image: ${GATEWAY_IMAGE:-vasiok11/student-id-gateway-service:0.1.0}
+    restart: unless-stopped
+    ports:
+      - "8090:8080"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8080/health', timeout=2)"]
+      interval: 30s
+      timeout: 3s
+      start_period: 5s
+      retries: 3
+
 volumes:
   postgres-data:
   player-pg-data:
