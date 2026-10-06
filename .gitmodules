@@ -22,3 +22,6 @@
 [submodule "services/university-record-service"]
 	path = services/university-record-service
 	url = https://github.com/Andreiisthebest/student-id-university-record-service
+[submodule "services/gateway-service"]
+	path = services/gateway-service
+	url = https://github.com/Vasiok11/student-id-gateway-service.git
