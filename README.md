@@ -23,6 +23,7 @@ traumatize Mr. Pumpkin with the emojis.
    - [Surface map](#surface-map)
    - [Data management](#data-management)
    - [Applicant initialization](#applicant-initialization)
+   - [Gateway routing](#gateway-routing)
    - [REST endpoints](#rest-endpoints)
    - [gRPC services](#grpc-services)
    - [WebSocket protocol](#websocket-protocol)
@@ -210,8 +211,10 @@ This table describes the planned full system. In Lab 1, Credential runs on
 Spring Boot and exposes REST endpoints; Server Rules also exposes REST endpoints.
 Their gRPC contracts below remain integration targets for later labs.
 
-Message broker: **RabbitMQ**. API gateway: **Traefik**. Everything runs under
-`docker compose`.
+Message broker: **RabbitMQ**. API gateway: a **Python 3.12 / FastAPI** service of our own
+(see [Gateway routing](#gateway-routing)) rather than Traefik, so the route map, the error
+envelope it returns and the identity it forwards are our code and are tested like any other
+service. Everything runs under `docker compose`.
 
 ### Why these choices
 
@@ -375,10 +378,65 @@ that the lying is coordinated rather than random:
 
 ---
 
+### Gateway routing
+
+Every client-to-service REST call enters the system through the **Gateway**, which
+forwards it to the service owning the path and keeps the `/api/v1` prefix exactly as
+specified below. A client therefore has one address for the whole system instead of one
+per service, and a service's host port is an implementation detail rather than part of the
+contract.
+
+| Path prefix | Service | Routed |
+| --- | --- | --- |
+| `/api/v1/players`, `/api/v1/teams` | Player | owner to add |
+| `/api/v1/sessions` | Moderation Session | owner to add |
+| `/api/v1/credentials` | Credential | owner to add |
+| `/api/v1/records` | University Record | owner to add |
+| `/api/v1/rules` | Server Rules | owner to add |
+| `/api/v1/decisions` | Moderation | yes |
+| `/api/v1/penalty-policies` | Moderation | yes |
+| `/api/v1/channels` | Discord DMs | yes |
+| `/api/v1/messages` | Discord DMs | yes |
+
+A prefix matches only on a segment boundary. The method, path, query string, body and
+headers reach the service unchanged, and its status, body and headers are relayed back
+unchanged, error envelope included, so a service's own `404` or `422` is not rewritten by
+the Gateway. Hop-by-hop headers are dropped on each hop.
+
+`X-Trace-Id` is reused when the caller sends one and generated when it does not. It is
+forwarded to the service and returned on every response, so one id spans both hops.
+
+**What does not go through the Gateway.**
+
+| Traffic | Reason |
+| --- | --- |
+| All service-to-service calls | They are gRPC or RabbitMQ events; the Gateway speaks REST only. |
+| `/api/v1/internal/...` on Discord DMs | RabbitMQ stand-ins, excluded from the Gateway by this contract. |
+| `WS /ws/v1/sessions/{sessionId}` | The Gateway will negotiate and return a URL; the socket itself stays direct. |
+
+Service-to-service traffic is unaffected by the Gateway because none of it is REST. Both
+services owned by Gurev Andreea illustrate this: the Moderation Service reaches the
+Applicant, Credential, Server Rules and Session services over `ApplicantService`,
+`CredentialService`, `RulesService` and `SessionService` gRPC, and publishes
+`DecisionRecorded` to RabbitMQ; the Discord DMs Service calls
+`SessionService.VerifyMembership` over gRPC. Every one of those stays a direct call.
+
+The Gateway adds three failure codes of its own, each carrying
+`"service": "gateway-service"`:
+
+| HTTP | Code | Condition |
+| --- | --- | --- |
+| 404 | `ROUTE_NOT_FOUND` | No service is routed for this path. |
+| 503 | `UPSTREAM_TIMEOUT` | The service did not answer within the Gateway's read timeout. |
+| 503 | `UPSTREAM_UNAVAILABLE` | The service could not be reached. |
+
+---
+
 ### REST endpoints
 
-All REST paths are prefixed `/api/v1`. Bodies are JSON. Authenticated endpoints
-require `Authorization: Bearer <token>`.
+All REST paths are prefixed `/api/v1` and are reached through the
+[Gateway](#gateway-routing). Bodies are JSON. Authenticated endpoints require
+`Authorization: Bearer <token>`.
 
 #### Player Service
 
