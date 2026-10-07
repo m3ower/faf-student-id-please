@@ -295,16 +295,16 @@ each surface is specified in full below.
 | --- | --- | --- | --- |
 | Player | auth, profiles, friends, teams | — | `PlayerProgressed` |
 | Moderation Session | sessions, roles, shift control | `SessionService` | `ShiftStarted`, `SessionCompleted` |
-| Applicant | — | `ApplicantService` | `ApplicantInitialized` |
+| Applicant | Lab 1 applicant CRUD | `ApplicantService` (planned) | `ApplicantInitialized` (planned) |
 | Credential | credential read for the moderator UI | `CredentialService` | `ApplicantInitialized` |
 | University Record | partitioned record lookups | `RecordService` | `ApplicantInitialized` |
 | Server Rules | current ruleset read | `RulesService` | `RulesUpdated` |
 | Moderation | decision submission, history | `ModerationService` | `DecisionRecorded` |
 | Discord DMs | channel list, history | — | — |
 
-The Applicant Service has no REST surface. The client never queries applicants
-directly; it receives the current applicant through the Session Service, which
-keeps the queue and the "who is at the door right now" state in one place.
+Applicant's existing Lab 1 CRUD API is available through Gateway at
+`/api/v1/applicants`. In the planned game flow, the client receives the current
+applicant through the Session Service, which owns the queue and its current item.
 
 ### Data management
 
@@ -390,8 +390,9 @@ contract.
 | --- | --- | --- |
 | `/api/v1/players`, `/api/v1/teams` | Player | owner to add |
 | `/api/v1/sessions` | Moderation Session | owner to add |
+| `/api/v1/applicants` | Applicant Lab 1 CRUD | yes |
 | `/api/v1/credentials` | Credential | yes |
-| `/api/v1/records` | University Record | owner to add |
+| `/api/v1/records`, `/api/v1/university-records` | University Record | yes |
 | `/api/v1/rules` | Server Rules | yes |
 | `/api/v1/decisions` | Moderation | yes |
 | `/api/v1/penalty-policies` | Moderation | yes |
@@ -1187,9 +1188,9 @@ be published publicly before a fresh machine can pull it.
 |Server Rules|[`cmmarin/student-id-rules-service:0.1.0`](https://hub.docker.com/r/cmmarin/student-id-rules-service)|internal only|PostgreSQL 17 (`rules_db`, volume `postgres-data`)|
 |Player|[`vasiok11/student-id-player-service:0.2.0`](https://hub.docker.com/r/vasiok11/student-id-player-service)|8082|PostgreSQL 16 (`player-db`, volume `player-pg-data`)|
 |Session|[`vasiok11/student-id-session-service:0.2.0`](https://hub.docker.com/r/vasiok11/student-id-session-service)|8083|PostgreSQL 16 (`session-db`, volume `session-pg-data`)|
-|Applicant|[`andreiisthebest/student-id-applicant-service:0.1.1`](https://hub.docker.com/r/andreiisthebest/student-id-applicant-service)|8084|PostgreSQL 16 (`applicant-db`, volume `applicant-pg-data`)|
-|University Record|[`andreiisthebest/student-id-university-record-service:0.1.1`](https://hub.docker.com/r/andreiisthebest/student-id-university-record-service)|8085|PostgreSQL 16 (`university-record-db`, volume `record-pg-data`)|
-|Gateway|[`andreiisthebest/student-id-gateway-service:lab2-grade7`](https://hub.docker.com/r/andreiisthebest/student-id-gateway-service)|8090|none|
+|Applicant|[`andreiisthebest/student-id-applicant-service:0.1.1`](https://hub.docker.com/r/andreiisthebest/student-id-applicant-service)|internal only (Gateway 8090)|PostgreSQL 16 (`applicant-db`, volume `applicant-pg-data`)|
+|University Record|[`andreiisthebest/student-id-university-record-service:0.1.1`](https://hub.docker.com/r/andreiisthebest/student-id-university-record-service)|internal only (Gateway 8090)|PostgreSQL 16 (`university-record-db`, volume `record-pg-data`)|
+|Gateway|[`vasiok11/student-id-gateway-service:lab2-0.2.0`](https://hub.docker.com/r/vasiok11/student-id-gateway-service)|8090|none|
 
 The proposed Gateway `lab2-grade7` tag is not published yet. Build that tag locally
 from `services/gateway-service` before starting Compose, or wait for its owner
@@ -1262,15 +1263,20 @@ database configured separately.
 `.env.example` in the ignored `.env`, and replace `APPLICANT_DB_PASSWORD` and
 `RECORD_DB_PASSWORD` with distinct local values. Use URL-safe characters for
 `RECORD_DB_PASSWORD` because its value is embedded in the record service's
-PostgreSQL URL. Docker Engine with Compose v2 and free host ports `8084` and
-`8085` are required; Java and Go are not needed when using the published images.
-Run `docker compose up -d applicant-service university-record-service` to start
-these services and their separate PostgreSQL 16 containers. Data persists in
+PostgreSQL URL. Their Lab 2 REST entry point is Gateway on host port `8090`.
+Build the routing image from the existing Gateway checkout with
+`docker build -t vasiok11/student-id-gateway-service:lab2-0.2.0 services/gateway-service`
+and set `GATEWAY_IMAGE` to that tag. Run
+`docker compose up -d applicant-service university-record-service gateway-service`
+to start these services and their separate PostgreSQL 16 containers. Data persists in
 the `applicant-pg-data` and `record-pg-data` named volumes. The image tags can
 be overridden with `APPLICANT_IMAGE` and `RECORD_IMAGE`. Check
-`http://localhost:8084/q/health` and `http://localhost:8085/health`.
+`http://localhost:8090/api/v1/health/applicant-service` and
+`http://localhost:8090/api/v1/health/university-record-service`.
 The current HTTP and in-process mock contract is documented in
 [Applicant and University Record Lab 1 contract notes](docs/applicant-university-record-lab1.md).
+Their dedicated networks and Gateway configuration are documented in
+[Applicant and University Record Grade 6 integration](docs/applicant-record-lab2-grade6.md).
 
 ## Testing with Postman
 
@@ -1286,8 +1292,8 @@ test records in one run.
 |`server-rules-service.postman_collection.json`|`http://localhost:8090`|
 |`player-service.postman_collection.json`|`http://localhost:8082`|
 |`session-service.postman_collection.json`|`http://localhost:8083`|
-|`applicant-service.postman_collection.json`|`http://localhost:8084`|
-|`university-record-service.postman_collection.json`|`http://localhost:8085`|
+|`applicant-service.postman_collection.json`|`http://localhost:8090`|
+|`university-record-service.postman_collection.json`|`http://localhost:8090`|
 
 ## Mocks in Lab 1
 
