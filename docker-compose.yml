@@ -98,9 +98,11 @@ services:
 
   applicant-service:
     image: ${APPLICANT_IMAGE:-andreiisthebest/student-id-applicant-service:0.1.1}
-    ports:
-      - "8084:8080"
+    networks: [applicant-net]
     environment:
+      GATEWAY_URL: http://gateway-service:8080
+      APPLICANT_SERVICE_URL: http://gateway-service:8080
+      RECORD_SERVICE_URL: http://gateway-service:8080
       DB_URL: jdbc:postgresql://applicant-db:5432/applicant_db
       DB_USER: applicant_user
       DB_PASSWORD: ${APPLICANT_DB_PASSWORD:?set APPLICANT_DB_PASSWORD in .env}
@@ -110,6 +112,7 @@ services:
 
   applicant-db:
     image: postgres:16-alpine
+    networks: [applicant-net]
     environment:
       POSTGRES_DB: applicant_db
       POSTGRES_USER: applicant_user
@@ -124,9 +127,11 @@ services:
 
   university-record-service:
     image: ${RECORD_IMAGE:-andreiisthebest/student-id-university-record-service:0.1.1}
-    ports:
-      - "8085:8081"
+    networks: [record-net]
     environment:
+      GATEWAY_URL: http://gateway-service:8080
+      APPLICANT_SERVICE_URL: http://gateway-service:8080
+      RECORD_SERVICE_URL: http://gateway-service:8080
       DB_URL: postgres://record_user:${RECORD_DB_PASSWORD:?set RECORD_DB_PASSWORD in .env}@university-record-db:5432/record_db?sslmode=disable
     depends_on:
       university-record-db:
@@ -134,6 +139,7 @@ services:
 
   university-record-db:
     image: postgres:16-alpine
+    networks: [record-net]
     environment:
       POSTGRES_DB: record_db
       POSTGRES_USER: record_user
@@ -206,6 +212,7 @@ services:
   gateway-service:
     image: ${GATEWAY_IMAGE:-vasiok11/student-id-gateway-service:lab2-0.2.0}
     restart: unless-stopped
+    networks: [default, applicant-net, record-net]
     environment:
       PLAYER_SERVICE_URL: http://player-service:8080
       SESSION_SERVICE_URL: http://session-service:8080
@@ -223,6 +230,13 @@ services:
       timeout: 3s
       start_period: 5s
       retries: 3
+
+networks:
+  default:
+  applicant-net:
+    internal: true
+  record-net:
+    internal: true
 
 volumes:
   postgres-data:
