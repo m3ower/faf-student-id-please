@@ -8,8 +8,8 @@ live gRPC or RabbitMQ endpoints and are not exposed by these images.
 ## Current HTTP surface
 
 Both services return JSON and run independently against separate PostgreSQL
-databases. The shared Compose file maps Applicant to `localhost:8084` and
-University Record to `localhost:8085`.
+databases. In the shared Lab 2 Compose deployment, both services are accessed
+through the Gateway at `localhost:8090`; their existing API paths are unchanged.
 
 | Service | Methods and paths | Request and response data |
 | --- | --- | --- |
@@ -17,7 +17,9 @@ University Record to `localhost:8085`.
 | University Record | `POST /api/v1/university-records` (`201`), `GET /api/v1/university-records` (`200`), `GET /api/v1/university-records/{id}` (`200`), `PUT /api/v1/university-records/{id}` (`200`), `DELETE /api/v1/university-records/{id}` (`204`) | Create/replace JSON requires `studentId`, `name`, `major`, `enrolledSince` (`YYYY-MM-DD`), and `status`; `outlookGroups[]`, `courses[]`, and `fcimMessages[]` are string arrays. Responses include UUID `id`, those fields, `createdAt`, and `updatedAt`. |
 | University Record | `GET /api/v1/records/enrollment?studentId=...` (`200`) | Requires `X-Session-Id` and `X-Player-Id`. Returns `{found,studentId,name,major,enrolledSince,status}`; `403` if its current Lab 1 verifier rejects the headers, `404` if the student is absent. |
 
-`GET /q/health` (Applicant) and `GET /health` (University Record) report health.
+`GET /api/v1/health/applicant-service` and
+`GET /api/v1/health/university-record-service` on the Gateway relay their health
+responses. Standalone source runs retain `/q/health` and `/health` respectively.
 Existing HTTP CRUD remains independent of other services. The enrollment
 route's current HTTP verifier checks only for non-empty session/player headers;
 it is **not real authorization** and is separate from the typed Grade 9 fake
