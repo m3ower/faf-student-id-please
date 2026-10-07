@@ -306,6 +306,11 @@ Applicant's existing Lab 1 CRUD API is available through Gateway at
 `/api/v1/applicants`. In the planned game flow, the client receives the current
 applicant through the Session Service, which owns the queue and its current item.
 
+For Lab 2 Grade 7, Applicant and University Record retain their request/response
+contracts. Neither currently requires a browser WebSocket or SSE stream. The
+[owned protocol assessment](docs/applicant-record-lab2-grade7.md) records the
+reasoning and verification for these two services.
+
 ### Data management
 
 Each service owns a **private database**. No shared tables, no cross-service
