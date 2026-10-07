@@ -210,7 +210,7 @@ services:
       retries: 10
 
   gateway-service:
-    image: ${GATEWAY_IMAGE:-vasiok11/student-id-gateway-service:lab2-0.2.0}
+    image: ${GATEWAY_IMAGE:-andreiisthebest/student-id-gateway-service:lab2-grade7}
     restart: unless-stopped
     networks: [default, applicant-net, record-net]
     environment:
@@ -222,6 +222,7 @@ services:
       RECORD_SERVICE_URL: http://university-record-service:8081
       MODERATION_SERVICE_URL: http://moderation-service:8080
       DMS_SERVICE_URL: http://discord-dms-service:8080
+      DMS_PUBLIC_WS_ORIGIN: ${DMS_PUBLIC_WS_ORIGIN:-ws://localhost:8088}
     ports:
       - "8090:8080"
     healthcheck:

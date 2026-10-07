@@ -417,7 +417,7 @@ forwarded to the service and returned on every response, so one id spans both ho
 | --- | --- |
 | All service-to-service calls | They are gRPC or RabbitMQ events; the Gateway speaks REST only. |
 | `/api/v1/internal/...` on Discord DMs | RabbitMQ stand-ins, excluded from the Gateway by this contract. |
-| `WS /ws/v1/sessions/{sessionId}` | The Gateway will negotiate and return a URL; the socket itself stays direct. |
+| `WS /ws/v1/sessions/{sessionId}` | The Gateway returns a direct DMs URL through the negotiation endpoint below; the socket itself stays direct. |
 
 Service-to-service traffic is unaffected by the Gateway because none of it is REST. Both
 services owned by Gurev Andreea illustrate this: the Moderation Service reaches the
@@ -1055,6 +1055,26 @@ until the producing/consuming owners agree to these additions.
 
 ### WebSocket protocol
 
+#### Gateway negotiation (Grade 7 proposal)
+
+Before opening the socket, the client requests
+`GET /api/v1/ws/sessions/{sessionId}/negotiate?playerId={playerId}` from the
+Gateway with `Authorization: Bearer <jwt>`. Both IDs are UUIDs. The response is
+`200 { "webSocketUrl": "ws://localhost:8088/ws/v1/sessions/{sessionId}?playerId={playerId}&token={jwt}" }`
+in the local Compose deployment. The client then connects to that URL **directly**;
+the Gateway does not hold a WebSocket connection.
+
+`DMS_PUBLIC_WS_ORIGIN` configures the browser-reachable `ws://` or `wss://`
+origin used in the response. The local default is `ws://localhost:8088`; remote
+deployments must use their public host and TLS. The Gateway does not derive it
+from the request Host header. The response uses `Cache-Control: no-store`
+because it includes the JWT. The Gateway checks the Bearer header's presence,
+not the JWT's validity or session membership; Discord DMs still decides those
+at the WebSocket handshake. Missing/malformed Bearer headers return the shared
+`401 UNAUTHENTICATED` envelope; invalid or duplicate UUID inputs return
+`400 INVALID_SESSION_ID` or `400 INVALID_PLAYER_ID`. This is a proposed
+cross-service contract pending Gateway and DMs owner review.
+
 ```
 WS /ws/v1/sessions/{sessionId}?playerId={playerId}&token={jwt}
 Handshake: 101 Switching Protocols
@@ -1172,7 +1192,7 @@ be published publicly before a fresh machine can pull it.
 |University Record|[`andreiisthebest/student-id-university-record-service:0.1.1`](https://hub.docker.com/r/andreiisthebest/student-id-university-record-service)|internal only (Gateway 8090)|PostgreSQL 16 (`university-record-db`, volume `record-pg-data`)|
 |Gateway|[`vasiok11/student-id-gateway-service:lab2-0.2.0`](https://hub.docker.com/r/vasiok11/student-id-gateway-service)|8090|none|
 
-The Gateway `lab2-0.2.0` tag is not published yet. Build that tag locally
+The proposed Gateway `lab2-grade7` tag is not published yet. Build that tag locally
 from `services/gateway-service` before starting Compose, or wait for its owner
 to publish it. Other image tags are maintained by their respective owners.
 
@@ -1197,7 +1217,7 @@ git clone --recurse-submodules https://github.com/m3ower/faf-student-id-please.g
 cd faf-student-id-please
 cp .env.example .env      # replace every example password
 # Until the Gateway image is published:
-docker build -t vasiok11/student-id-gateway-service:lab2-0.2.0 services/gateway-service
+docker build -t andreiisthebest/student-id-gateway-service:lab2-grade7 services/gateway-service
 docker compose up -d
 docker compose ps
 ```
