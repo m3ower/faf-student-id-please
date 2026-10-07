@@ -390,13 +390,17 @@ contract.
 | --- | --- | --- |
 | `/api/v1/players`, `/api/v1/teams` | Player | owner to add |
 | `/api/v1/sessions` | Moderation Session | owner to add |
-| `/api/v1/credentials` | Credential | owner to add |
+| `/api/v1/credentials` | Credential | yes |
 | `/api/v1/records` | University Record | owner to add |
-| `/api/v1/rules` | Server Rules | owner to add |
+| `/api/v1/rules` | Server Rules | yes |
 | `/api/v1/decisions` | Moderation | yes |
 | `/api/v1/penalty-policies` | Moderation | yes |
 | `/api/v1/channels` | Discord DMs | yes |
 | `/api/v1/messages` | Discord DMs | yes |
+
+Credential and Server Rules currently have no outbound REST service-to-service
+calls to reroute: their cross-service dependencies remain in-process mocks.
+Their client-facing CRUD requests use the Gateway.
 
 A prefix matches only on a segment boundary. The method, path, query string, body and
 headers reach the service unchanged, and its status, body and headers are relayed back
@@ -1155,18 +1159,21 @@ The Compose file references versioned Docker Hub image tags
 (`<user>/<service>:<version>`); it never builds from a Dockerfile. An image must
 be published publicly before a fresh machine can pull it.
 
-|Service|Image|Host port|Database|
+|Service|Image|Published host port|Database|
 |-|-|-|-|
 |Moderation| [`meow3r/student-id-moderation-service:0.2.0`](https://hub.docker.com/r/meow3r/student-id-moderation-service) | 8087 | PostgreSQL 16 (`moderation-db`, volume `moderation-pg-data`) |
 |Discord DMs| [`meow3r/student-id-discord-dms-service:0.2.0`](https://hub.docker.com/r/meow3r/student-id-discord-dms-service) | 8088 | Redis 7.4 with AOF (`dms-redis`, volume `dms-redis-data`) |
-|Credential|[`cmmarin/student-id-credential-service:0.1.0`](https://hub.docker.com/r/cmmarin/student-id-credential-service)|8080|PostgreSQL 17 (`credential_db`, volume `postgres-data`)|
-|Server Rules|[`cmmarin/student-id-rules-service:0.1.0`](https://hub.docker.com/r/cmmarin/student-id-rules-service)|8081|PostgreSQL 17 (`rules_db`, volume `postgres-data`)|
+|Credential|[`cmmarin/student-id-credential-service:0.1.0`](https://hub.docker.com/r/cmmarin/student-id-credential-service)|internal only|PostgreSQL 17 (`credential_db`, volume `postgres-data`)|
+|Server Rules|[`cmmarin/student-id-rules-service:0.1.0`](https://hub.docker.com/r/cmmarin/student-id-rules-service)|internal only|PostgreSQL 17 (`rules_db`, volume `postgres-data`)|
 |Player|[`vasiok11/student-id-player-service:0.2.0`](https://hub.docker.com/r/vasiok11/student-id-player-service)|8082|PostgreSQL 16 (`player-db`, volume `player-pg-data`)|
 |Session|[`vasiok11/student-id-session-service:0.2.0`](https://hub.docker.com/r/vasiok11/student-id-session-service)|8083|PostgreSQL 16 (`session-db`, volume `session-pg-data`)|
 |Applicant|[`andreiisthebest/student-id-applicant-service:0.1.1`](https://hub.docker.com/r/andreiisthebest/student-id-applicant-service)|8084|PostgreSQL 16 (`applicant-db`, volume `applicant-pg-data`)|
 |University Record|[`andreiisthebest/student-id-university-record-service:0.1.1`](https://hub.docker.com/r/andreiisthebest/student-id-university-record-service)|8085|PostgreSQL 16 (`university-record-db`, volume `record-pg-data`)|
+|Gateway|[`vasiok11/student-id-gateway-service:lab2-0.2.0`](https://hub.docker.com/r/vasiok11/student-id-gateway-service)|8090|none|
 
-All listed image tags are public on Docker Hub.
+The Gateway `lab2-0.2.0` tag is not published yet. Build that tag locally
+from `services/gateway-service` before starting Compose, or wait for its owner
+to publish it. Other image tags are maintained by their respective owners.
 
 For the Player and Session services, the linked Docker Hub repositories above
 are [`vasiok11/student-id-player-service`](https://hub.docker.com/r/vasiok11/student-id-player-service)
@@ -1179,8 +1186,8 @@ mock flows as HTTP endpoints.
 ## Running the system
 
 **Requirements:** Docker Engine 24+ with Compose v2, about 3 GB of free RAM (the Java
-services are the heavy part), and free host ports 5432, 8080, 8081, 8082,
-8083, 8084, 8085, 8087, and 8088. Copy `.env.example` to `.env` and replace
+services are the heavy part), and free host ports 8090, 8082, 8083, 8084,
+8085, 8087, and 8088. Copy `.env.example` to `.env` and replace
 the example passwords. The Compose file also contains Applicant and University
 Record; their requirements are documented below.
 
@@ -1188,6 +1195,8 @@ Record; their requirements are documented below.
 git clone --recurse-submodules https://github.com/m3ower/faf-student-id-please.git
 cd faf-student-id-please
 cp .env.example .env      # replace every example password
+# Until the Gateway image is published:
+docker build -t vasiok11/student-id-gateway-service:lab2-0.2.0 services/gateway-service
 docker compose up -d
 docker compose ps
 ```
@@ -1253,8 +1262,8 @@ test records in one run.
 |-|-|
 |`moderation-service.postman_collection.json`|`http://localhost:8087`|
 |`discord-dms-service.postman_collection.json`|`http://localhost:8088`|
-|`credential-service.postman_collection.json`|`http://localhost:8080`|
-|`server-rules-service.postman_collection.json`|`http://localhost:8081`|
+|`credential-service.postman_collection.json`|`http://localhost:8090`|
+|`server-rules-service.postman_collection.json`|`http://localhost:8090`|
 |`player-service.postman_collection.json`|`http://localhost:8082`|
 |`session-service.postman_collection.json`|`http://localhost:8083`|
 |`applicant-service.postman_collection.json`|`http://localhost:8084`|
@@ -1392,14 +1401,14 @@ Published versioned Docker Hub images for these two services:
 - [Credential Service — `cmmarin/student-id-credential-service:0.1.0`](https://hub.docker.com/r/cmmarin/student-id-credential-service)
 - [Server Rules Service — `cmmarin/student-id-rules-service:0.1.0`](https://hub.docker.com/r/cmmarin/student-id-rules-service)
 
-To run only these two services from the CPR, you need Docker Engine with Compose
-v2 and free host ports 5432, 8080, and 8081. Copy `.env.example` to the
+To run only these two services through the Gateway, you need Docker Engine with
+Compose v2 and free host port 8090. Copy `.env.example` to the
 git-ignored `.env` and replace at least `POSTGRES_PASSWORD`,
 `CREDENTIAL_DB_PASSWORD`, and `RULES_DB_PASSWORD` with your own values. Do not
 commit `.env` or real credentials. Then run:
 
 ```bash
-docker compose up -d postgres credential-service rules-service
+docker compose up -d gateway-service postgres credential-service rules-service
 docker compose ps
 ```
 
