@@ -28,6 +28,7 @@ traumatize Mr. Pumpkin with the emojis.
    - [gRPC services](#grpc-services)
    - [WebSocket protocol](#websocket-protocol)
    - [Asynchronous events](#asynchronous-events)
+   - [Task limits](#task-limits)
    - [Error envelope and status mapping](#error-envelope-and-status-mapping)
    - [Docker Hub images](#docker-hub-images)
    - [Running the system](#running-the-system)
@@ -1136,6 +1137,48 @@ producers by design and a broker message should stay readable in the RabbitMQ
 management UI while we are debugging. Consumers must be idempotent on `eventId`.
 Failed handling is retried three times with exponential backoff before the
 message is routed to `studentid.events.dlq`.
+
+---
+
+### Task limits
+
+Every service bounds the work it takes on, so that one slow dependency or one flooding
+client cannot pile up requests until the service stops answering at all. Two limits, both
+per process:
+
+| Limit | Refusal | Status table row |
+| --- | --- | --- |
+| Requests, or tasks, in flight | `TASK_LIMIT_REACHED` | `429 RESOURCE_EXHAUSTED` |
+| Deadline for one request | `TASK_TIMEOUT` | `503 UNAVAILABLE` |
+
+Both refusals use the standard error envelope and carry `Retry-After: 1`. A request over
+the capacity limit is **refused immediately rather than queued**: telling a player to retry
+is better than holding them behind a queue of unknown length, and an unbounded queue only
+moves the failure later.
+
+`429` is the table's own row for a capacity refusal. The deadline uses `503`, the closest
+row available, because the table has neither `408` nor `504` — see the open question below.
+
+Each owner chooses what the bounded task is and what the limits default to:
+
+| Service | Bounded task | Capacity | Deadline | Exempt |
+| --- | --- | --- | --- | --- |
+| Gateway | every `/api/v1` request, with a separate pool for Session SSE | `GATEWAY_MAX_CONCURRENT_TASKS` (16), `GATEWAY_MAX_STREAMS` (64) | `GATEWAY_TASK_TIMEOUT_SECONDS` (5), `GATEWAY_STREAM_TIMEOUT_SECONDS` (1800) | `/health` |
+| Moderation | submitting a decision, which fans out to four services | `MODERATION_MAX_CONCURRENT_DECISIONS` (16) | `MODERATION_TASK_TIMEOUT_MS` (5000) | reads, health |
+| Discord DMs | every REST request | `MAX_CONCURRENT_TASKS` (16) | `TASK_TIMEOUT_SECONDS` (5) | `/health`, `WS /ws/v1/...` |
+
+Health endpoints are exempt everywhere: a saturated instance must still be diagnosable and
+must still answer its Compose healthcheck. The Discord DMs WebSocket is exempt because the
+upgrade hijacks the connection and because a shift's socket is meant to stay open for the
+whole shift, which is exactly what a request deadline would break.
+
+> **Open question for the team.** The Gateway currently answers a deadline with
+> `504 TASK_TIMEOUT`, while Moderation and Discord DMs answer with `503`, because `504` is
+> not a row in the [status table](#error-envelope-and-status-mapping). Either the table
+> gains a `504 DEADLINE_EXCEEDED` row, which is the more accurate code for a proxy and is
+> what gRPC's `DEADLINE_EXCEEDED` conventionally maps to, or the Gateway moves to `503`.
+> Until that is settled the three services disagree on one status code.
+
 
 ---
 
