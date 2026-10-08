@@ -180,18 +180,77 @@ transports messages and does not determine whether the information is true.
 
 ## Architecture diagram
 
-![Architecture diagram](https://github.com/m3ower/faf-student-id-please/blob/main/archdiagram.png "Architecture diagram")
+This diagram shows the current Lab 2 Compose deployment. Its editable Mermaid
+source is [docs/architecture.mmd](docs/architecture.mmd).
 
-**Legend**
+```mermaid
+flowchart LR
+    Client["Client / Postman"]
+    Gateway["Gateway :8090<br/>FastAPI<br/>JWT checks, routing, request limits"]
 
-- Solid arrow — synchronous request/response over REST or gRPC.
-- Dotted arrow — asynchronous event published through the message broker.
-- Colour groups services by ownership domain: player state, session state,
-  decisions, applicant claims, ground truth, rules, transport.
+    subgraph Services["Implemented services in Docker"]
+        Player["Player"]
+        Session["Session"]
+        Applicant["Applicant"]
+        Credential["Credential<br/>Spring Boot"]
+        Rules["Server Rules<br/>Go / Fiber"]
+        Record["University Record"]
+        Moderation["Moderation"]
+        DMs["Discord DMs"]
+    end
 
-The triangular `ApplicantInitialized` relationship between the Applicant,
-Credential and University Record services is described in
-[Applicant initialization](#applicant-initialization).
+    subgraph Storage["Persistent storage - named Docker volumes"]
+        PlayerDB[("Player PostgreSQL 16")]
+        SessionDB[("Session PostgreSQL 16")]
+        ApplicantDB[("Applicant PostgreSQL 16")]
+        OwnedDB[("Shared PostgreSQL 17<br/>Separate credential_db and rules_db")]
+        RecordDB[("Record PostgreSQL 16")]
+        ModerationDB[("Moderation PostgreSQL 16")]
+        Redis[("DMs Redis 7.4<br/>AOF persistence")]
+    end
+
+    Client <-->|"REST requests / responses and WebSocket negotiation"| Gateway
+    Gateway -.->|"SSE updates"| Client
+    Gateway <-->|"REST requests / responses"| Player
+    Gateway <-->|"REST requests / responses and SSE subscription"| Session
+    Session -.->|"SSE updates"| Gateway
+    Gateway <-->|"REST requests / responses"| Applicant
+    Gateway <-->|"REST requests / responses"| Credential
+    Gateway <-->|"REST requests / responses"| Rules
+    Gateway <-->|"REST requests / responses"| Record
+    Gateway <-->|"REST requests / responses"| Moderation
+    Gateway <-->|"REST requests / responses"| DMs
+    Client <-->|"Direct WebSocket :8088"| DMs
+
+    Player <-->|"Database access"| PlayerDB
+    Session <-->|"Database access"| SessionDB
+    Applicant <-->|"Database access"| ApplicantDB
+    Credential <-->|"credential_db"| OwnedDB
+    Rules <-->|"rules_db"| OwnedDB
+    Record <-->|"Database access"| RecordDB
+    Moderation <-->|"Database access"| ModerationDB
+    DMs <-->|"Redis commands"| Redis
+```
+
+Bidirectional REST arrows show requests and their responses: client to Gateway
+to service, then service to Gateway to client. Responses use the existing HTTP
+connections. Dashed arrows show streamed Session SSE updates returning through
+Gateway.
+
+Any service-to-service REST request must also use Gateway: service A to Gateway
+to service B, with the response returning through Gateway to service A. Current
+in-process dependency mocks do not create network requests, so they are not
+drawn as live service-to-service connections.
+
+WebSocket negotiation returns a direct DMs URL. The subsequent WebSocket
+connection goes between the client and DMs, without passing through Gateway.
+Compose also publishes direct service ports for Player (8082), Session (8083),
+Moderation (8087), and DMs (8088); the collections use Gateway on 8090 for REST.
+
+Cross-service dependencies currently use in-process mocks rather than live
+gRPC or broker connections. RabbitMQ, event-bus links, and a Session Redis cache
+are therefore absent from this diagram. The contract below also describes
+planned integrations beyond this deployed architecture.
 
 ---
 
