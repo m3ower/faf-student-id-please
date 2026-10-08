@@ -47,7 +47,7 @@ services:
         condition: service_healthy
 
   player-service:
-    image: ${PLAYER_IMAGE:-vasiok11/student-id-player-service:0.2.0}
+    image: ${PLAYER_IMAGE:-vasiok11/student-id-player-service:lab2-0.3.0-build.4}
     ports:
       - "8082:8080"
     environment:
@@ -73,7 +73,7 @@ services:
       retries: 10
 
   session-service:
-    image: ${SESSION_IMAGE:-vasiok11/student-id-session-service:0.2.0}
+    image: ${SESSION_IMAGE:-vasiok11/student-id-session-service:lab2-0.3.0-build.4}
     ports:
       - "8083:8080"
     environment:

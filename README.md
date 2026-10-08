@@ -1238,8 +1238,8 @@ be published publicly before a fresh machine can pull it.
 |Discord DMs| [`meow3r/student-id-discord-dms-service:0.2.0`](https://hub.docker.com/r/meow3r/student-id-discord-dms-service) | 8088 | Redis 7.4 with AOF (`dms-redis`, volume `dms-redis-data`) |
 |Credential|[`cmmarin/student-id-credential-service:0.1.0`](https://hub.docker.com/r/cmmarin/student-id-credential-service)|internal only|PostgreSQL 17 (`credential_db`, volume `postgres-data`)|
 |Server Rules|[`cmmarin/student-id-rules-service:0.1.0`](https://hub.docker.com/r/cmmarin/student-id-rules-service)|internal only|PostgreSQL 17 (`rules_db`, volume `postgres-data`)|
-|Player|[`vasiok11/student-id-player-service:0.2.0`](https://hub.docker.com/r/vasiok11/student-id-player-service)|8082|PostgreSQL 16 (`player-db`, volume `player-pg-data`)|
-|Session|[`vasiok11/student-id-session-service:0.2.0`](https://hub.docker.com/r/vasiok11/student-id-session-service)|8083|PostgreSQL 16 (`session-db`, volume `session-pg-data`)|
+|Player|[`vasiok11/student-id-player-service:lab2-0.3.0-build.4`](https://hub.docker.com/r/vasiok11/student-id-player-service)|8082|PostgreSQL 16 (`player-db`, volume `player-pg-data`)|
+|Session|[`vasiok11/student-id-session-service:lab2-0.3.0-build.4`](https://hub.docker.com/r/vasiok11/student-id-session-service)|8083|PostgreSQL 16 (`session-db`, volume `session-pg-data`)|
 |Applicant|[`andreiisthebest/student-id-applicant-service:0.1.1`](https://hub.docker.com/r/andreiisthebest/student-id-applicant-service)|internal only (Gateway 8090)|PostgreSQL 16 (`applicant-db`, volume `applicant-pg-data`)|
 |University Record|[`andreiisthebest/student-id-university-record-service:0.1.1`](https://hub.docker.com/r/andreiisthebest/student-id-university-record-service)|internal only (Gateway 8090)|PostgreSQL 16 (`university-record-db`, volume `record-pg-data`)|
 |Gateway|[`vasiok11/student-id-gateway-service:lab2-0.2.0`](https://hub.docker.com/r/vasiok11/student-id-gateway-service)|8090|none|
@@ -1251,10 +1251,11 @@ to publish it. Other image tags are maintained by their respective owners.
 For the Player and Session services, the linked Docker Hub repositories above
 are [`vasiok11/student-id-player-service`](https://hub.docker.com/r/vasiok11/student-id-player-service)
 and [`vasiok11/student-id-session-service`](https://hub.docker.com/r/vasiok11/student-id-session-service).
-Their published `0.2.0` images run the PostgreSQL-backed HTTP services. The
-new Lab 1 in-process mock flows are in the service source and tests; these
-`0.2.0` images were published before those mock commits and do not expose the
-mock flows as HTTP endpoints.
+Their published `lab2-0.3.0-build.4` images include the PostgreSQL-backed HTTP
+CRUD services, Lab 1 in-process mock code, and Lab 2 task timeout/concurrency
+limits. Session also exposes its SSE stream at
+`GET /api/v1/sessions/{sessionId}/events`. The mock flows remain in-process
+and are not exposed as HTTP endpoints.
 
 ## Running the system
 
@@ -1304,8 +1305,10 @@ URL-safe characters (letters, digits, `_`, `-`) for `SESSION_DB_PASSWORD`.
 Run `docker compose up -d player-service session-service`
 to pull the two published images and start their separate PostgreSQL 16
 containers; ports `8082` (Player) and `8083` (Session) must be free.
-`PLAYER_IMAGE` and `SESSION_IMAGE` can override the default `0.2.0`
-tags. Docker Compose supplies the database URLs, users, and named volumes, so
+`PLAYER_IMAGE` and `SESSION_IMAGE` can override the default `lab2-0.3.0-build.4`
+tags. If an existing ignored `.env` still sets these variables to older tags,
+update those two values to match `.env.example`; otherwise they override the
+new Compose defaults. Docker Compose supplies the database URLs, users, and named volumes, so
 Java and Go are not needed on the host for this image-based run. To build or
 test the current source instead, Player needs Java 21 (Maven Wrapper included),
 Session needs Go 1.27, and running either outside Compose needs its PostgreSQL
