@@ -1234,10 +1234,10 @@ be published publicly before a fresh machine can pull it.
 
 |Service|Image|Published host port|Database|
 |-|-|-|-|
-|Moderation| [`meow3r/student-id-moderation-service:0.2.0`](https://hub.docker.com/r/meow3r/student-id-moderation-service) | 8087 | PostgreSQL 16 (`moderation-db`, volume `moderation-pg-data`) |
-|Discord DMs| [`meow3r/student-id-discord-dms-service:0.2.0`](https://hub.docker.com/r/meow3r/student-id-discord-dms-service) | 8088 | Redis 7.4 with AOF (`dms-redis`, volume `dms-redis-data`) |
-|Credential|[`cmmarin/student-id-credential-service:0.1.0`](https://hub.docker.com/r/cmmarin/student-id-credential-service)|internal only|PostgreSQL 17 (`credential_db`, volume `postgres-data`)|
-|Server Rules|[`cmmarin/student-id-rules-service:0.1.0`](https://hub.docker.com/r/cmmarin/student-id-rules-service)|internal only|PostgreSQL 17 (`rules_db`, volume `postgres-data`)|
+|Moderation| [`meow3r/student-id-moderation-service:lab2-0.2.0`](https://hub.docker.com/r/meow3r/student-id-moderation-service) | 8087 | PostgreSQL 16 (`moderation-db`, volume `moderation-pg-data`) |
+|Discord DMs| [`meow3r/student-id-discord-dms-service:lab2-0.2.0`](https://hub.docker.com/r/meow3r/student-id-discord-dms-service) | 8088 | Redis 7.4 with AOF (`dms-redis`, volume `dms-redis-data`) |
+|Credential|[`cmmarin/student-id-credential-service:lab2-0.3.0`](https://hub.docker.com/r/cmmarin/student-id-credential-service)|internal only|PostgreSQL 17 (`credential_db`, volume `postgres-data`)|
+|Server Rules|[`cmmarin/student-id-rules-service:lab2-0.3.0`](https://hub.docker.com/r/cmmarin/student-id-rules-service)|internal only|PostgreSQL 17 (`rules_db`, volume `postgres-data`)|
 |Player|[`vasiok11/student-id-player-service:lab2-0.3.0-build.4`](https://hub.docker.com/r/vasiok11/student-id-player-service)|8082|PostgreSQL 16 (`player-db`, volume `player-pg-data`)|
 |Session|[`vasiok11/student-id-session-service:lab2-0.3.0-build.4`](https://hub.docker.com/r/vasiok11/student-id-session-service)|8083|PostgreSQL 16 (`session-db`, volume `session-pg-data`)|
 |Applicant|[`andreiisthebest/student-id-applicant-service:0.1.1`](https://hub.docker.com/r/andreiisthebest/student-id-applicant-service)|internal only (Gateway 8090)|PostgreSQL 16 (`applicant-db`, volume `applicant-pg-data`)|
