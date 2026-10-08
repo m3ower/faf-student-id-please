@@ -97,7 +97,7 @@ services:
       retries: 10
 
   applicant-service:
-    image: ${APPLICANT_IMAGE:-andreiisthebest/student-id-applicant-service:lab2-0.2.0-4844b116e8f7}
+    image: ${APPLICANT_IMAGE:-andreiisthebest/student-id-applicant-service:lab2-0.2.0}
     networks: [applicant-net]
     environment:
       GATEWAY_URL: http://gateway-service:8080
@@ -128,7 +128,7 @@ services:
       retries: 10
 
   university-record-service:
-    image: ${RECORD_IMAGE:-andreiisthebest/student-id-university-record-service:lab2-0.2.0-e3e20372ba39}
+    image: ${RECORD_IMAGE:-andreiisthebest/student-id-university-record-service:lab2-0.2.0}
     networks: [record-net]
     environment:
       GATEWAY_URL: http://gateway-service:8080
