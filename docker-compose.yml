@@ -23,7 +23,7 @@ services:
       retries: 10
 
   credential-service:
-    image: ${CREDENTIAL_IMAGE:-cmmarin/student-id-credential-service:0.1.0}
+    image: ${CREDENTIAL_IMAGE:-cmmarin/student-id-credential-service:lab2-0.3.0}
     environment:
       DB_HOST: postgres
       DB_PORT: 5432
@@ -35,7 +35,7 @@ services:
         condition: service_healthy
 
   rules-service:
-    image: ${RULES_IMAGE:-cmmarin/student-id-rules-service:0.1.0}
+    image: ${RULES_IMAGE:-cmmarin/student-id-rules-service:lab2-0.3.0}
     environment:
       DB_HOST: postgres
       DB_PORT: 5432
@@ -47,7 +47,7 @@ services:
         condition: service_healthy
 
   player-service:
-    image: ${PLAYER_IMAGE:-vasiok11/student-id-player-service:0.2.0}
+    image: ${PLAYER_IMAGE:-vasiok11/student-id-player-service:lab2-0.3.0-build.4}
     ports:
       - "8082:8080"
     environment:
@@ -73,7 +73,7 @@ services:
       retries: 10
 
   session-service:
-    image: ${SESSION_IMAGE:-vasiok11/student-id-session-service:0.2.0}
+    image: ${SESSION_IMAGE:-vasiok11/student-id-session-service:lab2-0.3.0-build.4}
     ports:
       - "8083:8080"
     environment:
