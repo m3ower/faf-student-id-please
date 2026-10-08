@@ -1258,9 +1258,8 @@ pushed by each repository's `publish` workflow when a release PR merges to `main
 first release, the only tags on Docker Hub for those two predate the WebSocket negotiation,
 the task limits and the publish workflow itself, so they are not worth testing against.
 
-Applicant and University Record are published, but only under a tag carrying a commit
-suffix; a plain `lab2-0.2.0` does not exist for either, so the suffixed tag is what is
-referenced above.
+Applicant and University Record stay on `0.1.1` because their owner has not published a
+`lab2` tag.
 
 ```bash
 docker build -t meow3r/student-id-moderation-service:lab2-0.2.0 services/moderation-service
