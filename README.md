@@ -28,6 +28,7 @@ traumatize Mr. Pumpkin with the emojis.
    - [gRPC services](#grpc-services)
    - [WebSocket protocol](#websocket-protocol)
    - [Asynchronous events](#asynchronous-events)
+   - [Task limits](#task-limits)
    - [Error envelope and status mapping](#error-envelope-and-status-mapping)
    - [Docker Hub images](#docker-hub-images)
    - [Running the system](#running-the-system)
@@ -1139,6 +1140,57 @@ message is routed to `studentid.events.dlq`.
 
 ---
 
+### Task limits
+
+Every service bounds the work it takes on, so that one slow dependency or one flooding
+client cannot pile up requests until the service stops answering at all. Two limits, both
+per process:
+
+| Limit | Refusal | Status table row |
+| --- | --- | --- |
+| Requests, or tasks, in flight | `TASK_LIMIT_REACHED` | `429 RESOURCE_EXHAUSTED` |
+| Deadline for one request | `TASK_TIMEOUT` | `503 UNAVAILABLE` |
+
+Both refusals use the standard error envelope and carry `Retry-After: 1`. A request over
+the capacity limit is **refused immediately rather than queued**: telling a player to retry
+is better than holding them behind a queue of unknown length, and an unbounded queue only
+moves the failure later.
+
+`429` is the table's own row for a capacity refusal. The deadline uses `503`, the closest
+row available, because the table has neither `408` nor `504` — see the open question below.
+
+Each owner chooses what the bounded task is and what the limits default to:
+
+| Service | Bounded task | Capacity | Deadline | Exempt |
+| --- | --- | --- | --- | --- |
+| Gateway | every `/api/v1` request, with a separate pool for Session SSE | `GATEWAY_MAX_CONCURRENT_TASKS` (16), `GATEWAY_MAX_STREAMS` (64) | `GATEWAY_TASK_TIMEOUT_SECONDS` (5), `GATEWAY_STREAM_TIMEOUT_SECONDS` (1800) | `/health` |
+| Moderation | submitting a decision, which fans out to four services | `MODERATION_MAX_CONCURRENT_DECISIONS` (16) | `MODERATION_TASK_TIMEOUT_MS` (5000) | reads, health |
+| Discord DMs | every REST request | `MAX_CONCURRENT_TASKS` (16) | `TASK_TIMEOUT_SECONDS` (5) | `/health`, `WS /ws/v1/...` |
+| Applicant | every Applicant CRUD task | `MAX_CONCURRENT_TASKS` (16), CPR `APPLICANT_MAX_CONCURRENT_TASKS` | `TASK_TIMEOUT_MS` (2000), CPR `APPLICANT_TASK_TIMEOUT_MS` | `/health`, `/q/health` |
+| University Record | every Record CRUD and enrollment lookup task | `MAX_CONCURRENT_TASKS` (16), CPR `RECORD_MAX_CONCURRENT_TASKS` | `TASK_TIMEOUT_MS` (2000), CPR `RECORD_TASK_TIMEOUT_MS` | `/health` |
+
+Applicant and University Record report capacity refusal as
+`429 CONCURRENT_TASK_LIMIT` with `Retry-After: 1`, and deadline expiry as
+`504 TASK_TIMEOUT`. Their responses use the existing error envelope with the
+owning service name. Their CRUD paths and payloads retain their behavior; see
+the [owned task-limit guide](docs/applicant-record-lab2-grade8.md) for cancellation,
+recovery and verification details.
+
+Health endpoints are exempt everywhere: a saturated instance must still be diagnosable and
+must still answer its Compose healthcheck. The Discord DMs WebSocket is exempt because the
+upgrade hijacks the connection and because a shift's socket is meant to stay open for the
+whole shift, which is exactly what a request deadline would break.
+
+> **Open question for the team.** The Gateway currently answers a deadline with
+> `504 TASK_TIMEOUT`, while Moderation and Discord DMs answer with `503`, because `504` is
+> not a row in the [status table](#error-envelope-and-status-mapping). Either the table
+> gains a `504 DEADLINE_EXCEEDED` row, which is the more accurate code for a proxy and is
+> what gRPC's `DEADLINE_EXCEEDED` conventionally maps to, or the Gateway moves to `503`.
+> Until that is settled the three services disagree on one status code.
+
+
+---
+
 ### Error envelope and status mapping
 
 Every REST service returns the same shape on failure:
@@ -1182,10 +1234,10 @@ be published publicly before a fresh machine can pull it.
 
 |Service|Image|Published host port|Database|
 |-|-|-|-|
-|Moderation| [`meow3r/student-id-moderation-service:lab2-0.2.0`](https://hub.docker.com/r/meow3r/student-id-moderation-service) | 8087 | PostgreSQL 16 (`moderation-db`, volume `moderation-pg-data`) |
-|Discord DMs| [`meow3r/student-id-discord-dms-service:lab2-0.2.0`](https://hub.docker.com/r/meow3r/student-id-discord-dms-service) | 8088 | Redis 7.4 with AOF (`dms-redis`, volume `dms-redis-data`) |
-|Credential|[`cmmarin/student-id-credential-service:lab2-0.3.0`](https://hub.docker.com/r/cmmarin/student-id-credential-service)|internal only|PostgreSQL 17 (`credential_db`, volume `postgres-data`)|
-|Server Rules|[`cmmarin/student-id-rules-service:lab2-0.3.0`](https://hub.docker.com/r/cmmarin/student-id-rules-service)|internal only|PostgreSQL 17 (`rules_db`, volume `postgres-data`)|
+|Moderation| [`meow3r/student-id-moderation-service:0.2.0`](https://hub.docker.com/r/meow3r/student-id-moderation-service) | 8087 | PostgreSQL 16 (`moderation-db`, volume `moderation-pg-data`) |
+|Discord DMs| [`meow3r/student-id-discord-dms-service:0.2.0`](https://hub.docker.com/r/meow3r/student-id-discord-dms-service) | 8088 | Redis 7.4 with AOF (`dms-redis`, volume `dms-redis-data`) |
+|Credential|[`cmmarin/student-id-credential-service:0.1.0`](https://hub.docker.com/r/cmmarin/student-id-credential-service)|internal only|PostgreSQL 17 (`credential_db`, volume `postgres-data`)|
+|Server Rules|[`cmmarin/student-id-rules-service:0.1.0`](https://hub.docker.com/r/cmmarin/student-id-rules-service)|internal only|PostgreSQL 17 (`rules_db`, volume `postgres-data`)|
 |Player|[`vasiok11/student-id-player-service:lab2-0.3.0-build.4`](https://hub.docker.com/r/vasiok11/student-id-player-service)|8082|PostgreSQL 16 (`player-db`, volume `player-pg-data`)|
 |Session|[`vasiok11/student-id-session-service:lab2-0.3.0-build.4`](https://hub.docker.com/r/vasiok11/student-id-session-service)|8083|PostgreSQL 16 (`session-db`, volume `session-pg-data`)|
 |Applicant|[`andreiisthebest/student-id-applicant-service:0.1.1`](https://hub.docker.com/r/andreiisthebest/student-id-applicant-service)|internal only (Gateway 8090)|PostgreSQL 16 (`applicant-db`, volume `applicant-pg-data`)|
@@ -1220,10 +1272,11 @@ Other image tags are maintained by their respective owners.
 For the Player and Session services, the linked Docker Hub repositories above
 are [`vasiok11/student-id-player-service`](https://hub.docker.com/r/vasiok11/student-id-player-service)
 and [`vasiok11/student-id-session-service`](https://hub.docker.com/r/vasiok11/student-id-session-service).
-Their published `0.2.0` images run the PostgreSQL-backed HTTP services. The
-new Lab 1 in-process mock flows are in the service source and tests; these
-`0.2.0` images were published before those mock commits and do not expose the
-mock flows as HTTP endpoints.
+Their published `lab2-0.3.0-build.4` images include the PostgreSQL-backed HTTP
+CRUD services, Lab 1 in-process mock code, and Lab 2 task timeout/concurrency
+limits. Session also exposes its SSE stream at
+`GET /api/v1/sessions/{sessionId}/events`. The mock flows remain in-process
+and are not exposed as HTTP endpoints.
 
 ## Running the system
 
@@ -1273,8 +1326,10 @@ URL-safe characters (letters, digits, `_`, `-`) for `SESSION_DB_PASSWORD`.
 Run `docker compose up -d player-service session-service`
 to pull the two published images and start their separate PostgreSQL 16
 containers; ports `8082` (Player) and `8083` (Session) must be free.
-`PLAYER_IMAGE` and `SESSION_IMAGE` can override the default `0.2.0`
-tags. Docker Compose supplies the database URLs, users, and named volumes, so
+`PLAYER_IMAGE` and `SESSION_IMAGE` can override the default `lab2-0.3.0-build.4`
+tags. If an existing ignored `.env` still sets these variables to older tags,
+update those two values to match `.env.example`; otherwise they override the
+new Compose defaults. Docker Compose supplies the database URLs, users, and named volumes, so
 Java and Go are not needed on the host for this image-based run. To build or
 test the current source instead, Player needs Java 21 (Maven Wrapper included),
 Session needs Go 1.27, and running either outside Compose needs its PostgreSQL

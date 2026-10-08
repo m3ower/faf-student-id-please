@@ -97,7 +97,7 @@ services:
       retries: 10
 
   applicant-service:
-    image: ${APPLICANT_IMAGE:-andreiisthebest/student-id-applicant-service:0.1.1}
+    image: ${APPLICANT_IMAGE:-andreiisthebest/student-id-applicant-service:lab2-0.2.0}
     networks: [applicant-net]
     environment:
       GATEWAY_URL: http://gateway-service:8080
@@ -106,6 +106,8 @@ services:
       DB_URL: jdbc:postgresql://applicant-db:5432/applicant_db
       DB_USER: applicant_user
       DB_PASSWORD: ${APPLICANT_DB_PASSWORD:?set APPLICANT_DB_PASSWORD in .env}
+      TASK_TIMEOUT_MS: ${APPLICANT_TASK_TIMEOUT_MS:-2000}
+      MAX_CONCURRENT_TASKS: ${APPLICANT_MAX_CONCURRENT_TASKS:-16}
     depends_on:
       applicant-db:
         condition: service_healthy
@@ -126,13 +128,15 @@ services:
       retries: 10
 
   university-record-service:
-    image: ${RECORD_IMAGE:-andreiisthebest/student-id-university-record-service:0.1.1}
+    image: ${RECORD_IMAGE:-andreiisthebest/student-id-university-record-service:lab2-0.2.0}
     networks: [record-net]
     environment:
       GATEWAY_URL: http://gateway-service:8080
       APPLICANT_SERVICE_URL: http://gateway-service:8080
       RECORD_SERVICE_URL: http://gateway-service:8080
       DB_URL: postgres://record_user:${RECORD_DB_PASSWORD:?set RECORD_DB_PASSWORD in .env}@university-record-db:5432/record_db?sslmode=disable
+      TASK_TIMEOUT_MS: ${RECORD_TASK_TIMEOUT_MS:-2000}
+      MAX_CONCURRENT_TASKS: ${RECORD_MAX_CONCURRENT_TASKS:-16}
     depends_on:
       university-record-db:
         condition: service_healthy
@@ -159,6 +163,9 @@ services:
       DB_URL: jdbc:postgresql://moderation-db:5432/${MODERATION_DB_NAME:-moderation}
       DB_USER: ${MODERATION_DB_USER:-moderation}
       DB_PASSWORD: ${MODERATION_DB_PASSWORD:?set MODERATION_DB_PASSWORD in .env}
+      # Task limits on the decision path: over capacity is 429, past the deadline is 503.
+      MODERATION_MAX_CONCURRENT_DECISIONS: ${MODERATION_MAX_CONCURRENT_DECISIONS:-16}
+      MODERATION_TASK_TIMEOUT_MS: ${MODERATION_TASK_TIMEOUT_MS:-5000}
     ports:
       - "8087:8080"
     depends_on:
@@ -189,6 +196,9 @@ services:
       REDIS_PASSWORD: ${DMS_REDIS_PASSWORD:?set DMS_REDIS_PASSWORD in .env}
       SESSION_CLIENT: mock
       WS_ALLOWED_ORIGINS: "*"
+      # Task limits on the REST surface; the WebSocket is deliberately exempt.
+      MAX_CONCURRENT_TASKS: ${DMS_MAX_CONCURRENT_TASKS:-16}
+      TASK_TIMEOUT_SECONDS: ${DMS_TASK_TIMEOUT_SECONDS:-5}
     ports:
       - "8088:8080"
     depends_on:
