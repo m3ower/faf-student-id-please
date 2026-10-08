@@ -20,8 +20,8 @@
     {
       "name": "Create rule",
       "event": [
-        { "listen": "prerequest", "script": { "exec": ["pm.collectionVariables.set('ruleCode', 'LAB1_' + pm.variables.replaceIn('{{$guid}}').replace(/-/g, '').slice(0, 8).toUpperCase());"] } },
-        { "listen": "test", "script": { "exec": ["pm.test('Rule created', () => pm.response.to.have.status(201));", "pm.collectionVariables.set('ruleId', pm.response.json().ruleId);"] } }
+        { "listen": "prerequest", "script": { "exec": ["pm.collectionVariables.unset('ruleId');", "pm.collectionVariables.set('ruleCode', 'LAB1_' + pm.variables.replaceIn('{{$guid}}').replace(/-/g, '').slice(0, 8).toUpperCase());"] } },
+        { "listen": "test", "script": { "exec": ["pm.test('Rule created with an ID', () => { pm.response.to.have.status(201); const id = pm.response.json().ruleId; pm.expect(id).to.be.a('string').and.not.empty; pm.collectionVariables.set('ruleId', id); });"] } }
       ],
       "request": {
         "method": "POST",
@@ -30,10 +30,11 @@
         "url": "{{baseUrl}}/api/v1/rules"
       }
     },
-    { "name": "List rules", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/rules" } },
-    { "name": "Get rule", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/rules/{{ruleId}}" } },
+    { "name": "List rules", "event": [{ "listen": "test", "script": { "exec": ["pm.test('Rules returned', () => pm.response.to.have.status(200));"] } }], "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/rules" } },
+    { "name": "Get rule", "event": [{ "listen": "test", "script": { "exec": ["pm.test('Rule returned', () => pm.response.to.have.status(200));"] } }], "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/rules/{{ruleId}}" } },
     {
       "name": "Update rule",
+      "event": [{ "listen": "test", "script": { "exec": ["pm.test('Rule updated', () => pm.response.to.have.status(200));"] } }],
       "request": {
         "method": "PUT",
         "header": [{ "key": "Content-Type", "value": "application/json" }],
@@ -41,9 +42,10 @@
         "url": "{{baseUrl}}/api/v1/rules/{{ruleId}}"
       }
     },
-    { "name": "Current ruleset", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/rules/current?sessionId={{sessionId}}" } },
+    { "name": "Current ruleset", "event": [{ "listen": "test", "script": { "exec": ["pm.test('Current ruleset returned', () => pm.response.to.have.status(200));"] } }], "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/rules/current?sessionId={{sessionId}}" } },
     {
       "name": "Evaluate applicant",
+      "event": [{ "listen": "test", "script": { "exec": ["pm.test('Applicant evaluated', () => pm.response.to.have.status(200));"] } }],
       "request": {
         "method": "POST",
         "header": [{ "key": "Content-Type", "value": "application/json" }],
@@ -51,6 +53,6 @@
         "url": "{{baseUrl}}/api/v1/rules/evaluate"
       }
     },
-    { "name": "Delete rule", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/v1/rules/{{ruleId}}" } }
+    { "name": "Delete rule", "event": [{ "listen": "test", "script": { "exec": ["pm.test('Rule deleted', () => pm.response.to.have.status(204));"] } }], "request": { "method": "DELETE", "url": "{{baseUrl}}/api/v1/rules/{{ruleId}}" } }
   ]
 }
