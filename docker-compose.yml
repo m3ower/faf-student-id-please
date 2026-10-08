@@ -159,6 +159,9 @@ services:
       DB_URL: jdbc:postgresql://moderation-db:5432/${MODERATION_DB_NAME:-moderation}
       DB_USER: ${MODERATION_DB_USER:-moderation}
       DB_PASSWORD: ${MODERATION_DB_PASSWORD:?set MODERATION_DB_PASSWORD in .env}
+      # Task limits on the decision path: over capacity is 429, past the deadline is 503.
+      MODERATION_MAX_CONCURRENT_DECISIONS: ${MODERATION_MAX_CONCURRENT_DECISIONS:-16}
+      MODERATION_TASK_TIMEOUT_MS: ${MODERATION_TASK_TIMEOUT_MS:-5000}
     ports:
       - "8087:8080"
     depends_on:
@@ -189,6 +192,9 @@ services:
       REDIS_PASSWORD: ${DMS_REDIS_PASSWORD:?set DMS_REDIS_PASSWORD in .env}
       SESSION_CLIENT: mock
       WS_ALLOWED_ORIGINS: "*"
+      # Task limits on the REST surface; the WebSocket is deliberately exempt.
+      MAX_CONCURRENT_TASKS: ${DMS_MAX_CONCURRENT_TASKS:-16}
+      TASK_TIMEOUT_SECONDS: ${DMS_TASK_TIMEOUT_SECONDS:-5}
     ports:
       - "8088:8080"
     depends_on:
