@@ -1240,8 +1240,8 @@ be published publicly before a fresh machine can pull it.
 |Server Rules|[`cmmarin/student-id-rules-service:lab2-0.3.0`](https://hub.docker.com/r/cmmarin/student-id-rules-service)|internal only|PostgreSQL 17 (`rules_db`, volume `postgres-data`)|
 |Player|[`vasiok11/student-id-player-service:lab2-0.3.0-build.4`](https://hub.docker.com/r/vasiok11/student-id-player-service)|8082|PostgreSQL 16 (`player-db`, volume `player-pg-data`)|
 |Session|[`vasiok11/student-id-session-service:lab2-0.3.0-build.4`](https://hub.docker.com/r/vasiok11/student-id-session-service)|8083|PostgreSQL 16 (`session-db`, volume `session-pg-data`)|
-|Applicant|[`andreiisthebest/student-id-applicant-service:lab2-0.2.0-4844b116e8f7`](https://hub.docker.com/r/andreiisthebest/student-id-applicant-service)|internal only (Gateway 8090)|PostgreSQL 16 (`applicant-db`, volume `applicant-pg-data`)|
-|University Record|[`andreiisthebest/student-id-university-record-service:lab2-0.2.0-e3e20372ba39`](https://hub.docker.com/r/andreiisthebest/student-id-university-record-service)|internal only (Gateway 8090)|PostgreSQL 16 (`university-record-db`, volume `record-pg-data`)|
+|Applicant|[`andreiisthebest/student-id-applicant-service:lab2-0.2.0`](https://hub.docker.com/r/andreiisthebest/student-id-applicant-service)|internal only (Gateway 8090)|PostgreSQL 16 (`applicant-db`, volume `applicant-pg-data`)|
+|University Record|[`andreiisthebest/student-id-university-record-service:lab2-0.2.0`](https://hub.docker.com/r/andreiisthebest/student-id-university-record-service)|internal only (Gateway 8090)|PostgreSQL 16 (`university-record-db`, volume `record-pg-data`)|
 |Gateway|[`andreiisthebest/student-id-gateway-service:lab2-grade7`](https://hub.docker.com/r/andreiisthebest/student-id-gateway-service)|8090|none|
 
 Every tag above is published except three, which have to be built locally before starting
@@ -1289,8 +1289,11 @@ Their CPR submodule references match the merged private source commits:
 
 Both private workflows passed validation and Docker Hub publication. Compose
 pins the versioned tags above so each image matches its submodule source.
-Future successful private `main` builds also publish `latest`; update the CPR
-image tag and source reference together when adopting a newer build.
+These short tags match the team's `lab2-<version>` naming and currently point
+to exactly the same images as the original commit-specific Grade 9 tags.
+The proposed private workflow updates publish the short release tag, `latest`,
+and an additional commit-specific traceability tag. Increase the service version
+for each release and update its CPR image tag and source reference together.
 
 **Requirements:** Docker Engine 24+ with Compose v2, about 3 GB of free RAM (the Java
 services are the heavy part), and free host ports 8090, 8082, 8083, 8084,
