@@ -23,7 +23,7 @@ services:
       retries: 10
 
   credential-service:
-    image: ${CREDENTIAL_IMAGE:-cmmarin/student-id-credential-service:0.1.0}
+    image: ${CREDENTIAL_IMAGE:-cmmarin/student-id-credential-service:lab2-0.3.0}
     environment:
       DB_HOST: postgres
       DB_PORT: 5432
@@ -35,7 +35,7 @@ services:
         condition: service_healthy
 
   rules-service:
-    image: ${RULES_IMAGE:-cmmarin/student-id-rules-service:0.1.0}
+    image: ${RULES_IMAGE:-cmmarin/student-id-rules-service:lab2-0.3.0}
     environment:
       DB_HOST: postgres
       DB_PORT: 5432
@@ -97,7 +97,7 @@ services:
       retries: 10
 
   applicant-service:
-    image: ${APPLICANT_IMAGE:-andreiisthebest/student-id-applicant-service:lab2-0.2.0}
+    image: ${APPLICANT_IMAGE:-andreiisthebest/student-id-applicant-service:lab2-0.2.0-4844b116e8f7}
     networks: [applicant-net]
     environment:
       GATEWAY_URL: http://gateway-service:8080
@@ -128,7 +128,7 @@ services:
       retries: 10
 
   university-record-service:
-    image: ${RECORD_IMAGE:-andreiisthebest/student-id-university-record-service:lab2-0.2.0}
+    image: ${RECORD_IMAGE:-andreiisthebest/student-id-university-record-service:lab2-0.2.0-e3e20372ba39}
     networks: [record-net]
     environment:
       GATEWAY_URL: http://gateway-service:8080
