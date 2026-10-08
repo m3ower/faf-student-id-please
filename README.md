@@ -1242,18 +1242,19 @@ be published publicly before a fresh machine can pull it.
 |Session|[`vasiok11/student-id-session-service:lab2-0.3.0-build.4`](https://hub.docker.com/r/vasiok11/student-id-session-service)|8083|PostgreSQL 16 (`session-db`, volume `session-pg-data`)|
 |Applicant|[`andreiisthebest/student-id-applicant-service:lab2-0.2.0`](https://hub.docker.com/r/andreiisthebest/student-id-applicant-service)|internal only (Gateway 8090)|PostgreSQL 16 (`applicant-db`, volume `applicant-pg-data`)|
 |University Record|[`andreiisthebest/student-id-university-record-service:lab2-0.2.0`](https://hub.docker.com/r/andreiisthebest/student-id-university-record-service)|internal only (Gateway 8090)|PostgreSQL 16 (`university-record-db`, volume `record-pg-data`)|
-|Gateway|[`andreiisthebest/student-id-gateway-service:lab2-grade7`](https://hub.docker.com/r/andreiisthebest/student-id-gateway-service)|8090|none|
+|Gateway|[`vasiok11/student-id-gateway-service:lab2-0.3.0-build.21`](https://hub.docker.com/r/vasiok11/student-id-gateway-service)|8090|none|
 
-Every tag above is published except three, which have to be built locally before starting
-Compose, or waited for:
+Gateway's `lab2-0.3.0-build.21` image is published and matches its merged `main`
+release `b179bb0`. It includes JWT validation and the Session SSE relay fix;
+no local Gateway build is needed. Other owners maintain the publication notes
+below; verify their current tags before a full-stack run:
 
 | Service | Tag named here | Latest actually on Docker Hub |
 | --- | --- | --- |
-| Gateway | `lab2-grade7` | `lab2-grade6` |
 | Moderation | `lab2-0.2.0` | `0.1.1` |
 | Discord DMs | `lab2-0.2.0` | `0.1.0` |
 
-The Gateway's is its owner's to publish. The Moderation and Discord DMs tags are built and
+The Moderation and Discord DMs tags are built and
 pushed by each repository's `publish` workflow when a release PR merges to `main`; until that
 first release, the only tags on Docker Hub for those two predate the WebSocket negotiation,
 the task limits and the publish workflow itself, so they are not worth testing against.
@@ -1305,8 +1306,7 @@ Record; their requirements are documented below.
 git clone --recurse-submodules https://github.com/m3ower/faf-student-id-please.git
 cd faf-student-id-please
 cp .env.example .env      # replace every example password
-# Until the Gateway image is published:
-docker build -t andreiisthebest/student-id-gateway-service:lab2-grade7 services/gateway-service
+docker compose pull gateway-service
 docker compose up -d
 docker compose ps
 ```
@@ -1316,6 +1316,44 @@ Data survives `docker compose down` because every database uses a named volume;
 
 Credentials exist only in `.env`, which is git-ignored. `.env.example` holds
 placeholders so everyone knows which variables to set.
+
+### Gateway deployment and authorization
+
+Gateway uses the published image above. Update an existing ignored `.env`'s
+`GATEWAY_IMAGE` to that tag, or remove the override to use the Compose default.
+An older override takes precedence over an updated `docker-compose.yml`.
+
+Set `GATEWAY_JWT_PUBLIC_KEY_B64` in local `.env` to the base64 encoding of the
+matching issuer's PEM RSA **public** key (SubjectPublicKeyInfo, at least 2048 bits).
+Gateway must never receive the private signing key. Do not commit JWTs, private
+keys or local `.env` files; `.env.example` intentionally leaves this setting empty.
+
+With an empty key setting, protected requests with a Bearer token fail closed
+with `503 AUTH_NOT_CONFIGURED`; requests without a token return
+`401 UNAUTHENTICATED`. A configured key verifies RS256 access JWTs with
+`iss=student-id-player-service`, `aud=student-id-api`, UUID `sub`, numeric
+`iat`/`exp` no more than 3600 seconds apart, and `token_use=access`.
+Expired/invalid tokens return `401 UNAUTHENTICATED`. Gateway removes
+`Authorization` before forwarding requests, including public requests.
+
+Health endpoints, `OPTIONS`, and Player registration/login/refresh paths are
+public. **Player login, refresh and token issuance are not implemented yet**;
+local testing needs an explicitly labelled disposable test JWT and matching
+public key, not an invented login flow. Postman authentication setup and final
+full-stack verification remain separate work.
+
+After updating local settings, adopt the release without clearing data:
+
+```bash
+docker compose pull gateway-service
+docker compose up -d --no-deps gateway-service
+```
+
+Use the same project name and overrides as the existing stack. Local Gateway
+health is `GET http://localhost:8090/health`. Protected Session SSE requests also
+retain the temporary `X-Player-Id` header; Gateway does not bind it to the JWT
+subject or implement ownership/role checks. Direct published service ports
+bypass Gateway, so this local lab deployment is not a production security boundary.
 
 ### Moderation and Discord DMs: what they need
 
@@ -1355,9 +1393,7 @@ database configured separately.
 `RECORD_DB_PASSWORD` with distinct local values. Use URL-safe characters for
 `RECORD_DB_PASSWORD` because its value is embedded in the record service's
 PostgreSQL URL. Their Lab 2 REST entry point is Gateway on host port `8090`.
-Build the routing image from the existing Gateway checkout with
-`docker build -t andreiisthebest/student-id-gateway-service:lab2-grade7 services/gateway-service`
-and set `GATEWAY_IMAGE` to that tag. Run
+Use the published Gateway image and its authorization settings documented above. Run
 `docker compose up -d applicant-service university-record-service gateway-service`
 to start these services and their separate PostgreSQL 16 containers. Data persists in
 the `applicant-pg-data` and `record-pg-data` named volumes. The image tags can
