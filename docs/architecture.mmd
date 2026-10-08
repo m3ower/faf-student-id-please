@@ -1,0 +1,46 @@
+flowchart LR
+    Client["Client / Postman"]
+    Gateway["Gateway :8090<br/>FastAPI<br/>JWT checks, routing, request limits"]
+
+    subgraph Services["Implemented services in Docker"]
+        Player["Player"]
+        Session["Session"]
+        Applicant["Applicant"]
+        Credential["Credential<br/>Spring Boot"]
+        Rules["Server Rules<br/>Go / Fiber"]
+        Record["University Record"]
+        Moderation["Moderation"]
+        DMs["Discord DMs"]
+    end
+
+    subgraph Storage["Persistent storage - named Docker volumes"]
+        PlayerDB[("Player PostgreSQL 16")]
+        SessionDB[("Session PostgreSQL 16")]
+        ApplicantDB[("Applicant PostgreSQL 16")]
+        OwnedDB[("Shared PostgreSQL 17<br/>Separate credential_db and rules_db")]
+        RecordDB[("Record PostgreSQL 16")]
+        ModerationDB[("Moderation PostgreSQL 16")]
+        Redis[("DMs Redis 7.4<br/>AOF persistence")]
+    end
+
+    Client <-->|"REST requests / responses and WebSocket negotiation"| Gateway
+    Gateway -.->|"SSE updates"| Client
+    Gateway <-->|"REST requests / responses"| Player
+    Gateway <-->|"REST requests / responses and SSE subscription"| Session
+    Session -.->|"SSE updates"| Gateway
+    Gateway <-->|"REST requests / responses"| Applicant
+    Gateway <-->|"REST requests / responses"| Credential
+    Gateway <-->|"REST requests / responses"| Rules
+    Gateway <-->|"REST requests / responses"| Record
+    Gateway <-->|"REST requests / responses"| Moderation
+    Gateway <-->|"REST requests / responses"| DMs
+    Client <-->|"Direct WebSocket :8088"| DMs
+
+    Player <-->|"Database access"| PlayerDB
+    Session <-->|"Database access"| SessionDB
+    Applicant <-->|"Database access"| ApplicantDB
+    Credential <-->|"credential_db"| OwnedDB
+    Rules <-->|"rules_db"| OwnedDB
+    Record <-->|"Database access"| RecordDB
+    Moderation <-->|"Database access"| ModerationDB
+    DMs <-->|"Redis commands"| Redis
