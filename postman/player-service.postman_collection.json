@@ -1,11 +1,11 @@
 {
   "info": {
     "name": "Student ID - Player Service",
-    "description": "Player Service Lab 1 collection. It targets the shared CPR Docker Compose stack by default; change baseUrl to http://localhost:8080 when running Player Service by itself. Run the collection in order; it creates a fresh player and stores its ID as a collection variable.",
+    "description": "Player Service CRUD through the shared Python Gateway. Run the collection in order; it creates a fresh player and stores its ID as a collection variable. The health request relays the Player Service health through Gateway.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
-    { "key": "baseUrl", "value": "http://localhost:8082" },
+    { "key": "baseUrl", "value": "http://localhost:8090" },
     { "key": "playerId", "value": "" },
     { "key": "username", "value": "" },
     { "key": "email", "value": "" },
@@ -18,7 +18,7 @@
       "request": {
         "method": "GET",
         "header": [],
-        "url": { "raw": "{{baseUrl}}/q/health", "host": ["{{baseUrl}}"], "path": ["q", "health"] }
+        "url": { "raw": "{{baseUrl}}/api/v1/health/player-service", "host": ["{{baseUrl}}"], "path": ["api", "v1", "health", "player-service"] }
       },
       "event": [{
         "listen": "test",
