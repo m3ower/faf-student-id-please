@@ -1,10 +1,15 @@
 {
   "info": {
     "name": "Student ID - Discord DMs Service",
-    "description": "Discord DMs Service (Go), reached through the Gateway on http://localhost:8090. Two exceptions use {{directUrl}} (http://localhost:8088) because the contract keeps them off the Gateway: the /api/v1/internal/... endpoints that stand in for the RabbitMQ consumers, and the WebSocket.\n\nsessionId is pinned to the shared fixture session 55555555-5555-5555-5555-555555555555. The mock Session Service recognises only that one, so a generated session id would make every request 403 PLAYER_NOT_IN_SESSION.\n\nWebSocket (use Postman's New > WebSocket, collections cannot store WS requests). Ask the Gateway where to connect, then use the webSocketUrl it returns:\nGET http://localhost:8090/api/v1/ws/sessions/{{sessionId}}/negotiate?playerId=22222222-2222-2222-2222-222222222222\nwith header Authorization: Bearer dev\nConnecting directly also still works while the handshake accepts any non-empty token:\nws://localhost:8088/ws/v1/sessions/{{sessionId}}?playerId=22222222-2222-2222-2222-222222222222&token=dev\nSend: {\"type\":\"MESSAGE_SEND\",\"channel\":\"#enrollment-check\",\"content\":\"hello\"}\nOpen a second tab as the moderator (1111...) to watch it arrive, and one as 3333... to see that it does not.",
+    "description": "Discord DMs Service (Go), reached through the Gateway on http://localhost:8090. Two exceptions use {{directUrl}} (http://localhost:8088) because the contract keeps them off the Gateway: the /api/v1/internal/... endpoints that stand in for the RabbitMQ consumers, and the WebSocket.\n\nsessionId is pinned to the shared fixture session 55555555-5555-5555-5555-555555555555. The mock Session Service recognises only that one, so a generated session id would make every request 403 PLAYER_NOT_IN_SESSION.\n\nWebSocket (use Postman's New > WebSocket, collections cannot store WS requests). Ask the Gateway where to connect, then use the webSocketUrl it returns:\nGET http://localhost:8090/api/v1/ws/sessions/{{sessionId}}/negotiate?playerId=22222222-2222-2222-2222-222222222222\nwith header Authorization: Bearer {{accessToken}}\nFor a direct connection, use the same disposable token (DMs decides handshake authentication):\nws://localhost:8088/ws/v1/sessions/{{sessionId}}?playerId=22222222-2222-2222-2222-222222222222&token={{accessToken}}\nSend: {\"type\":\"MESSAGE_SEND\",\"channel\":\"#enrollment-check\",\"content\":\"hello\"}\nOpen a second tab as the moderator (1111...) to watch it arrive, and one as 3333... to see that it does not.\n\nAuthentication: protected Gateway requests inherit Bearer {{accessToken}}. Select a private local Postman environment containing an explicitly disposable, one-hour local test access JWT, using the same Gateway public-key setup as the Player/Session collections. Player has no login, refresh or JWT issuance. Regenerate expired tokens locally; keep tokens and private keys out of tracked files. Gateway removes Authorization before forwarding and does not bind JWT sub to client-provided X-Player-Id; existing service header checks remain unchanged. Health and direct internal RabbitMQ stand-ins explicitly use no inherited Gateway authentication.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
+  "auth": {
+    "type": "bearer",
+    "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }]
+  },
   "variable": [
+    { "key": "accessToken", "value": "", "type": "string", "description": "Disposable local test JWT. Set in a private local environment; keep this collection value empty." },
     {
       "key": "baseUrl",
       "value": "http://localhost:8090"
@@ -45,6 +50,7 @@
         {
           "name": "Health (starts a fresh session)",
           "request": {
+            "auth": { "type": "noauth" },
             "method": "GET",
             "header": [],
             "url": {
@@ -76,6 +82,7 @@
         {
           "name": "Create default channels (internal)",
           "request": {
+            "auth": { "type": "noauth" },
             "method": "POST",
             "header": [],
             "url": {
@@ -976,6 +983,7 @@
         {
           "name": "Broadcast APPLICANT_CHANGED",
           "request": {
+            "auth": { "type": "noauth" },
             "method": "POST",
             "header": [
               {
@@ -1022,6 +1030,7 @@
         {
           "name": "Broadcast unknown type (422)",
           "request": {
+            "auth": { "type": "noauth" },
             "method": "POST",
             "header": [
               {

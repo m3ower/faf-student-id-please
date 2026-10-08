@@ -1,10 +1,15 @@
 {
   "info": {
     "name": "Student ID - Moderation Service",
-    "description": "Moderation Service (Java), reached through the Gateway on http://localhost:8090 as the communication contract requires: no request here talks to the service's own port. Run the whole collection with the Runner; the first request starts a fresh session id, so the collection can be re-run any number of times. Downstream services are mocked; see the service README for the demo applicant ids.",
+    "description": "Moderation Service (Java), reached through the Gateway on http://localhost:8090 as the communication contract requires: no request here talks to the service's own port. Run the whole collection with the Runner; the first request starts a fresh session id, so the collection can be re-run any number of times. Downstream services are mocked; see the service README for the demo applicant ids.\n\nAuthentication: protected Gateway requests inherit Bearer {{accessToken}}. Select a private local Postman environment containing an explicitly disposable, one-hour local test access JWT, using the same Gateway public-key setup as the Player/Session collections. Player has no login, refresh or JWT issuance. Regenerate expired tokens locally; keep tokens and private keys out of tracked files. Gateway removes Authorization before forwarding and does not bind JWT sub to client-provided X-Player-Id; existing service header checks remain unchanged. The health request explicitly uses no authentication.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
+  "auth": {
+    "type": "bearer",
+    "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }]
+  },
   "variable": [
+    { "key": "accessToken", "value": "", "type": "string", "description": "Disposable local test JWT. Set in a private local environment; keep this collection value empty." },
     {
       "key": "baseUrl",
       "value": "http://localhost:8090"
@@ -37,6 +42,7 @@
         {
           "name": "Health (starts a fresh session)",
           "request": {
+            "auth": { "type": "noauth" },
             "method": "GET",
             "header": [],
             "url": {

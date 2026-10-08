@@ -1,11 +1,16 @@
 {
   "info": {
     "name": "Student ID - Session Service",
-    "description": "Session Service CRUD through the shared Python Gateway. Run the collection in order; it creates a fresh session and uses temporary X-Player-Id host authentication. The health request relays the Session Service health through Gateway.",
+    "description": "Session Service CRUD through the shared Python Gateway at http://localhost:8090. Run the collection in order; it creates a fresh session and preserves temporary X-Player-Id host checks. Health is public; all other requests inherit Bearer {{accessToken}}. Set accessToken in a private local Postman environment using an explicitly disposable local test JWT: Player does not implement login, refresh or token issuance. Gateway requires RS256 with an RSA key of at least 2048 bits, iss=student-id-player-service, aud=student-id-api, sub=a player UUID, token_use=access, and numeric iat/exp at most 3600 seconds apart. Regenerate expired tokens locally; never export populated tokens or private signing keys into tracked files. Gateway removes Authorization before forwarding and does not bind JWT sub to X-Player-Id. This collection generates fresh host/member UUIDs independently of the token subject; Session restrictions still use the existing headers.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }]
   },
   "variable": [
     { "key": "baseUrl", "value": "http://localhost:8090" },
+    { "key": "accessToken", "value": "", "type": "string", "description": "Disposable local test JWT. Set in a private local environment; keep this collection value empty." },
     { "key": "teamId", "value": "" },
     { "key": "hostPlayerId", "value": "" },
     { "key": "juniorPlayerId", "value": "" },
@@ -16,6 +21,7 @@
     {
       "name": "Health and setup",
       "request": {
+        "auth": { "type": "noauth" },
         "method": "GET",
         "header": [],
         "url": { "raw": "{{baseUrl}}/api/v1/health/session-service", "host": ["{{baseUrl}}"], "path": ["api", "v1", "health", "session-service"] }
