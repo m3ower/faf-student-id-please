@@ -1166,6 +1166,15 @@ Each owner chooses what the bounded task is and what the limits default to:
 | Gateway | every `/api/v1` request, with a separate pool for Session SSE | `GATEWAY_MAX_CONCURRENT_TASKS` (16), `GATEWAY_MAX_STREAMS` (64) | `GATEWAY_TASK_TIMEOUT_SECONDS` (5), `GATEWAY_STREAM_TIMEOUT_SECONDS` (1800) | `/health` |
 | Moderation | submitting a decision, which fans out to four services | `MODERATION_MAX_CONCURRENT_DECISIONS` (16) | `MODERATION_TASK_TIMEOUT_MS` (5000) | reads, health |
 | Discord DMs | every REST request | `MAX_CONCURRENT_TASKS` (16) | `TASK_TIMEOUT_SECONDS` (5) | `/health`, `WS /ws/v1/...` |
+| Applicant | every Applicant CRUD task | `MAX_CONCURRENT_TASKS` (16), CPR `APPLICANT_MAX_CONCURRENT_TASKS` | `TASK_TIMEOUT_MS` (2000), CPR `APPLICANT_TASK_TIMEOUT_MS` | `/health`, `/q/health` |
+| University Record | every Record CRUD and enrollment lookup task | `MAX_CONCURRENT_TASKS` (16), CPR `RECORD_MAX_CONCURRENT_TASKS` | `TASK_TIMEOUT_MS` (2000), CPR `RECORD_TASK_TIMEOUT_MS` | `/health` |
+
+Applicant and University Record report capacity refusal as
+`429 CONCURRENT_TASK_LIMIT` with `Retry-After: 1`, and deadline expiry as
+`504 TASK_TIMEOUT`. Their responses use the existing error envelope with the
+owning service name. Their CRUD paths and payloads retain their behavior; see
+the [owned task-limit guide](docs/applicant-record-lab2-grade8.md) for cancellation,
+recovery and verification details.
 
 Health endpoints are exempt everywhere: a saturated instance must still be diagnosable and
 must still answer its Compose healthcheck. The Discord DMs WebSocket is exempt because the
