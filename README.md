@@ -1240,8 +1240,8 @@ be published publicly before a fresh machine can pull it.
 |Server Rules|[`cmmarin/student-id-rules-service:lab2-0.3.0`](https://hub.docker.com/r/cmmarin/student-id-rules-service)|internal only|PostgreSQL 17 (`rules_db`, volume `postgres-data`)|
 |Player|[`vasiok11/student-id-player-service:lab2-0.3.0-build.4`](https://hub.docker.com/r/vasiok11/student-id-player-service)|8082|PostgreSQL 16 (`player-db`, volume `player-pg-data`)|
 |Session|[`vasiok11/student-id-session-service:lab2-0.3.0-build.4`](https://hub.docker.com/r/vasiok11/student-id-session-service)|8083|PostgreSQL 16 (`session-db`, volume `session-pg-data`)|
-|Applicant|[`andreiisthebest/student-id-applicant-service:0.1.1`](https://hub.docker.com/r/andreiisthebest/student-id-applicant-service)|internal only (Gateway 8090)|PostgreSQL 16 (`applicant-db`, volume `applicant-pg-data`)|
-|University Record|[`andreiisthebest/student-id-university-record-service:0.1.1`](https://hub.docker.com/r/andreiisthebest/student-id-university-record-service)|internal only (Gateway 8090)|PostgreSQL 16 (`university-record-db`, volume `record-pg-data`)|
+|Applicant|[`andreiisthebest/student-id-applicant-service:lab2-0.2.0-4844b116e8f7`](https://hub.docker.com/r/andreiisthebest/student-id-applicant-service)|internal only (Gateway 8090)|PostgreSQL 16 (`applicant-db`, volume `applicant-pg-data`)|
+|University Record|[`andreiisthebest/student-id-university-record-service:lab2-0.2.0-e3e20372ba39`](https://hub.docker.com/r/andreiisthebest/student-id-university-record-service)|internal only (Gateway 8090)|PostgreSQL 16 (`university-record-db`, volume `record-pg-data`)|
 |Gateway|[`andreiisthebest/student-id-gateway-service:lab2-grade7`](https://hub.docker.com/r/andreiisthebest/student-id-gateway-service)|8090|none|
 
 Every tag above is published except three, which have to be built locally before starting
@@ -1258,8 +1258,7 @@ pushed by each repository's `publish` workflow when a release PR merges to `main
 first release, the only tags on Docker Hub for those two predate the WebSocket negotiation,
 the task limits and the publish workflow itself, so they are not worth testing against.
 
-Applicant and University Record stay on `0.1.1` because their owner has not published a
-`lab2` tag.
+Applicant and University Record use the published Lab 2 Grade 9 tags listed above.
 
 ```bash
 docker build -t meow3r/student-id-moderation-service:lab2-0.2.0 services/moderation-service
@@ -1279,6 +1278,19 @@ limits. Session also exposes its SSE stream at
 and are not exposed as HTTP endpoints.
 
 ## Running the system
+
+Applicant and University Record now use their published Lab 2 Grade 9 builds.
+Their CPR submodule references match the merged private source commits:
+
+| Service | Source commit | Grade 9 PR |
+| --- | --- | --- |
+| Applicant | `4844b116e8f7dc9dcded5a588a4058e0845277bd` | [Applicant #10](https://github.com/Andreiisthebest/student-id-applicant-service/pull/10) |
+| University Record | `e3e20372ba390f88117c20d7394a844e91fc056a` | [University Record #9](https://github.com/Andreiisthebest/student-id-university-record-service/pull/9) |
+
+Both private workflows passed validation and Docker Hub publication. Compose
+pins the versioned tags above so each image matches its submodule source.
+Future successful private `main` builds also publish `latest`; update the CPR
+image tag and source reference together when adopting a newer build.
 
 **Requirements:** Docker Engine 24+ with Compose v2, about 3 GB of free RAM (the Java
 services are the heavy part), and free host ports 8090, 8082, 8083, 8084,
@@ -1346,9 +1358,28 @@ and set `GATEWAY_IMAGE` to that tag. Run
 `docker compose up -d applicant-service university-record-service gateway-service`
 to start these services and their separate PostgreSQL 16 containers. Data persists in
 the `applicant-pg-data` and `record-pg-data` named volumes. The image tags can
-be overridden with `APPLICANT_IMAGE` and `RECORD_IMAGE`. Check
+be overridden with `APPLICANT_IMAGE` and `RECORD_IMAGE`. Update these two values
+in an existing ignored `.env` to match `.env.example`; older overrides take
+precedence over the Compose defaults. To adopt the published images in an
+already running stack, run these commands from the CPR directory:
+
+```bash
+docker compose pull applicant-service university-record-service
+docker compose up -d --no-deps applicant-service university-record-service
+```
+
+Use the same Compose project name and overrides as the existing deployment.
+This refreshes only these two services and preserves their database volumes.
+Check
 `http://localhost:8090/api/v1/health/applicant-service` and
 `http://localhost:8090/api/v1/health/university-record-service`.
+For this shared deployment, import the CPR's
+[`Applicant collection`](postman/applicant-service.postman_collection.json),
+[`University Record collection`](postman/university-record-service.postman_collection.json),
+or [`combined collection`](postman/Student-ID-Please-Lab-1.postman_collection.json).
+All three use `http://localhost:8090`. The older collection inside the Applicant
+submodule defaults to standalone ports `8080` and `8081`; override both service
+URL variables to `http://localhost:8090` if using that collection with Compose.
 The current HTTP and in-process mock contract is documented in
 [Applicant and University Record Lab 1 contract notes](docs/applicant-university-record-lab1.md).
 Their dedicated networks and Gateway configuration are documented in
