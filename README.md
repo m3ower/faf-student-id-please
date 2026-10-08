@@ -1286,8 +1286,8 @@ test records in one run.
 
 |Collection|Base URL|
 |-|-|
-|`moderation-service.postman_collection.json`|`http://localhost:8087`|
-|`discord-dms-service.postman_collection.json`|`http://localhost:8088`|
+|`moderation-service.postman_collection.json`|`http://localhost:8090`|
+|`discord-dms-service.postman_collection.json`|`http://localhost:8090`|
 |`credential-service.postman_collection.json`|`http://localhost:8090`|
 |`server-rules-service.postman_collection.json`|`http://localhost:8090`|
 |`player-service.postman_collection.json`|`http://localhost:8082`|
