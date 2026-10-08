@@ -1,11 +1,16 @@
 {
   "info": {
     "name": "Student ID - Player Service",
-    "description": "Player Service CRUD through the shared Python Gateway. Run the collection in order; it creates a fresh player and stores its ID as a collection variable. The health request relays the Player Service health through Gateway.",
+    "description": "Player Service CRUD through the shared Python Gateway at http://localhost:8090. Run the collection in order; it creates a fresh player and stores its ID as a collection variable. Health and registration are public. Protected requests inherit Bearer {{accessToken}}; set accessToken in a private local Postman environment. Use explicitly disposable local test JWTs: Player does not implement login, refresh or token issuance. Gateway requires RS256 with an RSA key of at least 2048 bits, iss=student-id-player-service, aud=student-id-api, sub=a player UUID, token_use=access, and numeric iat/exp at most 3600 seconds apart. Regenerate expired tokens locally; never export populated tokens or private signing keys into tracked files. Gateway removes Authorization before forwarding and does not bind JWT sub to client-provided X-Player-Id.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }]
   },
   "variable": [
     { "key": "baseUrl", "value": "http://localhost:8090" },
+    { "key": "accessToken", "value": "", "type": "string", "description": "Disposable local test JWT. Set in a private local environment; keep this collection value empty." },
     { "key": "playerId", "value": "" },
     { "key": "username", "value": "" },
     { "key": "email", "value": "" },
@@ -16,6 +21,7 @@
     {
       "name": "Health and setup",
       "request": {
+        "auth": { "type": "noauth" },
         "method": "GET",
         "header": [],
         "url": { "raw": "{{baseUrl}}/api/v1/health/player-service", "host": ["{{baseUrl}}"], "path": ["api", "v1", "health", "player-service"] }
@@ -36,6 +42,7 @@
     {
       "name": "Register player",
       "request": {
+        "auth": { "type": "noauth" },
         "method": "POST",
         "header": [{ "key": "Content-Type", "value": "application/json" }],
         "body": { "mode": "raw", "raw": "{\n  \"username\": \"{{username}}\",\n  \"email\": \"{{email}}\",\n  \"password\": \"password123\"\n}", "options": { "raw": { "language": "json" } } },
@@ -92,6 +99,7 @@
     {
       "name": "Register duplicate player (409)",
       "request": {
+        "auth": { "type": "noauth" },
         "method": "POST",
         "header": [{ "key": "Content-Type", "value": "application/json" }],
         "body": { "mode": "raw", "raw": "{\n  \"username\": \"{{updatedUsername}}\",\n  \"email\": \"{{updatedEmail}}\",\n  \"password\": \"password123\"\n}", "options": { "raw": { "language": "json" } } },
