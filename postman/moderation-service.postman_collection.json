@@ -1,13 +1,13 @@
 {
   "info": {
     "name": "Student ID - Moderation Service",
-    "description": "Moderation Service (Java). Run the whole collection with the Runner: the first request starts a fresh session id, so the collection can be re-run any number of times. Downstream services are mocked; see the service README for the demo applicant ids.",
+    "description": "Moderation Service (Java), reached through the Gateway on http://localhost:8090 as the communication contract requires: no request here talks to the service's own port. Run the whole collection with the Runner; the first request starts a fresh session id, so the collection can be re-run any number of times. Downstream services are mocked; see the service README for the demo applicant ids.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
     {
       "key": "baseUrl",
-      "value": "http://localhost:8087"
+      "value": "http://localhost:8090"
     },
     {
       "key": "sessionId",
@@ -40,14 +40,15 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/q/health/ready",
+              "raw": "{{baseUrl}}/api/v1/health/moderation-service",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
-                "q",
+                "api",
+                "v1",
                 "health",
-                "ready"
+                "moderation-service"
               ]
             }
           },

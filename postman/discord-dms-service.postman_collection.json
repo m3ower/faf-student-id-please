@@ -1,17 +1,17 @@
 {
   "info": {
     "name": "Student ID - Discord DMs Service",
-    "description": "Discord DMs Service (Go). Run the whole collection with the Runner; the first request starts a fresh session id.\n\nWebSocket (use Postman's New > WebSocket, collections cannot store WS requests):\nws://localhost:8088/ws/v1/sessions/{{sessionId}}?playerId=22222222-2222-2222-2222-222222222222&token=dev\nSend: {\"type\":\"MESSAGE_SEND\",\"channel\":\"#enrollment-check\",\"content\":\"hello\"}\nOpen a second tab as the moderator (1111...) to watch it arrive, and one as 3333... to see that it does not.",
+    "description": "Discord DMs Service (Go), reached through the Gateway on http://localhost:8090. Two exceptions use {{directUrl}} (http://localhost:8088) because the contract keeps them off the Gateway: the /api/v1/internal/... endpoints that stand in for the RabbitMQ consumers, and the WebSocket.\n\nsessionId is pinned to the shared fixture session 55555555-5555-5555-5555-555555555555. The mock Session Service recognises only that one, so a generated session id would make every request 403 PLAYER_NOT_IN_SESSION.\n\nWebSocket (use Postman's New > WebSocket, collections cannot store WS requests). Ask the Gateway where to connect, then use the webSocketUrl it returns:\nGET http://localhost:8090/api/v1/ws/sessions/{{sessionId}}/negotiate?playerId=22222222-2222-2222-2222-222222222222\nwith header Authorization: Bearer dev\nConnecting directly also still works while the handshake accepts any non-empty token:\nws://localhost:8088/ws/v1/sessions/{{sessionId}}?playerId=22222222-2222-2222-2222-222222222222&token=dev\nSend: {\"type\":\"MESSAGE_SEND\",\"channel\":\"#enrollment-check\",\"content\":\"hello\"}\nOpen a second tab as the moderator (1111...) to watch it arrive, and one as 3333... to see that it does not.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
     {
       "key": "baseUrl",
-      "value": "http://localhost:8088"
+      "value": "http://localhost:8090"
     },
     {
       "key": "sessionId",
-      "value": ""
+      "value": "55555555-5555-5555-5555-555555555555"
     },
     {
       "key": "moderatorId",
@@ -32,6 +32,10 @@
     {
       "key": "messageId",
       "value": ""
+    },
+    {
+      "key": "directUrl",
+      "value": "http://localhost:8088"
     }
   ],
   "item": [
@@ -44,12 +48,15 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/health",
+              "raw": "{{baseUrl}}/api/v1/health/discord-dms-service",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
-                "health"
+                "api",
+                "v1",
+                "health",
+                "discord-dms-service"
               ]
             }
           },
@@ -60,7 +67,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test(\"status is 200\", () => pm.response.to.have.status(200));",
-                  "pm.collectionVariables.set(\"sessionId\", pm.variables.replaceIn(\"{{$guid}}\"));"
+                  "pm.collectionVariables.set(\"sessionId\", \"55555555-5555-5555-5555-555555555555\");  // the only session the mock knows"
                 ]
               }
             }
@@ -72,9 +79,9 @@
             "method": "POST",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/v1/internal/sessions/{{sessionId}}/channels/defaults",
+              "raw": "{{directUrl}}/api/v1/internal/sessions/{{sessionId}}/channels/defaults",
               "host": [
-                "{{baseUrl}}"
+                "{{directUrl}}"
               ],
               "path": [
                 "api",
@@ -977,9 +984,9 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/api/v1/internal/sessions/{{sessionId}}/broadcast",
+              "raw": "{{directUrl}}/api/v1/internal/sessions/{{sessionId}}/broadcast",
               "host": [
-                "{{baseUrl}}"
+                "{{directUrl}}"
               ],
               "path": [
                 "api",
@@ -1023,9 +1030,9 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/api/v1/internal/sessions/{{sessionId}}/broadcast",
+              "raw": "{{directUrl}}/api/v1/internal/sessions/{{sessionId}}/broadcast",
               "host": [
-                "{{baseUrl}}"
+                "{{directUrl}}"
               ],
               "path": [
                 "api",
