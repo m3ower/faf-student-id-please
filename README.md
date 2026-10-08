@@ -1242,11 +1242,32 @@ be published publicly before a fresh machine can pull it.
 |Session|[`vasiok11/student-id-session-service:lab2-0.3.0-build.4`](https://hub.docker.com/r/vasiok11/student-id-session-service)|8083|PostgreSQL 16 (`session-db`, volume `session-pg-data`)|
 |Applicant|[`andreiisthebest/student-id-applicant-service:0.1.1`](https://hub.docker.com/r/andreiisthebest/student-id-applicant-service)|internal only (Gateway 8090)|PostgreSQL 16 (`applicant-db`, volume `applicant-pg-data`)|
 |University Record|[`andreiisthebest/student-id-university-record-service:0.1.1`](https://hub.docker.com/r/andreiisthebest/student-id-university-record-service)|internal only (Gateway 8090)|PostgreSQL 16 (`university-record-db`, volume `record-pg-data`)|
-|Gateway|[`vasiok11/student-id-gateway-service:lab2-0.2.0`](https://hub.docker.com/r/vasiok11/student-id-gateway-service)|8090|none|
+|Gateway|[`andreiisthebest/student-id-gateway-service:lab2-grade7`](https://hub.docker.com/r/andreiisthebest/student-id-gateway-service)|8090|none|
 
-The proposed Gateway `lab2-grade7` tag is not published yet. Build that tag locally
-from `services/gateway-service` before starting Compose, or wait for its owner
-to publish it. Other image tags are maintained by their respective owners.
+Every tag above is published except three, which have to be built locally before starting
+Compose, or waited for:
+
+| Service | Tag named here | Latest actually on Docker Hub |
+| --- | --- | --- |
+| Gateway | `lab2-grade7` | `lab2-grade6` |
+| Moderation | `lab2-0.2.0` | `0.1.1` |
+| Discord DMs | `lab2-0.2.0` | `0.1.0` |
+
+The Gateway's is its owner's to publish. The Moderation and Discord DMs tags are built and
+pushed by each repository's `publish` workflow when a release PR merges to `main`; until that
+first release, the only tags on Docker Hub for those two predate the WebSocket negotiation,
+the task limits and the publish workflow itself, so they are not worth testing against.
+
+Applicant and University Record stay on `0.1.1` because their owner has not published a
+`lab2` tag.
+
+```bash
+docker build -t meow3r/student-id-moderation-service:lab2-0.2.0 services/moderation-service
+docker build --build-arg SERVICE_VERSION=0.2.0 \
+  -t meow3r/student-id-discord-dms-service:lab2-0.2.0 services/discord-dms-service
+```
+
+Other image tags are maintained by their respective owners.
 
 For the Player and Session services, the linked Docker Hub repositories above
 are [`vasiok11/student-id-player-service`](https://hub.docker.com/r/vasiok11/student-id-player-service)
@@ -1320,7 +1341,7 @@ database configured separately.
 `RECORD_DB_PASSWORD` because its value is embedded in the record service's
 PostgreSQL URL. Their Lab 2 REST entry point is Gateway on host port `8090`.
 Build the routing image from the existing Gateway checkout with
-`docker build -t vasiok11/student-id-gateway-service:lab2-0.2.0 services/gateway-service`
+`docker build -t andreiisthebest/student-id-gateway-service:lab2-grade7 services/gateway-service`
 and set `GATEWAY_IMAGE` to that tag. Run
 `docker compose up -d applicant-service university-record-service gateway-service`
 to start these services and their separate PostgreSQL 16 containers. Data persists in
@@ -1341,8 +1362,8 @@ test records in one run.
 
 |Collection|Base URL|
 |-|-|
-|`moderation-service.postman_collection.json`|`http://localhost:8087`|
-|`discord-dms-service.postman_collection.json`|`http://localhost:8088`|
+|`moderation-service.postman_collection.json`|`http://localhost:8090`|
+|`discord-dms-service.postman_collection.json`|`http://localhost:8090`|
 |`credential-service.postman_collection.json`|`http://localhost:8090`|
 |`server-rules-service.postman_collection.json`|`http://localhost:8090`|
 |`player-service.postman_collection.json`|`http://localhost:8082`|
@@ -1479,8 +1500,8 @@ Redis volumes.
 
 Published versioned Docker Hub images for these two services:
 
-- [Credential Service — `cmmarin/student-id-credential-service:0.1.0`](https://hub.docker.com/r/cmmarin/student-id-credential-service)
-- [Server Rules Service — `cmmarin/student-id-rules-service:0.1.0`](https://hub.docker.com/r/cmmarin/student-id-rules-service)
+- [Credential Service — `cmmarin/student-id-credential-service:lab2-0.3.0`](https://hub.docker.com/r/cmmarin/student-id-credential-service)
+- [Server Rules Service — `cmmarin/student-id-rules-service:lab2-0.3.0`](https://hub.docker.com/r/cmmarin/student-id-rules-service)
 
 To run only these two services through the Gateway, you need Docker Engine with
 Compose v2 and free host port 8090. Copy `.env.example` to the
