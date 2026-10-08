@@ -220,7 +220,7 @@ services:
       retries: 10
 
   gateway-service:
-    image: ${GATEWAY_IMAGE:-andreiisthebest/student-id-gateway-service:lab2-grade7}
+    image: ${GATEWAY_IMAGE:-vasiok11/student-id-gateway-service:lab2-0.3.0-build.21}
     restart: unless-stopped
     networks: [default, applicant-net, record-net]
     environment:
@@ -233,6 +233,7 @@ services:
       MODERATION_SERVICE_URL: http://moderation-service:8080
       DMS_SERVICE_URL: http://discord-dms-service:8080
       DMS_PUBLIC_WS_ORIGIN: ${DMS_PUBLIC_WS_ORIGIN:-ws://localhost:8088}
+      GATEWAY_JWT_PUBLIC_KEY_B64: ${GATEWAY_JWT_PUBLIC_KEY_B64:-}
     ports:
       - "8090:8080"
     healthcheck:
