@@ -1589,6 +1589,12 @@ local Dockerfiles. Both services use separate databases and users in the shared
 PostgreSQL container, with data persisted in the `postgres-data` named volume.
 The private service READMEs explain how to run each service from source.
 
+The additive Lab 3 health endpoints and logging contract for Credential, Rules,
+and the shared Service Discovery repository are documented in
+[the owned-service health guide](docs/credential-rules-discovery-health.md).
+These source changes require reviewed service releases before the image tags
+above and their CPR pointers are advanced.
+
 The PostgreSQL initialization script runs only when the volume is first
 created. To recreate development databases, intentionally remove the named
 volume and start Compose again.
