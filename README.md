@@ -1424,6 +1424,15 @@ The current HTTP and in-process mock contract is documented in
 Their dedicated networks and Gateway configuration are documented in
 [Applicant and University Record Grade 6 integration](docs/applicant-record-lab2-grade6.md).
 
+The proposed [Lab 3 Grade 3 health and logging contract](docs/applicant-record-lab3-grade3.md)
+keeps Applicant's datasource-aware `/q/health` checks and makes Record's `/health`
+report database readiness (200 `{"status":"UP"}`, or 503 `{"status":"DOWN"}`
+with a one-second ping deadline). Both private changes add generated
+`X-Request-Id` response headers and request/lifecycle diagnostics without logging
+credentials or payloads. This documentation checkpoint does not change the
+published images or submodule references; adopt the private Grade 3 code and
+new images after their review and publication. Gateway and Discovery are unchanged.
+
 ## Testing with Postman
 
 Collections live in [`postman/`](postman). Import one and run it with the Collection
