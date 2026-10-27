@@ -7,7 +7,7 @@ CPR gitlinks. Discovery runs in Python, the team's banned language.
 
 ## Internal API
 
-Both endpoints require `Authorization: Bearer <DISCOVERY_REGISTRATION_TOKEN>`.
+All registry endpoints require `Authorization: Bearer <DISCOVERY_REGISTRATION_TOKEN>`.
 Use one generated URL-safe machine secret (32-256 ASCII letters, digits, `_` or
 `-`) supplied through ignored local configuration or deployment secrets, never
 committed. This is not a Player JWT. These control-plane endpoints are private
@@ -46,7 +46,23 @@ of health**. Registry writes log service name and instance UUID, not the token.
 
 `GET /internal/v1/instances` returns `{"instances":[...]}`, sorted by service
 name and UUID. Optional `?serviceName=rules-service` filters the list. It is an
-internal inspection endpoint, not active Gateway discovery integration.
+internal control-plane endpoint. The scaled Gateway uses its service-name filter;
+see [scaled integration](service-discovery-scaled.md).
+
+### Remove an instance (additive Grade 5 change)
+
+`DELETE /internal/v1/instances/{serviceName}/{instanceId}` requires the same
+machine credential and identifier validation as registration. It removes exactly
+that key and returns an empty `204`, including when already absent. Invalid
+identifiers return `422 INVALID_REGISTRATION`; authorization/configuration errors
+keep the existing 401/503 envelopes. It does not stop a container or remove other
+instances. Logs include the service name, UUID and removed flag, never credentials.
+
+The scaled deployment helper calls DELETE before stopping a selected replica,
+then repeats it after stop to clean up a possible startup-registration race.
+New Gateway lookups observe the removal. Existing requests/streams are not
+migrated; a caller must reconnect if their selected instance stops. This is
+controlled removal, not automatic crash eviction or health-based removal.
 
 ### Error responses
 
@@ -85,9 +101,11 @@ load `.env`, and Compose must explicitly inject variables.
 
 Discovery uses one in-memory registry, one worker/replica, maximum 1024 entries.
 Its restart clears state. Startup clients must restart to register again after
-state loss. Entries do not expire, and there is no health polling, removal,
-periodic re-registration, persistence, round-robin or Gateway integration yet.
-These limitations must not be confused with the requirements for later grades.
+state loss. Entries do not expire. Controlled DELETE and fresh Gateway lookups
+are described above; health polling, automatic crash eviction, periodic
+re-registration, persistence and round-robin remain later work. A raw container
+stop without DELETE leaves a stale entry. These limitations must not be confused
+with the requirements for later grades.
 
 Discovery's Docker image runs as non-root UID 10001 on port 8089 and includes a
 readiness healthcheck. Intended public image:
@@ -98,6 +116,8 @@ release PR from `dev` to `main` publishes the versioned image and `latest`.
 Do not claim publication from a local build alone; verify the Docker Hub tag.
 Adopt new published images and pushed gitlinks separately after reviewed merges.
 
-Grade 5 will wire scaled instances and Discovery/Gateway in the shared YAML.
-This contract does not change teammates' implementations or claim their startup
-registration is finished.
+The [scaled deployment](service-discovery-scaled.md) updates the shared
+`docker-compose.yml` to wire two instances per backend. Its new source changes
+need reviewed releases before final image pins. This contract
+does not change teammates' implementations or claim their startup registration
+is finished.

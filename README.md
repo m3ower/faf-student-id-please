@@ -290,8 +290,10 @@ players in the same session landing on different processes and losing each other
 
 Lab 3's additive internal control-plane API is documented in the
 [Service Discovery startup registration contract](docs/service-discovery-registration.md).
-Credential and Rules are its initial callers; Gateway/scaling integration is
-separate work. This does not change the public business routes below.
+Credential and Rules are its initial callers. The
+[scaled deployment and instance-routing guide](docs/service-discovery-scaled.md)
+describes Lab 3 Grade 5, controlled instance removal and cross-instance streams.
+It updates the shared `docker-compose.yml`; public business routes remain unchanged.
 
 ### Surface map
 
@@ -1385,6 +1387,12 @@ and are not exposed as HTTP endpoints.
 
 ## Running the system
 
+For Lab 3 Grade 5, use the [scaled startup guide](docs/service-discovery-scaled.md)
+and `python scripts/scaled_stack.py up` with the updated `.env.example` settings.
+The shared `docker-compose.yml` contains both replicas; the helper initializes
+primary schemas before enabling the second instances. The Lab 2 release notes
+below describe the earlier baseline, not the pending Lab 3 image pins.
+
 Applicant and University Record now use their published Lab 2 Grade 9 builds.
 Their CPR submodule references match the merged private source commits:
 
@@ -1401,11 +1409,10 @@ The proposed private workflow updates publish the short release tag, `latest`,
 and an additional commit-specific traceability tag. Increase the service version
 for each release and update its CPR image tag and source reference together.
 
-**Requirements:** Docker Engine 24+ with Compose v2, about 3 GB of free RAM (the Java
-services are the heavy part), and free host ports 8090, 8082, 8083, 8084,
-8085, 8087, and 8088. Copy `.env.example` to `.env` and replace
-the example passwords. The Compose file also contains Applicant and University
-Record; their requirements are documented below.
+**Requirements:** Docker Engine 24+ with Compose v2, Python 3.12+, enough RAM
+for 16 backend instances and their databases, and free host ports 8082, 8083,
+8087, 8088, 8089, 8090 and 8091. Configure `.env` using `.env.example` and the
+scaled startup guide; preserve existing credentials and update old image overrides.
 
 ```bash
 git clone --recurse-submodules https://github.com/m3ower/faf-student-id-please.git
