@@ -287,6 +287,11 @@ players in the same session landing on different processes and losing each other
 
 ## Communication contract
 
+Lab 3's additive internal control-plane API is documented in the
+[Service Discovery startup registration contract](docs/service-discovery-registration.md).
+Credential and Rules are its initial callers; Gateway/scaling integration is
+separate work. This does not change the public business routes below.
+
 ### Surface map
 
 Every service exposes at most three kinds of surface. This table is the index;
