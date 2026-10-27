@@ -30,6 +30,7 @@ traumatize Mr. Pumpkin with the emojis.
    - [Asynchronous events](#asynchronous-events)
    - [Task limits](#task-limits)
    - [Error envelope and status mapping](#error-envelope-and-status-mapping)
+   - [Status endpoint and request tracing](#status-endpoint-and-request-tracing)
    - [Docker Hub images](#docker-hub-images)
    - [Running the system](#running-the-system)
    - [Testing with Postman](#testing-with-postman)
@@ -1230,6 +1231,105 @@ the same row.
 | 503 | `UNAVAILABLE` | Downstream dependency unavailable |
 
 ---
+
+---
+
+### Status endpoint and request tracing
+
+Owner: Gurev Andreea. Added in Lab 3 across the four services this owner maintains
+(Gateway, Service Discovery, Moderation, Discord DMs). It is additive: no existing path,
+payload, event or error code changes.
+
+#### `GET /status`
+
+Every one of those four services answers `GET /status` with the **same body**, so one
+scraper, dashboard or `curl` loop reads them all:
+
+```json
+{
+  "service": "moderation-service",
+  "status": "UP",
+  "version": "0.2.0",
+  "uptimeSeconds": 412.5,
+  "startedAt": "2026-10-26T18:00:00Z",
+  "traceId": "c0ffee00-dead-4bee-8bad-f00dfeedface",
+  "checks": [
+    { "name": "database", "status": "UP", "latencyMs": 1.2,
+      "detail": "decisions and penalty policies" }
+  ],
+  "limits": { "maxConcurrentTasks": 16, "taskTimeoutSeconds": 5.0 }
+}
+```
+
+`status` and every `checks[].status` is `UP`, `DEGRADED` or `DOWN`. A `DOWN` dependency the
+service cannot work without makes the service `DOWN`; a `DEGRADED` one is reported without
+claiming the service is unusable. The HTTP status is **200 unless the body says `DOWN`,
+which is 503**, so a load balancer can use the code and an operator can read the body. The
+response carries `Cache-Control: no-store`.
+
+What each service checks, and what it reports as its bounded task:
+
+| Service | `checks` | `limits` |
+| --- | --- | --- |
+| Gateway | `http-client`, with the number of routed services as `detail` | `GATEWAY_MAX_CONCURRENT_TASKS`, `GATEWAY_TASK_TIMEOUT_SECONDS` |
+| Moderation | `database` (PostgreSQL) | `MODERATION_MAX_CONCURRENT_DECISIONS`, `MODERATION_TASK_TIMEOUT_MS` |
+| Discord DMs | `store` (Redis, or the in-memory store) | `MAX_CONCURRENT_TASKS`, `TASK_TIMEOUT_SECONDS` |
+| Service Discovery | *to be added by its owner in the same shape* | *same two keys* |
+
+The Gateway lists its routed services rather than probing them: probing eight services on
+every call would make this endpoint as slow and as fragile as the slowest one of them, and
+each service answers for itself on its own `/status`.
+
+`/status` **does not replace** the existing health endpoints and is not routed through the
+Gateway. `GET /q/health/ready` (Moderation), `GET /health` (Discord DMs, Gateway) stay
+exactly as they are: they answer the Compose healthchecks, and MicroProfile Health fixes
+the shape of Quarkus's, which therefore cannot be the shape a Go and a Python service also
+emit. `/status` is the one that is identical everywhere. Like health, it is **exempt from
+the [task limits](#task-limits)**: a saturated instance must stay diagnosable.
+
+#### `X-Trace-Id`
+
+One id names a request in the Gateway's log and in the service's log, so both hops of a
+REST call can be read together.
+
+- The **Gateway** reuses the caller's `X-Trace-Id` when there is one and generates a UUID
+  when there is not, then forwards it to the service and returns it on **every** response,
+  errors and refusals included.
+- A **service** reuses the id the Gateway sent, and generates one when it is called
+  directly. `X-Request-Id` is accepted as an alias on the way in, because Moderation and
+  Discord DMs shipped reading that name before this header was agreed. Both services
+  always answer with `X-Trace-Id`.
+- The id in the response header is the **same id** as `error.traceId` in the
+  [error envelope](#error-envelope-and-status-mapping), and the same one in every log line
+  of that request.
+- An id that is not 1 to 64 characters of `[A-Za-z0-9._-]` is **replaced, not rejected**: a
+  malformed id is no reason to fail a player's request, and a newline injected into a log
+  line is not acceptable.
+
+#### Structured logging
+
+The four services emit **one JSON object per line** on stdout with the same field names, so
+`docker compose logs` is one searchable stream rather than four formats:
+
+| Field | On which lines | Meaning |
+| --- | --- | --- |
+| `ts`, `service`, `level`, `event`, `traceId` | all | when, who, how bad, what happened, which request |
+| `method`, `path`, `query`, `status`, `durationMs` | `request.in`, `request.out` | one pair per inbound request |
+| `target`, `op`, `ok`, `durationMs` | `call.out`, `call.in` | one pair per outbound call |
+| `code`, `status` | `error` | the **contract error code** the caller was given |
+
+Event names are shared: `request.in`, `request.out`, `call.out`, `call.in`, `error`,
+`startup`, `shutdown`, and in Discord DMs also `ws.open`, `ws.close`, `ws.reject`,
+`ws.frame`, in the Gateway also `ws.negotiate` and `auth.ok`. Every inbound request, every outbound call and every error is logged, which
+means a refusal can be found in the log by the same `code` the client was given.
+
+**Never logged, in any of the four:** a token, ticket, password or signature (query
+parameters whose name contains one of those words are logged as `REDACTED`), any header
+value including `Authorization`, and any request or response body. Specifically, a chat
+message's content is logged as `contentLength` and a decision's `reason` is not logged at
+all. A player id **is** logged: it is an identifier, not a credential, and it is what makes
+a log line answerable about who did something. `LOG_LEVEL` defaults to `INFO`; `DEBUG` adds
+one line per data-store call.
 
 ## Docker Hub images
 
