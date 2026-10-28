@@ -41,7 +41,7 @@ services:
       retries: 10
 
   credential-service: &credential
-    image: ${CREDENTIAL_IMAGE:-cmmarin/student-id-credential-service:lab3-0.2.0}
+    image: ${CREDENTIAL_IMAGE:-cmmarin/student-id-credential-service:lab3-0.4.0}
     environment: &credential-env
       <<: *registration
       SERVICE_ADVERTISE_URL: http://credential-service:8080
@@ -64,7 +64,7 @@ services:
       SERVICE_ADVERTISE_URL: http://credential-service-2:8080
 
   rules-service: &rules
-    image: ${RULES_IMAGE:-cmmarin/student-id-rules-service:lab3-0.2.0}
+    image: ${RULES_IMAGE:-cmmarin/student-id-rules-service:lab3-0.4.0}
     environment: &rules-env
       <<: *registration
       SERVICE_ADVERTISE_URL: http://rules-service:8081
