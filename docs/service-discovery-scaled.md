@@ -178,9 +178,64 @@ that run passes with reviewed published images, source/tests alone do not mean
 the whole team's scaled deployment is complete.
 
 No heartbeat, expiry, automatic crash recovery/eviction, circuit
-breaker, ongoing health polling or developer alerts are implemented here. The
+blocking, ongoing health polling or developer alerts are implemented here. The
 owners' mock-state limitations and Applicant duplicate-write/Moderation score
 idempotency concerns remain owner follow-ups; scaling does not fix them.
+
+### Outbound circuit trip logging (Task 7 / Grade 6)
+
+**PROPOSAL for the shared failure policy; implemented in Player, Session and
+Gateway source only.** This does not claim adoption in other owners' services,
+publication or final full-stack verification.
+
+- A failed outbound HTTP attempt is a transport error, request timeout or HTTP
+  5xx. Three failures within `(now - caller task timeout * 3.5, now]` log one
+  `circuit_tripped` warning. Use monotonic time; success does not erase recent
+  failures. Re-arm once expiry leaves fewer than three. Deduplicate multiple
+  failure signals for one HTTP attempt. Do not add retries or change responses.
+- Aggregate all endpoint paths for each target. Gateway keys backend counters
+  by canonical service plus the selected instance UUID (static mode: origin).
+  Discovery is a separate registry-origin target without an instance UUID.
+  This is local per-caller-process state, not a distributed error budget.
+- Caller timeout variables are `PLAYER_TASK_TIMEOUT_MS`,
+  `SESSION_TASK_TIMEOUT` (Go duration, e.g. `5s`) and
+  `GATEWAY_TASK_TIMEOUT_SECONDS`. The default
+  five-second task limit gives a 17.5-second window; the existing two-second
+  Discovery HTTP timeout remains unchanged.
+- Ignore ordinary HTTP 4xx and intentional client/shutdown cancellation. Gateway
+  additionally counts invalid/oversized registry replies and redirects as
+  registry failures, but not an empty valid service list. A whole-task timeout
+  counts only while waiting on the dependency. Established SSE transport errors
+  count; normal EOF, client disconnect and local stream lifetime expiry do not.
+- Warnings include `target`, `failureCount=3`, `threshold=3`, `windowMs` and,
+  where known, `targetInstanceId`. Never log machine/player tokens, URLs,
+  response bodies or raw exceptions. Gateway can include a fixed reason enum:
+  `transport`, `timeout`, `http_5xx` or `invalid_response`.
+
+Player and Session currently call Discovery for startup registration only;
+their business integrations remain in-process mocks. Database operations and
+PostgreSQL notifications are outside this HTTP policy. Registration retains its
+existing disabled mode, two-second timeout, three attempts and 1s/2s backoffs.
+Gateway observes every actual backend forwarding/health/SSE call and registry
+lookup. Direct DMs sockets are monitored by their owner, not Gateway.
+
+Task 7 only trips/logs: it does not block a request, evict an instance or perform
+half-open probes. Automatic removal is Task 10 / Grade 9. Controlled DELETE is
+still the only implemented removal path. Other owners must audit their actual
+outbound calls and adopt the policy in their own repositories as appropriate.
+No API payload, registration contract, business route or identity-header change
+is required. Final Compose image pins, CPR gitlinks and the complete scaled
+deployment check remain deferred until the end of the lab.
+
+Task 7 local verification, 2026-10-28: Player's Java 21 `mvnw clean verify`
+passed 36 tests and its coverage gate (92.31% lines). Session's full disposable
+PostgreSQL suite and `go vet` passed with race detection and 84.8% statement
+coverage. Gateway passed 265 tests on Linux/Python 3.12 and Windows/Python 3.14
+with 99.59% coverage, including deadline/cancellation, per-instance isolation,
+double-count protection and SSE failure/lifetime cases. A separate real HTTP
+backend check confirmed three 503s log exactly one trip and a subsequent 200
+still passes through without retries. These checks used no shared deployment
+database and do not establish publication or the full team's runtime adoption.
 
 ### Checks for each service owner (Grade 6)
 
