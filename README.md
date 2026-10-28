@@ -1354,37 +1354,38 @@ be published publicly before a fresh machine can pull it.
 
 |Service|Image|Published host port|Database|
 |-|-|-|-|
-|Moderation| [`meow3r/student-id-moderation-service:lab2-0.2.0`](https://hub.docker.com/r/meow3r/student-id-moderation-service) | 8087 | PostgreSQL 16 (`moderation-db`, volume `moderation-pg-data`) |
-|Discord DMs| [`meow3r/student-id-discord-dms-service:lab2-0.2.0`](https://hub.docker.com/r/meow3r/student-id-discord-dms-service) | 8088 | Redis 7.4 with AOF (`dms-redis`, volume `dms-redis-data`) |
-|Credential|[`cmmarin/student-id-credential-service:lab2-0.3.0`](https://hub.docker.com/r/cmmarin/student-id-credential-service)|internal only|PostgreSQL 17 (`credential_db`, volume `postgres-data`)|
-|Server Rules|[`cmmarin/student-id-rules-service:lab2-0.3.0`](https://hub.docker.com/r/cmmarin/student-id-rules-service)|internal only|PostgreSQL 17 (`rules_db`, volume `postgres-data`)|
-|Player|[`vasiok11/student-id-player-service:lab2-0.3.0-build.4`](https://hub.docker.com/r/vasiok11/student-id-player-service)|8082|PostgreSQL 16 (`player-db`, volume `player-pg-data`)|
-|Session|[`vasiok11/student-id-session-service:lab2-0.3.0-build.4`](https://hub.docker.com/r/vasiok11/student-id-session-service)|8083|PostgreSQL 16 (`session-db`, volume `session-pg-data`)|
-|Applicant|[`andreiisthebest/student-id-applicant-service:lab2-0.2.0`](https://hub.docker.com/r/andreiisthebest/student-id-applicant-service)|internal only (Gateway 8090)|PostgreSQL 16 (`applicant-db`, volume `applicant-pg-data`)|
-|University Record|[`andreiisthebest/student-id-university-record-service:lab2-0.2.0`](https://hub.docker.com/r/andreiisthebest/student-id-university-record-service)|internal only (Gateway 8090)|PostgreSQL 16 (`university-record-db`, volume `record-pg-data`)|
-|Gateway|[`vasiok11/student-id-gateway-service:lab2-0.3.0-build.21`](https://hub.docker.com/r/vasiok11/student-id-gateway-service)|8090|none|
+|Moderation| [`meow3r/student-id-moderation-service:lab3-0.4.0`](https://hub.docker.com/r/meow3r/student-id-moderation-service) | 8087 | PostgreSQL 16 (`moderation-db`, volume `moderation-pg-data`) |
+|Discord DMs| [`meow3r/student-id-discord-dms-service:lab3-0.4.1`](https://hub.docker.com/r/meow3r/student-id-discord-dms-service) | 8088 | Redis 7.4 with AOF (`dms-redis`, volume `dms-redis-data`) |
+|Credential|[`cmmarin/student-id-credential-service:lab3-0.2.0`](https://hub.docker.com/r/cmmarin/student-id-credential-service)|internal only|PostgreSQL 17 (`credential_db`, volume `postgres-data`)|
+|Server Rules|[`cmmarin/student-id-rules-service:lab3-0.2.0`](https://hub.docker.com/r/cmmarin/student-id-rules-service)|internal only|PostgreSQL 17 (`rules_db`, volume `postgres-data`)|
+|Player|[`vasiok11/student-id-player-service:lab3-0.4.0-build.10`](https://hub.docker.com/r/vasiok11/student-id-player-service)|8082|PostgreSQL 16 (`player-db`, volume `player-pg-data`)|
+|Session|[`vasiok11/student-id-session-service:lab3-0.5.0-build.14`](https://hub.docker.com/r/vasiok11/student-id-session-service)|8083|PostgreSQL 16 (`session-db`, volume `session-pg-data`)|
+|Applicant|[`andreiisthebest/student-id-applicant-service:lab3-0.3.0`](https://hub.docker.com/r/andreiisthebest/student-id-applicant-service)|internal only (Gateway 8090)|PostgreSQL 16 (`applicant-db`, volume `applicant-pg-data`)|
+|University Record|[`andreiisthebest/student-id-university-record-service:lab3-0.3.0`](https://hub.docker.com/r/andreiisthebest/student-id-university-record-service)|internal only (Gateway 8090)|PostgreSQL 16 (`university-record-db`, volume `record-pg-data`)|
+|Gateway|[`vasiok11/student-id-gateway-service:lab3-0.4.0-build.31`](https://hub.docker.com/r/vasiok11/student-id-gateway-service)|8090|none|
+|Service Discovery|[`cmmarin/student-id-service-discovery:lab3-0.5.0`](https://hub.docker.com/r/cmmarin/student-id-service-discovery)|127.0.0.1:8089|none, in-memory registry|
 
-Gateway's `lab2-0.3.0-build.21` image is published and matches its merged `main`
-release `b179bb0`. It includes JWT validation and the Session SSE relay fix;
-no local Gateway build is needed. Other owners maintain the publication notes
-below; verify their current tags before a full-stack run:
+**Every tag in the table above is published and pullable**, and `.env.example` now pins
+all of them, so a fresh clone needs no local build. Each tag matches the submodule
+revision recorded here, because the pointer and the pin are advanced together.
 
-| Service | Tag named here | Latest actually on Docker Hub |
-| --- | --- | --- |
-| Moderation | `lab2-0.2.0` | `0.1.1` |
-| Discord DMs | `lab2-0.2.0` | `0.1.0` |
+Two caveats, both about work that is merged but not yet released:
 
-The Moderation and Discord DMs tags are built and
-pushed by each repository's `publish` workflow when a release PR merges to `main`; until that
-first release, the only tags on Docker Hub for those two predate the WebSocket negotiation,
-the task limits and the publish workflow itself, so they are not worth testing against.
+- **Service Discovery** is pinned to `lab3-0.5.0`, which has the shared `/status` endpoint,
+  aligned logging, task limits, controlled instance removal and Grade 8 health polling. The
+  **Grade 9 Discord notifications** are merged on its `dev` as `lab3-0.6.0` and are not in
+  this image; the pin moves once that release publishes.
+- **Gateway** is pinned to `lab3-0.4.0-build.31`, which routes through Service Discovery but
+  does **not** include the Grade 6 round-robin balancer. That is merged on the Gateway's
+  `dev` and awaits a release from its owner. Until then the stack starts and routes, but
+  selects one instance per service rather than rotating between them.
 
-Applicant and University Record use the published Lab 2 Grade 9 tags listed above.
+Images are built and pushed by each repository's `publish` workflow when a release PR merges
+to `main`. A workflow refuses to publish over a tag that already exists, so one tag cannot
+come to mean two different builds. Verify a tag rather than trusting a green build:
 
 ```bash
-docker build -t meow3r/student-id-moderation-service:lab2-0.2.0 services/moderation-service
-docker build --build-arg SERVICE_VERSION=0.2.0 \
-  -t meow3r/student-id-discord-dms-service:lab2-0.2.0 services/discord-dms-service
+docker buildx imagetools inspect meow3r/student-id-moderation-service:lab3-0.4.0
 ```
 
 Other image tags are maintained by their respective owners.
