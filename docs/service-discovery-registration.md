@@ -107,9 +107,17 @@ re-registration, persistence and round-robin remain later work. A raw container
 stop without DELETE leaves a stale entry. These limitations must not be confused
 with the requirements for later grades.
 
+Discovery also answers `GET /status` with the shared status shape described in the
+CPR's [status and tracing contract](../README.md#status-endpoint-and-request-tracing),
+reporting a `registry` check and its two per-process task limits. That endpoint is
+operational, not part of this control-plane API: it is unauthenticated, exempt from
+the task limits and not routed through the Gateway, and `/health` and `/health/ready`
+keep the exact behaviour described above, including the registration `readinessPath`.
+
 Discovery's Docker image runs as non-root UID 10001 on port 8089 and includes a
-readiness healthcheck. Intended public image:
-`cmmarin/student-id-service-discovery:lab3-0.2.0`.
+readiness healthcheck. Published public images: `lab3-0.2.0` and `lab3-0.3.0` as
+`cmmarin/student-id-service-discovery`; `lab3-0.4.0` is the current source version
+and is not published until its reviewed release merges.
 The main-release workflow requires passing tests/repository checks and a
 `DOCKERHUB_TOKEN` Actions secret. Feature changes go to `dev`, then a reviewed
 release PR from `dev` to `main` publishes the versioned image and `latest`.

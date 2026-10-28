@@ -1176,6 +1176,7 @@ Each owner chooses what the bounded task is and what the limits default to:
 | Discord DMs | every REST request | `MAX_CONCURRENT_TASKS` (16) | `TASK_TIMEOUT_SECONDS` (5) | `/health`, `WS /ws/v1/...` |
 | Applicant | every Applicant CRUD task | `MAX_CONCURRENT_TASKS` (16), CPR `APPLICANT_MAX_CONCURRENT_TASKS` | `TASK_TIMEOUT_MS` (2000), CPR `APPLICANT_TASK_TIMEOUT_MS` | `/health`, `/q/health` |
 | University Record | every Record CRUD and enrollment lookup task | `MAX_CONCURRENT_TASKS` (16), CPR `RECORD_MAX_CONCURRENT_TASKS` | `TASK_TIMEOUT_MS` (2000), CPR `RECORD_TASK_TIMEOUT_MS` | `/health` |
+| Service Discovery | every registry request | `MAX_CONCURRENT_TASKS` (16) | `TASK_TIMEOUT_SECONDS` (5) | `/health`, `/health/ready`, `/status` |
 
 Applicant and University Record report capacity refusal as
 `429 CONCURRENT_TASK_LIMIT` with `Retry-After: 1`, and deadline expiry as
@@ -1276,15 +1277,17 @@ What each service checks, and what it reports as its bounded task:
 | Gateway | `http-client`, with the number of routed services as `detail` | `GATEWAY_MAX_CONCURRENT_TASKS`, `GATEWAY_TASK_TIMEOUT_SECONDS` |
 | Moderation | `database` (PostgreSQL) | `MODERATION_MAX_CONCURRENT_DECISIONS`, `MODERATION_TASK_TIMEOUT_MS` |
 | Discord DMs | `store` (Redis, or the in-memory store) | `MAX_CONCURRENT_TASKS`, `TASK_TIMEOUT_SECONDS` |
-| Service Discovery | *to be added by its owner in the same shape* | *same two keys* |
+| Service Discovery | `registry`, with the registered instance count as `detail` | `MAX_CONCURRENT_TASKS`, `TASK_TIMEOUT_SECONDS` |
 
 The Gateway lists its routed services rather than probing them: probing eight services on
 every call would make this endpoint as slow and as fragile as the slowest one of them, and
 each service answers for itself on its own `/status`.
 
 `/status` **does not replace** the existing health endpoints and is not routed through the
-Gateway. `GET /q/health/ready` (Moderation), `GET /health` (Discord DMs, Gateway) stay
-exactly as they are: they answer the Compose healthchecks, and MicroProfile Health fixes
+Gateway. `GET /q/health/ready` (Moderation), `GET /health` (Discord DMs, Gateway) and
+`GET /health` with `GET /health/ready` (Service Discovery) stay
+exactly as they are: they answer the Compose healthchecks and, for Discovery, the
+registration `readinessPath`, and MicroProfile Health fixes
 the shape of Quarkus's, which therefore cannot be the shape a Go and a Python service also
 emit. `/status` is the one that is identical everywhere. Like health, it is **exempt from
 the [task limits](#task-limits)**: a saturated instance must stay diagnosable.
@@ -1299,8 +1302,8 @@ REST call can be read together.
   errors and refusals included.
 - A **service** reuses the id the Gateway sent, and generates one when it is called
   directly. `X-Request-Id` is accepted as an alias on the way in, because Moderation and
-  Discord DMs shipped reading that name before this header was agreed. Both services
-  always answer with `X-Trace-Id`.
+  Discord DMs shipped reading that name before this header was agreed, and Service
+  Discovery accepts it for consistency. All of them always answer with `X-Trace-Id`.
 - The id in the response header is the **same id** as `error.traceId` in the
   [error envelope](#error-envelope-and-status-mapping), and the same one in every log line
   of that request.
@@ -1322,7 +1325,8 @@ The four services emit **one JSON object per line** on stdout with the same fiel
 
 Event names are shared: `request.in`, `request.out`, `call.out`, `call.in`, `error`,
 `startup`, `shutdown`, and in Discord DMs also `ws.open`, `ws.close`, `ws.reject`,
-`ws.frame`, in the Gateway also `ws.negotiate` and `auth.ok`. Every inbound request, every outbound call and every error is logged, which
+`ws.frame`, in the Gateway also `ws.negotiate` and `auth.ok`, and in Service Discovery also
+`registry.register` and `registry.remove`. Every inbound request, every outbound call and every error is logged, which
 means a refusal can be found in the log by the same `code` the client was given.
 
 **Never logged, in any of the four:** a token, ticket, password or signature (query
