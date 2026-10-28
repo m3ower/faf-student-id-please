@@ -1836,6 +1836,15 @@ docs(readme): add communication contract for rules service
 - Stale approvals are dismissed when new commits are pushed.
 - Force pushes and deletions are blocked on `main` and `dev`.
 
+**Service Discovery release exception:** ordinary feature/fix/documentation PRs
+into Discovery's `dev` still use squash merge. Release PRs from its `dev` to
+`main` must use **Create a merge commit**, preserving ancestry between those
+long-lived branches; never delete either branch. This exception changes no
+other repository's merge policy and removes no review or CI requirement. The
+previous squash-release history needs one reviewed, history-preserving sync;
+see Discovery's `CONTRIBUTING.md` and
+[the repair PR](https://github.com/CmMarin/student-id-service-discovery/pull/15).
+
 Every PR must contain: a description of what changed and why, the linked issue, a
 note on any contract change, and evidence of testing.
 
