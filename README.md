@@ -454,6 +454,10 @@ All REST paths are prefixed `/api/v1` and are reached through the
 
 #### Player Service
 
+Registration and profile updates return `409 PLAYER_ALREADY_EXISTS` for
+case-insensitive conflicts, including concurrent requests across replicas.
+See the [reliability and schema-upgrade notes](docs/owned-service-reliability.md).
+
 ```
 POST /api/v1/players/register
 Request:  { "username": "string", "email": "string", "password": "string" }
@@ -525,6 +529,11 @@ Errors:   404 team not found | 409 already a member | 422 team full
 ```
 
 #### Moderation Session Service
+
+Database failures return `503 DATABASE_UNAVAILABLE`, including SSE handshakes;
+genuine missing sessions remain `404 SESSION_NOT_FOUND` and task deadlines remain
+`504 TASK_TIMEOUT`. See the [owned-service reliability notes](docs/owned-service-reliability.md)
+for the unchanged error envelope and transaction/event behavior.
 
 ```
 POST /api/v1/sessions
