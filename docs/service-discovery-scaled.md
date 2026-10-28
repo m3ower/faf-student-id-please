@@ -234,11 +234,13 @@ these source changes do not claim that deployment has already passed.
 - The backend fixtures do not establish the whole team's database/Redis business
   behavior. Each owner still performs the state checks above. Shared containers,
   databases, volumes and local credentials were not used by this check.
-- Docker was stopped and host memory was limited, so a Docker build and the full
-  Compose deployment were not rerun. Python 3.12 CI/build and publication remain
-  subsequent review/release checks; final shared deployment integration is deferred.
+- Docker remained stopped locally. Gateway PR #39's
+  [Linux/Python 3.12 CI](https://github.com/Vasiok11/student-id-gateway-service/actions/runs/40723595223)
+  passed all 223 tests with 99.38% coverage and successfully built the Docker
+  image. PR CI did not publish an image. Final publication, shared image/gitlink
+  updates and the complete Compose deployment check remain deferred.
 
-### Local candidate verification, 2026-10-28
+### Earlier Grade 5 candidate verification, 2026-10-28
 
 - Gateway: 199 tests, 99.36% application coverage on Linux/Python 3.12.
 - Discovery: 27 tests, 100% application coverage on Linux/Python 3.12; repository
