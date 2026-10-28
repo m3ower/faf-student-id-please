@@ -16,7 +16,7 @@ unset instead of selecting incompatible older releases:
 | Image variable | Needed behavior / source version |
 | --- | --- |
 | `DISCOVERY_IMAGE` | Authenticated idempotent DELETE; candidate `lab3-0.3.0` |
-| `GATEWAY_IMAGE` | Authenticated fresh registry lookup and DMs origin mapping; candidate `lab3-0.4.0-build.<run>` |
+| `GATEWAY_IMAGE` | Fresh registry lookup, round-robin and DMs origin mapping; Grade 6 candidate `lab3-0.5.0-build.<run>` |
 | `SESSION_IMAGE` | PostgreSQL cross-instance SSE; candidate `lab3-0.5.0-build.<run>` |
 | `MODERATION_VERSION` | Owner's reviewed registration-enabled release; reported `lab3-0.3.1` still needs main-release confirmation |
 | `DMS_VERSION` | Owner's reviewed registration-enabled Redis release; reported `lab3-0.3.0` still needs main-release confirmation |
@@ -111,11 +111,31 @@ its previous UUID entry behind; remove stale entries explicitly before use.
 Gateway queries Discovery on every routed operation with the machine credential,
 bounded to two seconds per registry request. Protected routes validate the
 Player token before lookup. Gateway forwards neither machine credentials nor
-incoming Authorization to a backend. It selects the lowest instance UUID for
-this grade, without a cache or static fallback while Discovery is enabled.
-Round-robin is the next grade. Missing instances return `503 NO_SERVICE_INSTANCES`;
+incoming Authorization to a backend. Grade 6 changes selection to round-robin
+per canonical service, without a registry cache or static fallback while
+Discovery is enabled. Current instance UUIDs are sorted and each selection
+continues after the last selected UUID, wrapping at the end. Reordering entries,
+adding a replica or removing the last selected replica does not require cached
+addresses. Selection updates are serialized without holding a lock during
+network I/O. With stable replicas, each receives one selection per cycle.
+Missing instances return `503 NO_SERVICE_INSTANCES`;
 registry errors return `503 DISCOVERY_UNAVAILABLE`. Health relays use the
 selected registration's `/health/ready`.
+
+All routes for a service share its cursor, including REST, health relays, new
+SSE connections and DMs negotiations. Gateway's own `/health` and `/status`
+consume no turns. Different services have separate cursors. Each Gateway worker
+has its own cursors, reset on restart; the supplied deployment uses one worker.
+Registry/authentication failures do not advance selection. A selected backend's
+failure does consume its turn, without retry or automatic eviction. In-flight
+lookups can still finish with metadata obtained before a removal; subsequent
+fresh lookups use the current set. Crash eviction remains a later task.
+
+Gateway's `route.selected` log includes the service `target`, selected
+`instanceId` and request `traceId`, without credentials, payloads or socket URLs.
+Correlate it with downstream request logs to verify actual forwarding. For DMs
+negotiation it identifies the direct-socket target; Gateway does not contact DMs
+as part of that negotiation. No public payload/header changes are introduced.
 
 Session SSE remains on the chosen replica for the connection lifetime. Mutations
 on another replica arrive through PostgreSQL transactional LISTEN/NOTIFY. A
@@ -157,12 +177,70 @@ and remove/add a selected replica while observing fresh Gateway routing. Until
 that run passes with reviewed published images, source/tests alone do not mean
 the whole team's scaled deployment is complete.
 
-No heartbeat, expiry, automatic crash recovery/eviction, round-robin, circuit
+No heartbeat, expiry, automatic crash recovery/eviction, circuit
 breaker, ongoing health polling or developer alerts are implemented here. The
 owners' mock-state limitations and Applicant duplicate-write/Moderation score
 idempotency concerns remain owner follow-ups; scaling does not fix them.
 
-### Local candidate verification, 2026-10-28
+### Checks for each service owner (Grade 6)
+
+Use two ready replicas of your service, sharing its database (DMs: shared Redis),
+with distinct instance UUIDs and reachable advertised origins. Initialize the
+first replica before the second. Keep direct backend ports private except the
+configured browser-facing DMs socket ports; clients and service-to-service REST
+still use Gateway. No new service API or registration payload is required.
+
+- Send six sequential authenticated requests through Gateway. With a stable pool
+  and no other traffic to that service, selected UUIDs alternate. Health relays
+  consume turns too. Different endpoint paths belonging to the same service
+  share its cursor. Use `route.selected` and matching downstream trace logs;
+  do not add a replica field to existing business responses.
+- Create on one replica and read/update/delete via another. Report mutable
+  process-local state, cache assumptions, concurrent duplicate-write behavior or
+  session affinity that prevents this. Local fixtures not wired into the live
+  HTTP application are still mocks, not proof of distributed business behavior.
+- Remove a replica with the helper and confirm new lookups avoid it; add it back
+  and confirm it rejoins rotation. A raw stop/crash leaves a stale entry. A failed
+  write is not automatically retried; read state before retrying an ambiguous
+  result yourself.
+- Session: keep SSE open on A, mutate on B and observe the update on A without
+  switching the established stream. Reconnect obtains a fresh snapshot.
+- DMs: negotiate sockets repeatedly, confirm each returned public origin matches
+  the selected instance, and verify messages/history across replicas using shared
+  Redis. Existing sockets stay attached while later negotiations rotate. Optional
+  ticket secrets must match; retain the owner's current handshake/membership mode.
+
+Return the service name, reviewed source PR/commit, published image tag and
+revision if available, both registrations/readiness results, trace-based rotation
+evidence, cross-replica state results and blockers. Send specifications and
+sanitized evidence only, never bearer tokens, registry credentials or private
+keys. Final images/gitlinks and the complete stack run remain end-of-lab work;
+these source changes do not claim that deployment has already passed.
+
+### Local round-robin verification, 2026-10-28
+
+- Gateway's full suite passed: 223 tests, 99.37% application coverage on
+  Windows/Python 3.14; 24 focused round-robin cases cover all eight canonical
+  service routes/ports, one/two/three replicas, 120 concurrent selections per
+  service, membership changes, credential handling,
+  no write retries, safe instance logs and connection pinning.
+- Isolated real HTTP checks used Gateway, the existing Discovery application and
+  three instrumented backend fixtures. They verified 1/2/3 rotation, real RS256
+  authorization, preserved methods/query/body/identity/trace, live removal/addition
+  and fail-closed registry errors.
+- A real SSE connection stayed on its selected fixture beyond six seconds while
+  other Session requests rotated. Direct WebSocket negotiations rotated between
+  the mapped fixture origins while an existing socket remained attached.
+- The backend fixtures do not establish the whole team's database/Redis business
+  behavior. Each owner still performs the state checks above. Shared containers,
+  databases, volumes and local credentials were not used by this check.
+- Docker remained stopped locally. Gateway PR #39's
+  [Linux/Python 3.12 CI](https://github.com/Vasiok11/student-id-gateway-service/actions/runs/40723595223)
+  passed all 223 tests with 99.38% coverage and successfully built the Docker
+  image. PR CI did not publish an image. Final publication, shared image/gitlink
+  updates and the complete Compose deployment check remain deferred.
+
+### Earlier Grade 5 candidate verification, 2026-10-28
 
 - Gateway: 199 tests, 99.36% application coverage on Linux/Python 3.12.
 - Discovery: 27 tests, 100% application coverage on Linux/Python 3.12; repository
