@@ -1355,8 +1355,8 @@ be published publicly before a fresh machine can pull it.
 
 |Service|Image|Published host port|Database|
 |-|-|-|-|
-|Moderation| [`meow3r/student-id-moderation-service:lab3-0.4.0`](https://hub.docker.com/r/meow3r/student-id-moderation-service) | 8087 | PostgreSQL 16 (`moderation-db`, volume `moderation-pg-data`) |
-|Discord DMs| [`meow3r/student-id-discord-dms-service:lab3-0.4.1`](https://hub.docker.com/r/meow3r/student-id-discord-dms-service) | 8088 | Redis 7.4 with AOF (`dms-redis`, volume `dms-redis-data`) |
+|Moderation| [`meow3r/student-id-moderation-service:lab3-0.4.1`](https://hub.docker.com/r/meow3r/student-id-moderation-service) | 8087 | PostgreSQL 16 (`moderation-db`, volume `moderation-pg-data`) |
+|Discord DMs| [`meow3r/student-id-discord-dms-service:lab3-0.4.2`](https://hub.docker.com/r/meow3r/student-id-discord-dms-service) | 8088 | Redis 7.4 with AOF (`dms-redis`, volume `dms-redis-data`) |
 |Credential|[`cmmarin/student-id-credential-service:lab3-0.4.0`](https://hub.docker.com/r/cmmarin/student-id-credential-service)|internal only|PostgreSQL 17 (`credential_db`, volume `postgres-data`)|
 |Server Rules|[`cmmarin/student-id-rules-service:lab3-0.4.0`](https://hub.docker.com/r/cmmarin/student-id-rules-service)|internal only|PostgreSQL 17 (`rules_db`, volume `postgres-data`)|
 |Player|[`vasiok11/student-id-player-service:lab3-0.4.0-build.10`](https://hub.docker.com/r/vasiok11/student-id-player-service)|8082|PostgreSQL 16 (`player-db`, volume `player-pg-data`)|
@@ -1364,21 +1364,23 @@ be published publicly before a fresh machine can pull it.
 |Applicant|[`andreiisthebest/student-id-applicant-service:lab3-0.3.0`](https://hub.docker.com/r/andreiisthebest/student-id-applicant-service)|internal only (Gateway 8090)|PostgreSQL 16 (`applicant-db`, volume `applicant-pg-data`)|
 |University Record|[`andreiisthebest/student-id-university-record-service:lab3-0.3.0`](https://hub.docker.com/r/andreiisthebest/student-id-university-record-service)|internal only (Gateway 8090)|PostgreSQL 16 (`university-record-db`, volume `record-pg-data`)|
 |Gateway|[`vasiok11/student-id-gateway-service:lab3-0.4.0-build.31`](https://hub.docker.com/r/vasiok11/student-id-gateway-service)|8090|none|
-|Service Discovery|[`cmmarin/student-id-service-discovery:lab3-0.6.1`](https://hub.docker.com/r/cmmarin/student-id-service-discovery)|127.0.0.1:8089|none, in-memory registry|
+|Service Discovery|[`cmmarin/student-id-service-discovery:lab3-0.7.0`](https://hub.docker.com/r/cmmarin/student-id-service-discovery)|127.0.0.1:8089|none, in-memory registry|
 
 **Every tag in the table above is published and pullable**, and `.env.example` now pins
 all of them, so a fresh clone needs no local build. Each tag matches the submodule
 revision recorded here, because the pointer and the pin are advanced together.
 
-Two caveats, both about work that is merged but not yet released:
+**Service Discovery** is pinned to `lab3-0.7.0`, which has the shared `/status` endpoint,
+aligned logging, task limits, controlled instance removal, Grade 8 health polling, the
+**Grade 9 Discord notifications** (set `DISCOVERY_DISCORD_WEBHOOK_URL` to enable them) and
+**Grade 10 automatic removal**: three failed polls of one instance inside the circuit window
+remove it from the registry, so the Gateway stops routing to it until a probe after the
+cooldown restores it. The stack polls every 5 s (`DISCOVERY_POLL_INTERVAL_SECONDS`), which
+keeps that window at exactly task timeout x 3.5 = 17.5 s; at the image's 10 s default it
+widens to 35 s.
 
-- **Service Discovery** is pinned to `lab3-0.6.1`, which has the shared `/status` endpoint,
-  aligned logging, task limits, controlled instance removal, Grade 8 health polling and the
-  **Grade 9 Discord notifications** (set `DISCOVERY_DISCORD_WEBHOOK_URL` to enable them).
-  **Grade 10 automatic removal** is merged on its `dev` as `lab3-0.7.0` and is not in this
-  image; the pin moves once that release publishes. The stack polls every 5 s
-  (`DISCOVERY_POLL_INTERVAL_SECONDS`), which keeps the circuit window at exactly task
-  timeout x 3.5 = 17.5 s; at the image's 10 s default it widens to 35 s.
+One caveat, about work that is merged but not yet released:
+
 - **Gateway** is pinned to `lab3-0.4.0-build.31`, which routes through Service Discovery but
   does **not** include the Grade 6 round-robin balancer. That is merged on the Gateway's
   `dev` and awaits a release from its owner. Until then the stack starts and routes, but
