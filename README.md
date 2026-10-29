@@ -1363,7 +1363,7 @@ be published publicly before a fresh machine can pull it.
 |Session|[`vasiok11/student-id-session-service:lab3-0.5.0-build.14`](https://hub.docker.com/r/vasiok11/student-id-session-service)|8083|PostgreSQL 16 (`session-db`, volume `session-pg-data`)|
 |Applicant|[`andreiisthebest/student-id-applicant-service:lab3-0.3.0`](https://hub.docker.com/r/andreiisthebest/student-id-applicant-service)|internal only (Gateway 8090)|PostgreSQL 16 (`applicant-db`, volume `applicant-pg-data`)|
 |University Record|[`andreiisthebest/student-id-university-record-service:lab3-0.3.0`](https://hub.docker.com/r/andreiisthebest/student-id-university-record-service)|internal only (Gateway 8090)|PostgreSQL 16 (`university-record-db`, volume `record-pg-data`)|
-|Gateway|[`vasiok11/student-id-gateway-service:lab3-0.4.0-build.31`](https://hub.docker.com/r/vasiok11/student-id-gateway-service)|8090|none|
+|Gateway|[`vasiok11/student-id-gateway-service:lab3-0.7.0-build.43`](https://hub.docker.com/r/vasiok11/student-id-gateway-service)|8090|none|
 |Service Discovery|[`cmmarin/student-id-service-discovery:lab3-0.7.0`](https://hub.docker.com/r/cmmarin/student-id-service-discovery)|127.0.0.1:8089|none, in-memory registry|
 
 **Every tag in the table above is published and pullable**, and `.env.example` now pins
@@ -1379,12 +1379,12 @@ cooldown restores it. The stack polls every 5 s (`DISCOVERY_POLL_INTERVAL_SECOND
 keeps that window at exactly task timeout x 3.5 = 17.5 s; at the image's 10 s default it
 widens to 35 s.
 
-One caveat, about work that is merged but not yet released:
-
-- **Gateway** is pinned to `lab3-0.4.0-build.31`, which routes through Service Discovery but
-  does **not** include the Grade 6 round-robin balancer. That is merged on the Gateway's
-  `dev` and awaits a release from its owner. Until then the stack starts and routes, but
-  selects one instance per service rather than rotating between them.
+**Gateway** is pinned to `lab3-0.7.0-build.43`. It looks up Service Discovery on every
+request and rotates round-robin between the registered instances of each service (Grade 6),
+logs `circuit_tripped` after three failed calls to one instance inside task timeout x 3.5
+(Grade 7), and when that circuit trips it removes the instance from Discovery with
+`DELETE /internal/v1/instances/{service}/{instanceId}`, so no other caller is routed to it
+either (Grade 10).
 
 Images are built and pushed by each repository's `publish` workflow when a release PR merges
 to `main`. A workflow refuses to publish over a tag that already exists, so one tag cannot
