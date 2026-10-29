@@ -12,6 +12,11 @@ services:
     networks: [default, applicant-net, record-net]
     environment:
       DISCOVERY_REGISTRATION_TOKEN: ${DISCOVERY_REGISTRATION_TOKEN:?set DISCOVERY_REGISTRATION_TOKEN in .env}
+      # 5 s polls keep the circuit window at exactly task timeout x 3.5 (17.5 s); at the
+      # image's 10 s default Discovery widens it to 35 s so three polls can fit.
+      DISCOVERY_POLL_INTERVAL_SECONDS: ${DISCOVERY_POLL_INTERVAL_SECONDS:-5}
+      # Empty disables Discord alerts.
+      DISCOVERY_DISCORD_WEBHOOK_URL: ${DISCOVERY_DISCORD_WEBHOOK_URL:-}
     ports: ["127.0.0.1:8089:8089"]
     volumes: ["./scripts:/integration:ro"]
     healthcheck:
