@@ -1,6 +1,6 @@
 # Credential, Rules and Discovery: Lab 3 health and logging contract
 
-## Current Credential and Rules contract: lab3-0.4.0
+## Current owned releases: Credential lab3-0.4.2, Rules lab3-0.4.1
 
 This section updates only Marin's two services. The Discovery notes further
 below describe the original Grade 3 scope, not the current Discovery release.
@@ -16,7 +16,7 @@ and `/health/ready` responses and all business payloads/status codes are unchang
 {
   "service": "credential-service",
   "status": "UP",
-  "version": "lab3-0.4.0",
+  "version": "lab3-0.4.2",
   "uptimeSeconds": 12.5,
   "startedAt": "2026-10-29T00:00:00Z",
   "traceId": "104bdb40-6a6d-49c6-adc0-76ac994fd588",
@@ -43,10 +43,46 @@ schema, cross-service database access, event integration or affinity is added.
 Implementation PRs: [Credential #20](https://github.com/CmMarin/student-id-credential-service/pull/20)
 and [Rules #20](https://github.com/CmMarin/student-id-rules-service/pull/20).
 Credential packages VERSION inside its jar; Rules includes VERSION in its image.
-CPR adopts only verified published `cmmarin/student-id-credential-service:lab3-0.4.0`
-and `cmmarin/student-id-rules-service:lab3-0.4.0`, with matching released gitlinks.
-The owned Postman collections retain Gateway port 8090 and their existing APIs.
+CPR adopts the verified published releases below, with matching released gitlinks.
+
+| Service | Image tag | Released source commit | Release PR |
+| --- | --- | --- | --- |
+| Credential | `cmmarin/student-id-credential-service:lab3-0.4.2` | `d3386ffd992efe486f774f87875e7cf63cd07129` | [#30](https://github.com/CmMarin/student-id-credential-service/pull/30) |
+| Rules | `cmmarin/student-id-rules-service:lab3-0.4.1` | `4198ce7639aae9337e76dd69bfdfa737a960676d` | [#26](https://github.com/CmMarin/student-id-rules-service/pull/26) |
+
+Verified public manifest digests:
+
+- Credential: `sha256:eb4ed8cb6a9c63a182899b6b1c23ed1f43993fb16aaf2ef38ab085c4da3d0880`
+- Rules: `sha256:ceef074a0804deafed41af83ec912bf6db2d52bd29b72ff03223a2cd846995ba`
+
+Both releases exclude ordinary 4xx from the registration failure budget without
+clearing recent qualifying errors. The rolling window is exactly task timeout
+times 3.5; errors exactly one window old expire. Intentional cancellation does
+not count. Registry-origin calls have no registered backend UUID to evict, so
+these clients do not delete themselves; shared control-plane policy remains a
+separate coordination item.
+
+Credential framework errors now use the canonical `error` envelope without raw
+request paths or exception details. Invalid path IDs and missing routes retain
+400/404; unsupported methods retain 405. Raw Hibernate JDBC failing-row detail
+is suppressed while sanitized application database-error events remain enabled.
+Successful credential reads still intentionally return their stored fields.
+
+The owned Postman collections retain Gateway port 8090 and existing business
+APIs, add exact-status/error assertions and verify deletion. Internal operational
+paths remain unexposed by these collections; no new Gateway route is assumed.
 This is not proof of a complete team-stack run or a Grade 10 eviction change.
+
+Credential's actual `lab3-0.4.2` image passed two-replica CRUD/restart persistence,
+measured status and database failure/recovery. Controlled PostgreSQL failing-row
+errors and negative HTTP cases leaked no generated student-ID/password/token/
+cookie sentinels in tested error responses or application/framework logs. Rules'
+actual `lab3-0.4.1` image passed the corresponding replica and tested redaction
+checks. These were isolated direct-HTTP checks, not shared Gateway/Discovery
+acceptance tests. Required private CI passed (Credential 47 tests/91.4% line
+coverage; Rules 82.0% total statement coverage), and OCI revisions match the
+released commits above. Local image overrides still take precedence over CPR
+defaults; update only the two owned image variables when adopting these tags.
 
 Owner-approved workflow exception for these two private repositories only:
 zero mandatory approvals, but PRs and successful required CI remain enforced.

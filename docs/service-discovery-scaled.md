@@ -22,8 +22,9 @@ unset instead of selecting incompatible older releases:
 | `DMS_VERSION` | Owner's reviewed registration-enabled Redis release; reported `lab3-0.3.0` still needs main-release confirmation |
 
 Other defaults come from the owners' published-image reports: Player
-`vasiok11/student-id-player-service:lab3-0.4.0-build.10`, Credential and Rules
-`cmmarin/student-id-{credential,rules}-service:lab3-0.2.0`, Applicant and Record
+`vasiok11/student-id-player-service:lab3-0.4.0-build.10`, Credential
+`cmmarin/student-id-credential-service:lab3-0.4.2`, Rules
+`cmmarin/student-id-rules-service:lab3-0.4.1`, Applicant and Record
 `andreiisthebest/student-id-{applicant,university-record}-service:lab3-0.3.0`.
 These reports establish release prerequisites, not a successful two-replica run.
 After publication, pin actual tags and pushed submodule revisions in a separate
