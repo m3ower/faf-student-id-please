@@ -1708,8 +1708,8 @@ Redis volumes.
 
 Published versioned Docker Hub images for these two services:
 
-- [Credential Service — `cmmarin/student-id-credential-service:lab3-0.4.0`](https://hub.docker.com/r/cmmarin/student-id-credential-service)
-- [Server Rules Service — `cmmarin/student-id-rules-service:lab3-0.4.0`](https://hub.docker.com/r/cmmarin/student-id-rules-service)
+- [Credential Service — `cmmarin/student-id-credential-service:lab3-0.4.2`](https://hub.docker.com/r/cmmarin/student-id-credential-service)
+- [Server Rules Service — `cmmarin/student-id-rules-service:lab3-0.4.1`](https://hub.docker.com/r/cmmarin/student-id-rules-service)
 
 To run only these two services through the Gateway, you need Docker Engine with
 Compose v2 and free host port 8090. Copy `.env.example` to the
@@ -1734,7 +1734,7 @@ local Dockerfiles. Both services use separate databases and users in the shared
 PostgreSQL container, with data persisted in the `postgres-data` named volume.
 The private service READMEs explain how to run each service from source.
 
-Credential and Rules `lab3-0.4.0` add internal `GET /status` with measured
+These releases retain the internal `GET /status` introduced in `lab3-0.4.0`, with measured
 database `checks[].latencyMs`, enabling Discovery's dependency-pressure alerts
 without changing existing health or business responses. Rules also reads rules
 and their version from one repeatable-read snapshot across concurrent replica
@@ -1742,6 +1742,23 @@ writes. See [the owned-service health guide](docs/credential-rules-discovery-hea
 for the additive contract and the original Grade 3 health/logging notes.
 Existing local `.env` image overrides take precedence: update only
 `CREDENTIAL_IMAGE` and `RULES_IMAGE` to the tags above when adopting this release.
+
+Credential `lab3-0.4.2` also sanitizes framework error responses and suppresses
+raw JDBC failing-row detail while preserving safe application error events.
+Both services exclude ordinary 4xx from their registration failure budgets and
+expire failures exactly one window old. Their only live outbound service call
+is Discovery registration; this release does not implement shared eviction fixes.
+Exact released source commits, digests and PRs are listed in the
+[owned-service health guide](docs/credential-rules-discovery-health.md).
+
+Import `postman/credential-service.postman_collection.json` and
+`postman/server-rules-service.postman_collection.json`. Select a private local
+environment with a valid `accessToken` accepted by the Gateway and run each
+collection in order. Both default to `http://localhost:8090`; keep stored tokens
+empty. CRUD requests create disposable records and delete them at the end;
+negative requests assert exact error statuses and sanitized responses. These
+collections do not call internal `/status`, inject database faults, or establish
+that the shared Discovery/Gateway acceptance tests pass.
 
 The PostgreSQL initialization script runs only when the volume is first
 created. To recreate development databases, intentionally remove the named
@@ -1775,10 +1792,9 @@ fixtures use ruleset version 1 and fixed `enrollmentYears=2`:
 | `a0000000-0000-0000-0000-000000000003` | `918275`, `PREVIOUSLY_BANNED` | Credentials valid; the ban does not invalidate a document | `NO_BANNED` (`CRITICAL`); `BAN` recommendation |
 
 These are in-process mock fixtures, not live gRPC or RabbitMQ integrations.
-The published `0.1.0` Docker images predate the Grade 9 mock code now merged
-into both private repositories;
-run `mvn test` in Credential and `go test ./...` in Rules to test those mocks
-until a new versioned image is published.
+The current Credential `lab3-0.4.2` and Rules `lab3-0.4.1` images include these
+in-process mocks. Run `mvn test` in Credential and `go test ./...` in Rules to
+exercise their fixture contracts; that is not proof of live gRPC/event transport.
 
 ## Repository structure
 
