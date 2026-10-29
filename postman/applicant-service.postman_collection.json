@@ -1,89 +1,428 @@
 {
   "info": {
     "name": "Student ID - Applicant Service",
-    "description": "Authentication: protected Gateway requests inherit Bearer {{accessToken}}. Select a private local Postman environment containing an explicitly disposable, one-hour local test access JWT, using the same Gateway public-key setup as the Player/Session collections. Player has no login, refresh or JWT issuance. Regenerate expired tokens locally; keep tokens and private keys out of tracked files. Gateway removes Authorization before forwarding and does not bind JWT sub to client-provided X-Player-Id; existing service header checks remain unchanged.",
+    "description": "Applicant merged Lab 3 source (0.4.0): run in order through Gateway http://localhost:8090 with a valid accessToken in a private local environment. Tracked tokens stay empty. Generates disposable student IDs, verifies CRUD, duplicate create/update 409 and rollback, sanitized 400/404 errors, 405 and cleanup. Record membership headers use a local mock, not live Session authorization. Internal /status, concurrent races, database faults, image provenance and full shared-stack acceptance are separate checks. Existing CPR image pins may predate these source changes.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
     "type": "bearer",
-    "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }]
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{accessToken}}",
+        "type": "string"
+      }
+    ]
   },
   "variable": [
-    { "key": "accessToken", "value": "", "type": "string", "description": "Disposable local test JWT. Set in a private local environment; keep this collection value empty." },
-    {"key": "baseUrl", "value": "http://localhost:8090"},
-    {"key": "applicantId", "value": ""}
+    {
+      "key": "accessToken",
+      "value": "",
+      "type": "string",
+      "description": "Supply a valid Gateway test JWT in a private environment; never commit tokens or signing keys."
+    },
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8090"
+    },
+    {
+      "key": "applicantId",
+      "value": ""
+    },
+    {
+      "key": "applicantConflictId",
+      "value": ""
+    },
+    {
+      "key": "applicantStudentId",
+      "value": ""
+    },
+    {
+      "key": "applicantOtherStudentId",
+      "value": ""
+    }
   ],
   "item": [
     {
-      "name": "Create",
+      "name": "Create disposable applicant",
       "request": {
         "method": "POST",
-        "header": [{"key": "Content-Type", "value": "application/json"}],
         "url": "{{baseUrl}}/api/v1/applicants",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"name\": \"Ana Popescu\",\n  \"studentId\": \"FAF-221\",\n  \"major\": \"FAF\",\n  \"studyYear\": 2,\n  \"universityStatus\": \"ENROLLED\",\n  \"role\": \"STUDENT\",\n  \"courses\": [\"PAD\", \"OOP\"]\n}"
+          "raw": "{\n  \"name\": \"Postman Applicant Fixture\",\n  \"studentId\": \"{{applicantStudentId}}\",\n  \"major\": \"FAF\",\n  \"courses\": [\n    \"PAD\"\n  ],\n  \"studyYear\": 2,\n  \"universityStatus\": \"ENROLLED\",\n  \"role\": \"STUDENT\"\n}"
         }
       },
-      "event": [{"listen": "test", "script": {"exec": [
-        "pm.test('Created', function () { pm.response.to.have.status(201); });",
-        "if (pm.response.code === 201) pm.collectionVariables.set('applicantId', pm.response.json().id);"
-      ]}}]
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.collectionVariables.unset('applicantId'); pm.collectionVariables.unset('applicantConflictId');",
+              "const value = 'postman-applicant-' + pm.variables.replaceIn('{{$guid}}');",
+              "pm.collectionVariables.set('applicantStudentId', value); pm.collectionVariables.set('applicantOtherStudentId', value + '-other');"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Create disposable applicant: HTTP 201', () => pm.response.to.have.status(201));",
+              "pm.test('Created disposable record matches input', () => { const body = pm.response.json(); pm.expect(body.id).to.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i); pm.expect(body.studentId).to.eql(pm.collectionVariables.get('applicantStudentId')); pm.collectionVariables.set('applicantId', body.id); });"
+            ]
+          }
+        }
+      ]
     },
     {
-      "name": "List",
-      "request": {"method": "GET", "url": "{{baseUrl}}/api/v1/applicants"},
-      "event": [{"listen": "test", "script": {"exec": [
-        "pm.test('Listed', function () { pm.response.to.have.status(200); });"
-      ]}}]
+      "name": "List includes created record",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/v1/applicants"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('List includes created record: HTTP 200', () => pm.response.to.have.status(200));",
+              "pm.test('Created ID is listed', () => { const body = pm.response.json(); pm.expect(body).to.be.an('array'); pm.expect(body.some(row => row.id === pm.collectionVariables.get('applicantId'))).to.eql(true); });"
+            ]
+          }
+        }
+      ]
     },
     {
       "name": "Get by ID",
-      "request": {"method": "GET", "url": "{{baseUrl}}/api/v1/applicants/{{applicantId}}"},
-      "event": [{"listen": "test", "script": {"exec": [
-        "pm.test('Found', function () { pm.response.to.have.status(200); });"
-      ]}}]
-    },
-    {
-      "name": "Update",
       "request": {
-        "method": "PUT",
-        "header": [{"key": "Content-Type", "value": "application/json"}],
-        "url": "{{baseUrl}}/api/v1/applicants/{{applicantId}}",
-        "body": {
-          "mode": "raw",
-          "raw": "{\"name\":\"Ana Popescu\",\"studentId\":\"FAF-221\",\"major\":\"FAF\",\"studyYear\":3,\"universityStatus\":\"ENROLLED\",\"role\":\"STUDENT\",\"courses\":[\"PAD\"]}"
-        }
+        "method": "GET",
+        "url": "{{baseUrl}}/api/v1/applicants/{{applicantId}}"
       },
-      "event": [{"listen": "test", "script": {"exec": [
-        "pm.test('Updated', function () { pm.response.to.have.status(200); });"
-      ]}}]
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Get by ID: HTTP 200', () => pm.response.to.have.status(200));",
+              "pm.test('Stored student ID matches', () => pm.expect(pm.response.json().studentId).to.eql(pm.collectionVariables.get('applicantStudentId')));"
+            ]
+          }
+        }
+      ]
     },
     {
-      "name": "Invalid input",
+      "name": "Duplicate create is a conflict",
       "request": {
         "method": "POST",
-        "header": [{"key": "Content-Type", "value": "application/json"}],
         "url": "{{baseUrl}}/api/v1/applicants",
-        "body": {"mode": "raw", "raw": "{\"name\":\"\",\"studentId\":\"\"}"}
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Postman Applicant Fixture\",\n  \"studentId\": \"{{applicantStudentId}}\",\n  \"major\": \"FAF\",\n  \"courses\": [\n    \"PAD\"\n  ],\n  \"studyYear\": 2,\n  \"universityStatus\": \"ENROLLED\",\n  \"role\": \"STUDENT\"\n}"
+        }
       },
-      "event": [{"listen": "test", "script": {"exec": [
-        "pm.test('Invalid input rejected', function () { pm.response.to.have.status(400); });"
-      ]}}]
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Duplicate create is a conflict: HTTP 409', () => pm.response.to.have.status(409));",
+              "pm.test('Sanitized STUDENT_ID_CONFLICT error', () => { const error = pm.response.json().error; pm.expect(error.code).to.eql('STUDENT_ID_CONFLICT'); pm.expect(error.service).to.eql('applicant-service'); pm.expect(pm.response.text()).not.to.include(pm.collectionVariables.get('applicantStudentId')); pm.expect(pm.response.text()).not.to.include('Detail: Key'); });"
+            ]
+          }
+        }
+      ]
     },
     {
-      "name": "Delete",
-      "request": {"method": "DELETE", "url": "{{baseUrl}}/api/v1/applicants/{{applicantId}}"},
-      "event": [{"listen": "test", "script": {"exec": [
-        "pm.test('Deleted', function () { pm.response.to.have.status(204); });"
-      ]}}]
+      "name": "Create disposable conflict target",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/api/v1/applicants",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Postman Applicant Fixture\",\n  \"studentId\": \"{{applicantOtherStudentId}}\",\n  \"major\": \"FAF\",\n  \"courses\": [\n    \"PAD\"\n  ],\n  \"studyYear\": 2,\n  \"universityStatus\": \"ENROLLED\",\n  \"role\": \"STUDENT\"\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Create disposable conflict target: HTTP 201', () => pm.response.to.have.status(201));",
+              "pm.test('Created disposable record matches input', () => { const body = pm.response.json(); pm.expect(body.id).to.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i); pm.expect(body.studentId).to.eql(pm.collectionVariables.get('applicantOtherStudentId')); pm.collectionVariables.set('applicantConflictId', body.id); });"
+            ]
+          }
+        }
+      ]
     },
     {
-      "name": "Get deleted applicant",
-      "request": {"method": "GET", "url": "{{baseUrl}}/api/v1/applicants/{{applicantId}}"},
-      "event": [{"listen": "test", "script": {"exec": [
-        "pm.test('Missing applicant returns 404', function () { pm.response.to.have.status(404); });"
-      ]}}]
+      "name": "Duplicate update is a conflict",
+      "request": {
+        "method": "PUT",
+        "url": "{{baseUrl}}/api/v1/applicants/{{applicantConflictId}}",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Postman Applicant Fixture\",\n  \"studentId\": \"{{applicantStudentId}}\",\n  \"major\": \"FAF\",\n  \"courses\": [\n    \"PAD\"\n  ],\n  \"studyYear\": 2,\n  \"universityStatus\": \"ENROLLED\",\n  \"role\": \"STUDENT\"\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Duplicate update is a conflict: HTTP 409', () => pm.response.to.have.status(409));",
+              "pm.test('Sanitized STUDENT_ID_CONFLICT error', () => { const error = pm.response.json().error; pm.expect(error.code).to.eql('STUDENT_ID_CONFLICT'); pm.expect(error.service).to.eql('applicant-service'); pm.expect(pm.response.text()).not.to.include(pm.collectionVariables.get('applicantStudentId')); pm.expect(pm.response.text()).not.to.include('Detail: Key'); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Conflict rollback preserves target",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/v1/applicants/{{applicantConflictId}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Conflict rollback preserves target: HTTP 200', () => pm.response.to.have.status(200));",
+              "pm.test('Conflicting update did not change student ID', () => pm.expect(pm.response.json().studentId).to.eql(pm.collectionVariables.get('applicantOtherStudentId')));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Update original record",
+      "request": {
+        "method": "PUT",
+        "url": "{{baseUrl}}/api/v1/applicants/{{applicantId}}",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Postman Applicant Updated\",\n  \"studentId\": \"{{applicantStudentId}}\",\n  \"major\": \"FAF\",\n  \"courses\": [\n    \"PAD\"\n  ],\n  \"studyYear\": 3,\n  \"universityStatus\": \"ENROLLED\",\n  \"role\": \"STUDENT\"\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Update original record: HTTP 200', () => pm.response.to.have.status(200));",
+              "pm.test('Updated name persisted', () => pm.expect(pm.response.json().name).to.eql('Postman Applicant Updated'));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Get updated record",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/v1/applicants/{{applicantId}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Get updated record: HTTP 200', () => pm.response.to.have.status(200));",
+              "pm.test('Read observes update', () => pm.expect(pm.response.json().name).to.eql('Postman Applicant Updated'));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Invalid input is rejected",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/api/v1/applicants",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Invalid input is rejected: HTTP 400', () => pm.response.to.have.status(400));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Malformed JSON is rejected",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/api/v1/applicants",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Malformed JSON is rejected: HTTP 400', () => pm.response.to.have.status(400));",
+              "pm.test('Sanitized INVALID_REQUEST error', () => { const error = pm.response.json().error; pm.expect(error.code).to.eql('INVALID_REQUEST'); pm.expect(error.service).to.eql('applicant-service'); pm.expect(pm.response.text()).not.to.include(pm.collectionVariables.get('applicantStudentId')); pm.expect(pm.response.text()).not.to.include('Detail: Key'); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Missing record returns 404",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/v1/applicants/{{$guid}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Missing record returns 404: HTTP 404', () => pm.response.to.have.status(404));",
+              "pm.test('Sanitized APPLICANT_NOT_FOUND error', () => { const error = pm.response.json().error; pm.expect(error.code).to.eql('APPLICANT_NOT_FOUND'); pm.expect(error.service).to.eql('applicant-service'); pm.expect(pm.response.text()).not.to.include(pm.collectionVariables.get('applicantStudentId')); pm.expect(pm.response.text()).not.to.include('Detail: Key'); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Unsupported method returns 405",
+      "request": {
+        "method": "PATCH",
+        "url": "{{baseUrl}}/api/v1/applicants/{{applicantId}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Unsupported method returns 405: HTTP 405', () => pm.response.to.have.status(405));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Delete conflict target",
+      "request": {
+        "method": "DELETE",
+        "url": "{{baseUrl}}/api/v1/applicants/{{applicantConflictId}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Delete conflict target: HTTP 204', () => pm.response.to.have.status(204));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Delete original record",
+      "request": {
+        "method": "DELETE",
+        "url": "{{baseUrl}}/api/v1/applicants/{{applicantId}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Delete original record: HTTP 204', () => pm.response.to.have.status(204));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Get deleted record returns 404",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/v1/applicants/{{applicantId}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Get deleted record returns 404: HTTP 404', () => pm.response.to.have.status(404));",
+              "pm.test('Sanitized APPLICANT_NOT_FOUND error', () => { const error = pm.response.json().error; pm.expect(error.code).to.eql('APPLICANT_NOT_FOUND'); pm.expect(error.service).to.eql('applicant-service'); pm.expect(pm.response.text()).not.to.include(pm.collectionVariables.get('applicantStudentId')); pm.expect(pm.response.text()).not.to.include('Detail: Key'); });"
+            ]
+          }
+        }
+      ]
     }
   ]
 }

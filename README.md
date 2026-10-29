@@ -1184,8 +1184,8 @@ Each owner chooses what the bounded task is and what the limits default to:
 | Gateway | every `/api/v1` request, with a separate pool for Session SSE | `GATEWAY_MAX_CONCURRENT_TASKS` (16), `GATEWAY_MAX_STREAMS` (64) | `GATEWAY_TASK_TIMEOUT_SECONDS` (5), `GATEWAY_STREAM_TIMEOUT_SECONDS` (1800) | `/health` |
 | Moderation | submitting a decision, which fans out to four services | `MODERATION_MAX_CONCURRENT_DECISIONS` (16) | `MODERATION_TASK_TIMEOUT_MS` (5000) | reads, health |
 | Discord DMs | every REST request | `MAX_CONCURRENT_TASKS` (16) | `TASK_TIMEOUT_SECONDS` (5) | `/health`, `WS /ws/v1/...` |
-| Applicant | every Applicant CRUD task | `MAX_CONCURRENT_TASKS` (16), CPR `APPLICANT_MAX_CONCURRENT_TASKS` | `TASK_TIMEOUT_MS` (2000), CPR `APPLICANT_TASK_TIMEOUT_MS` | `/health`, `/q/health` |
-| University Record | every Record CRUD and enrollment lookup task | `MAX_CONCURRENT_TASKS` (16), CPR `RECORD_MAX_CONCURRENT_TASKS` | `TASK_TIMEOUT_MS` (2000), CPR `RECORD_TASK_TIMEOUT_MS` | `/health` |
+| Applicant | every Applicant CRUD task | `MAX_CONCURRENT_TASKS` (16), CPR `APPLICANT_MAX_CONCURRENT_TASKS` | `TASK_TIMEOUT_MS` (2000), CPR `APPLICANT_TASK_TIMEOUT_MS` | `/status`, `/health/ready`, `/q/health` |
+| University Record | every Record CRUD and enrollment lookup task | `MAX_CONCURRENT_TASKS` (16), CPR `RECORD_MAX_CONCURRENT_TASKS` | `TASK_TIMEOUT_MS` (2000), CPR `RECORD_TASK_TIMEOUT_MS` | `/status`, `/health`, `/health/ready` |
 | Service Discovery | every registry request | `MAX_CONCURRENT_TASKS` (16) | `TASK_TIMEOUT_SECONDS` (5) | `/health`, `/health/ready`, `/status` |
 
 Applicant and University Record report capacity refusal as
@@ -1288,6 +1288,17 @@ What each service checks, and what it reports as its bounded task:
 | Moderation | `database` (PostgreSQL) | `MODERATION_MAX_CONCURRENT_DECISIONS`, `MODERATION_TASK_TIMEOUT_MS` |
 | Discord DMs | `store` (Redis, or the in-memory store) | `MAX_CONCURRENT_TASKS`, `TASK_TIMEOUT_SECONDS` |
 | Service Discovery | `registry`, with the registered instance count as `detail` | `MAX_CONCURRENT_TASKS`, `TASK_TIMEOUT_SECONDS` |
+| Applicant (current source) | `database`: measured datasource acquisition and PostgreSQL validation | `MAX_CONCURRENT_TASKS`, `TASK_TIMEOUT_MS` converted to seconds |
+| University Record (current source) | `database`: measured PostgreSQL `PingContext` | `MAX_CONCURRENT_TASKS`, `TASK_TIMEOUT_MS` converted to seconds |
+
+Andrei's Applicant and University Record source now implements this same status
+shape with measured `checks[].latencyMs`, `Cache-Control: no-store` and `X-Trace-Id`.
+Both return 200/UP or 503/DOWN according to the database check and exempt these
+operational probes from business admission. Applicant retains `/q/health` and
+`/health/ready`; Record retains `/health` and `/health/ready`. Applicant's business
+request logs use `X-Request-Id` and expose the process UUID as `X-Instance-Id`;
+this does not claim the end-to-end trace propagation described below. The pinned
+`lab3-0.3.0` images predate these source fixes and require a separate reviewed release.
 
 The Gateway lists its routed services rather than probing them: probing eight services on
 every call would make this endpoint as slow and as fragile as the slowest one of them, and
@@ -1419,21 +1430,33 @@ The shared `docker-compose.yml` contains both replicas; the helper initializes
 primary schemas before enabling the second instances. The Lab 2 release notes
 below describe the earlier baseline, not the pending Lab 3 image pins.
 
-Applicant and University Record now use their published Lab 2 Grade 9 builds.
-Their CPR submodule references match the merged private source commits:
+Applicant and University Record submodules now track their merged Lab 3 fixes
+on `dev`, both with source version `0.4.0`:
 
-| Service | Source commit | Grade 9 PR |
+| Service | Source commit | Merged repair PR |
 | --- | --- | --- |
-| Applicant | `4844b116e8f7dc9dcded5a588a4058e0845277bd` | [Applicant #10](https://github.com/Andreiisthebest/student-id-applicant-service/pull/10) |
-| University Record | `e3e20372ba390f88117c20d7394a844e91fc056a` | [University Record #9](https://github.com/Andreiisthebest/student-id-university-record-service/pull/9) |
+| Applicant | `7b33b46a5900ecd35e791cd5e6b4f160f513fbfb` | [Applicant #21](https://github.com/Andreiisthebest/student-id-applicant-service/pull/21) |
+| University Record | `aefdd93e198ee2824ca1c5c394cfe37aabf599de` | [University Record #20](https://github.com/Andreiisthebest/student-id-university-record-service/pull/20) |
 
-Both private workflows passed validation and Docker Hub publication. Compose
-pins the versioned tags above so each image matches its submodule source.
-These short tags match the team's `lab2-<version>` naming and currently point
-to exactly the same images as the original commit-specific Grade 9 tags.
-The proposed private workflow updates publish the short release tag, `latest`,
-and an additional commit-specific traceability tag. Increase the service version
-for each release and update its CPR image tag and source reference together.
+Applicant adds HTTP/1.1 Discovery registration, measured `/status`, sanitized
+create/update uniqueness conflicts and safe process/request logs. Record adds
+measured `/status` and sanitized Fiber 404/405 handling while retaining 23505 ->
+409 conflicts. Both retain the exact caller timeout x 3.5 failure window, exclude
+ordinary 4xx/shutdown cancellation, and keep their in-process integration mocks
+explicit. Record's `session.MockVerifier{}` is not live Session authorization.
+
+Source verification passed 34 Applicant tests with 96.6% line coverage and the
+race-enabled Record suite with 78.8% line / 78.7% statement coverage. Two source
+replicas per service also passed registration, shared CRUD, 15 create and 15
+update race pairs per service, restart, measured critical latency and database
+failure/recovery. These results do not establish the full shared laboratory run.
+
+The image table and Compose still select `lab3-0.3.0` for these two services.
+Those images do not match the newer gitlinks; changing a submodule does not
+rebuild a pulled image. Source version `0.4.0` is not a claim of Docker Hub
+publication. Reviewed release, immutable tag/digest/source-revision verification
+and a separate image-pin update remain required. No other owner's release is
+changed by this source synchronization.
 
 **Requirements:** Docker Engine 24+ with Compose v2, Python 3.12+, enough RAM
 for 16 backend instances and their databases, and free host ports 8082, 8083,
@@ -1530,7 +1553,7 @@ database configured separately.
 `.env.example` in the ignored `.env`, and replace `APPLICANT_DB_PASSWORD` and
 `RECORD_DB_PASSWORD` with distinct local values. Use URL-safe characters for
 `RECORD_DB_PASSWORD` because its value is embedded in the record service's
-PostgreSQL URL. Their Lab 2 REST entry point is Gateway on host port `8090`.
+PostgreSQL URL. Their public REST entry point is Gateway on host port `8090`.
 Use the published Gateway image and its authorization settings documented above. Run
 `docker compose up -d applicant-service university-record-service gateway-service`
 to start these services and their separate PostgreSQL 16 containers. Data persists in
@@ -1561,6 +1584,21 @@ The current HTTP and in-process mock contract is documented in
 [Applicant and University Record Lab 1 contract notes](docs/applicant-university-record-lab1.md).
 Their dedicated networks and Gateway configuration are documented in
 [Applicant and University Record Grade 6 integration](docs/applicant-record-lab2-grade6.md).
+
+Run the owned collections in order. Each generates unique disposable student IDs,
+checks create/update conflicts and rollback, and deletes only the records created
+by that run. Record also checks enrollment lookup with local mock membership and
+a missing-membership 403. `accessToken` stays empty in tracked collections; supply
+a valid Gateway test token in a private environment. `sessionId`/`playerId` are
+mock header inputs, not proof of live Session authorization. The combined
+collection contains only these same two owned folders. These public collections
+do not call internal `/status`, inject database failures or prove concurrent races,
+image provenance, real membership authorization or full Grade 10 acceptance.
+
+Collection verification against local `0.4.0` builds of the exact owned gitlinks
+passed 68 requests and 120 assertions across the two dedicated collections and
+their combined run. This validates the business contracts directly against those
+builds; Gateway authentication and the older pinned images were not part of that run.
 
 ## Testing with Postman
 
