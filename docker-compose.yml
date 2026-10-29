@@ -17,6 +17,10 @@ services:
       DISCOVERY_POLL_INTERVAL_SECONDS: ${DISCOVERY_POLL_INTERVAL_SECONDS:-5}
       # Empty disables Discord alerts.
       DISCOVERY_DISCORD_WEBHOOK_URL: ${DISCOVERY_DISCORD_WEBHOOK_URL:-}
+      # Discovery rejects a blank number once a webhook is set, so these fall back to its
+      # own defaults instead of passing an empty string through.
+      DISCOVERY_NOTIFY_TIMEOUT_SECONDS: ${DISCOVERY_NOTIFY_TIMEOUT_SECONDS:-5}
+      DISCOVERY_NOTIFY_QUEUE_SIZE: ${DISCOVERY_NOTIFY_QUEUE_SIZE:-64}
     ports: ["127.0.0.1:8089:8089"]
     volumes: ["./scripts:/integration:ro"]
     healthcheck:
