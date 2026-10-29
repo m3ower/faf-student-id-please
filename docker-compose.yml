@@ -96,7 +96,7 @@ services:
       SERVICE_ADVERTISE_URL: http://rules-service-2:8081
 
   player-service: &player
-    image: ${PLAYER_IMAGE:-vasiok11/student-id-player-service:lab3-0.4.0-build.10}
+    image: ${PLAYER_IMAGE:-vasiok11/student-id-player-service:lab3-0.6.0-build.18}
     ports:
       - "8082:8080"
     environment: &player-env
