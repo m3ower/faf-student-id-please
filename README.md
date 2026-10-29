@@ -408,9 +408,10 @@ contract.
 | `/api/v1/channels` | Discord DMs | yes |
 | `/api/v1/messages` | Discord DMs | yes |
 
-Credential and Server Rules currently have no outbound REST service-to-service
-calls to reroute: their cross-service dependencies remain in-process mocks.
-Their client-facing CRUD requests use the Gateway.
+Credential and Server Rules currently have no outbound REST business-service
+calls to reroute: those dependencies remain in-process mocks. Their internal
+Discovery startup registration uses the direct control-plane contract, while
+client-facing CRUD requests use the Gateway.
 
 A prefix matches only on a segment boundary. The method, path, query string, body and
 headers reach the service unchanged, and its status, body and headers are relayed back
@@ -1356,8 +1357,8 @@ be published publicly before a fresh machine can pull it.
 |-|-|-|-|
 |Moderation| [`meow3r/student-id-moderation-service:lab3-0.4.0`](https://hub.docker.com/r/meow3r/student-id-moderation-service) | 8087 | PostgreSQL 16 (`moderation-db`, volume `moderation-pg-data`) |
 |Discord DMs| [`meow3r/student-id-discord-dms-service:lab3-0.4.1`](https://hub.docker.com/r/meow3r/student-id-discord-dms-service) | 8088 | Redis 7.4 with AOF (`dms-redis`, volume `dms-redis-data`) |
-|Credential|[`cmmarin/student-id-credential-service:lab3-0.2.0`](https://hub.docker.com/r/cmmarin/student-id-credential-service)|internal only|PostgreSQL 17 (`credential_db`, volume `postgres-data`)|
-|Server Rules|[`cmmarin/student-id-rules-service:lab3-0.2.0`](https://hub.docker.com/r/cmmarin/student-id-rules-service)|internal only|PostgreSQL 17 (`rules_db`, volume `postgres-data`)|
+|Credential|[`cmmarin/student-id-credential-service:lab3-0.4.0`](https://hub.docker.com/r/cmmarin/student-id-credential-service)|internal only|PostgreSQL 17 (`credential_db`, volume `postgres-data`)|
+|Server Rules|[`cmmarin/student-id-rules-service:lab3-0.4.0`](https://hub.docker.com/r/cmmarin/student-id-rules-service)|internal only|PostgreSQL 17 (`rules_db`, volume `postgres-data`)|
 |Player|[`vasiok11/student-id-player-service:lab3-0.4.0-build.10`](https://hub.docker.com/r/vasiok11/student-id-player-service)|8082|PostgreSQL 16 (`player-db`, volume `player-pg-data`)|
 |Session|[`vasiok11/student-id-session-service:lab3-0.5.0-build.14`](https://hub.docker.com/r/vasiok11/student-id-session-service)|8083|PostgreSQL 16 (`session-db`, volume `session-pg-data`)|
 |Applicant|[`andreiisthebest/student-id-applicant-service:lab3-0.3.0`](https://hub.docker.com/r/andreiisthebest/student-id-applicant-service)|internal only (Gateway 8090)|PostgreSQL 16 (`applicant-db`, volume `applicant-pg-data`)|
@@ -1699,14 +1700,21 @@ Redis volumes.
 
 Published versioned Docker Hub images for these two services:
 
-- [Credential Service — `cmmarin/student-id-credential-service:lab2-0.3.0`](https://hub.docker.com/r/cmmarin/student-id-credential-service)
-- [Server Rules Service — `cmmarin/student-id-rules-service:lab2-0.3.0`](https://hub.docker.com/r/cmmarin/student-id-rules-service)
+- [Credential Service — `cmmarin/student-id-credential-service:lab3-0.4.0`](https://hub.docker.com/r/cmmarin/student-id-credential-service)
+- [Server Rules Service — `cmmarin/student-id-rules-service:lab3-0.4.0`](https://hub.docker.com/r/cmmarin/student-id-rules-service)
 
 To run only these two services through the Gateway, you need Docker Engine with
 Compose v2 and free host port 8090. Copy `.env.example` to the
 git-ignored `.env` and replace at least `POSTGRES_PASSWORD`,
-`CREDENTIAL_DB_PASSWORD`, and `RULES_DB_PASSWORD` with your own values. Do not
-commit `.env` or real credentials. Then run:
+`CREDENTIAL_DB_PASSWORD`, and `RULES_DB_PASSWORD` with your own values. Complete
+the other required settings from the current `.env.example`, including the
+Discovery machine token and reviewed shared image selections; the earlier
+Lab 1 three-password setup alone is no longer sufficient. Protected Gateway
+requests also require its matching public key and a valid client access token.
+Follow the [shared startup guide](docs/service-discovery-scaled.md) for the
+team-wide configuration; this owned-service update changes neither shared
+authentication nor other members' image selections. Do not commit `.env` or
+real credentials. To start just these services and their dependencies:
 
 ```bash
 docker compose up -d gateway-service postgres credential-service rules-service
@@ -1718,11 +1726,14 @@ local Dockerfiles. Both services use separate databases and users in the shared
 PostgreSQL container, with data persisted in the `postgres-data` named volume.
 The private service READMEs explain how to run each service from source.
 
-The additive Lab 3 health endpoints and logging contract for Credential, Rules,
-and the shared Service Discovery repository are documented in
-[the owned-service health guide](docs/credential-rules-discovery-health.md).
-These source changes require reviewed service releases before the image tags
-above and their CPR pointers are advanced.
+Credential and Rules `lab3-0.4.0` add internal `GET /status` with measured
+database `checks[].latencyMs`, enabling Discovery's dependency-pressure alerts
+without changing existing health or business responses. Rules also reads rules
+and their version from one repeatable-read snapshot across concurrent replica
+writes. See [the owned-service health guide](docs/credential-rules-discovery-health.md)
+for the additive contract and the original Grade 3 health/logging notes.
+Existing local `.env` image overrides take precedence: update only
+`CREDENTIAL_IMAGE` and `RULES_IMAGE` to the tags above when adopting this release.
 
 The PostgreSQL initialization script runs only when the volume is first
 created. To recreate development databases, intentionally remove the named
