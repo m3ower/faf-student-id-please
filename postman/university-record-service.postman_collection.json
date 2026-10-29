@@ -1,0 +1,89 @@
+{
+  "info": {
+    "name": "Student ID - University Record Service",
+    "description": "Authentication: protected Gateway requests inherit Bearer {{accessToken}}. Select a private local Postman environment containing an explicitly disposable, one-hour local test access JWT, using the same Gateway public-key setup as the Player/Session collections. Player has no login, refresh or JWT issuance. Regenerate expired tokens locally; keep tokens and private keys out of tracked files. Gateway removes Authorization before forwarding and does not bind JWT sub to client-provided X-Player-Id; existing service header checks remain unchanged.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }]
+  },
+  "variable": [
+    { "key": "accessToken", "value": "", "type": "string", "description": "Disposable local test JWT. Set in a private local environment; keep this collection value empty." },
+    {"key": "baseUrl", "value": "http://localhost:8090"},
+    {"key": "recordId", "value": ""}
+  ],
+  "item": [
+    {
+      "name": "Create",
+      "request": {
+        "method": "POST",
+        "header": [{"key": "Content-Type", "value": "application/json"}],
+        "url": "{{baseUrl}}/api/v1/university-records",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"studentId\": \"FAF-221\",\n  \"name\": \"Ana Popescu\",\n  \"major\": \"FAF\",\n  \"enrolledSince\": \"2025-09-01\",\n  \"status\": \"ENROLLED\",\n  \"outlookGroups\": [\"FAF-221\"],\n  \"courses\": [\"PAD\"],\n  \"fcimMessages\": [\"Welcome to FAF\"]\n}"
+        }
+      },
+      "event": [{"listen": "test", "script": {"exec": [
+        "pm.test('Created', function () { pm.response.to.have.status(201); });",
+        "if (pm.response.code === 201) pm.collectionVariables.set('recordId', pm.response.json().id);"
+      ]}}]
+    },
+    {
+      "name": "List",
+      "request": {"method": "GET", "url": "{{baseUrl}}/api/v1/university-records"},
+      "event": [{"listen": "test", "script": {"exec": [
+        "pm.test('Listed', function () { pm.response.to.have.status(200); });"
+      ]}}]
+    },
+    {
+      "name": "Get by ID",
+      "request": {"method": "GET", "url": "{{baseUrl}}/api/v1/university-records/{{recordId}}"},
+      "event": [{"listen": "test", "script": {"exec": [
+        "pm.test('Found', function () { pm.response.to.have.status(200); });"
+      ]}}]
+    },
+    {
+      "name": "Update",
+      "request": {
+        "method": "PUT",
+        "header": [{"key": "Content-Type", "value": "application/json"}],
+        "url": "{{baseUrl}}/api/v1/university-records/{{recordId}}",
+        "body": {
+          "mode": "raw",
+          "raw": "{\"studentId\":\"FAF-221\",\"name\":\"Ana Popescu\",\"major\":\"FAF\",\"enrolledSince\":\"2025-09-01\",\"status\":\"ENROLLED\",\"outlookGroups\":[],\"courses\":[\"PAD\"],\"fcimMessages\":[]}"
+        }
+      },
+      "event": [{"listen": "test", "script": {"exec": [
+        "pm.test('Updated', function () { pm.response.to.have.status(200); });"
+      ]}}]
+    },
+    {
+      "name": "Invalid input",
+      "request": {
+        "method": "POST",
+        "header": [{"key": "Content-Type", "value": "application/json"}],
+        "url": "{{baseUrl}}/api/v1/university-records",
+        "body": {"mode": "raw", "raw": "{\"studentId\":\"\",\"enrolledSince\":\"not-a-date\"}"}
+      },
+      "event": [{"listen": "test", "script": {"exec": [
+        "pm.test('Invalid input rejected', function () { pm.response.to.have.status(400); });"
+      ]}}]
+    },
+    {
+      "name": "Delete",
+      "request": {"method": "DELETE", "url": "{{baseUrl}}/api/v1/university-records/{{recordId}}"},
+      "event": [{"listen": "test", "script": {"exec": [
+        "pm.test('Deleted', function () { pm.response.to.have.status(204); });"
+      ]}}]
+    },
+    {
+      "name": "Get deleted record",
+      "request": {"method": "GET", "url": "{{baseUrl}}/api/v1/university-records/{{recordId}}"},
+      "event": [{"listen": "test", "script": {"exec": [
+        "pm.test('Missing record returns 404', function () { pm.response.to.have.status(404); });"
+      ]}}]
+    }
+  ]
+}

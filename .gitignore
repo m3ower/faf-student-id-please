@@ -1,0 +1,5 @@
+.idea/
+.env
+CLAUDE.local.md
+docs-local/
+__pycache__/

@@ -1,0 +1,30 @@
+[submodule "services/moderation-service"]
+	path = services/moderation-service
+	url = https://github.com/m3ower/student-id-moderation-service.git
+[submodule "services/discord-dms-service"]
+	path = services/discord-dms-service
+	url = https://github.com/m3ower/student-id-discord-dms-service.git
+[submodule "services/credential-service"]
+	path = services/credential-service
+	url = https://github.com/CmMarin/student-id-credential-service
+[submodule "services/rules-service"]
+	path = services/rules-service
+	url = https://github.com/CmMarin/student-id-rules-service
+[submodule "services/player-service"]
+	path = services/player-service
+	url = https://github.com/Vasiok11/student-id-player-service
+[submodule "services/session-service"]
+	path = services/session-service
+	url = https://github.com/Vasiok11/student-id-session-service
+[submodule "services/applicant-service"]
+	path = services/applicant-service
+	url = https://github.com/Andreiisthebest/student-id-applicant-service
+[submodule "services/university-record-service"]
+	path = services/university-record-service
+	url = https://github.com/Andreiisthebest/student-id-university-record-service
+[submodule "services/gateway-service"]
+	path = services/gateway-service
+	url = https://github.com/Vasiok11/student-id-gateway-service.git
+[submodule "services/service-discovery"]
+	path = services/service-discovery
+	url = https://github.com/CmMarin/student-id-service-discovery.git

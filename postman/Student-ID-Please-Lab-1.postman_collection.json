@@ -1,0 +1,33 @@
+{
+  "info": {"name": "Student ID, please — Lab 1",
+    "description": "Authentication: protected Gateway requests inherit Bearer {{accessToken}}. Select a private local Postman environment containing an explicitly disposable, one-hour local test access JWT, using the same Gateway public-key setup as the Player/Session collections. Player has no login, refresh or JWT issuance. Regenerate expired tokens locally; keep tokens and private keys out of tracked files. Gateway removes Authorization before forwarding and does not bind JWT sub to client-provided X-Player-Id; existing service header checks remain unchanged.", "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"},
+  "auth": {
+    "type": "bearer",
+    "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }]
+  },
+  "variable": [
+    { "key": "accessToken", "value": "", "type": "string", "description": "Disposable local test JWT. Set in a private local environment; keep this collection value empty." },
+    {"key": "applicantServiceUrl", "value": "http://localhost:8090"},
+    {"key": "recordServiceUrl", "value": "http://localhost:8090"},
+    {"key": "applicantId", "value": ""},
+    {"key": "recordId", "value": ""}
+  ],
+  "item": [
+    {"name": "Applicant Service", "item": [
+      {"name": "Create applicant", "request": {"method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "url": "{{applicantServiceUrl}}/api/v1/applicants", "body": {"mode":"raw","raw":"{\n  \"name\": \"Ana Popescu\",\n  \"studentId\": \"FAF-221\",\n  \"major\": \"FAF\",\n  \"studyYear\": 2,\n  \"universityStatus\": \"ENROLLED\",\n  \"role\": \"STUDENT\",\n  \"courses\": [\"PAD\", \"OOP\"]\n}"}}, "event": [{"listen":"test","script":{"exec":["pm.collectionVariables.set('applicantId', pm.response.json().id);"]}}]},
+      {"name": "List applicants", "request": {"method": "GET", "url": "{{applicantServiceUrl}}/api/v1/applicants"}},
+      {"name": "Get applicant", "request": {"method": "GET", "url": "{{applicantServiceUrl}}/api/v1/applicants/{{applicantId}}"}},
+      {"name": "Update applicant", "request": {"method": "PUT", "header": [{"key":"Content-Type","value":"application/json"}], "url": "{{applicantServiceUrl}}/api/v1/applicants/{{applicantId}}", "body": {"mode":"raw","raw":"{\n  \"name\": \"Ana Popescu\",\n  \"studentId\": \"FAF-221\",\n  \"major\": \"FAF\",\n  \"studyYear\": 3,\n  \"universityStatus\": \"ENROLLED\",\n  \"role\": \"STUDENT\",\n  \"courses\": [\"PAD\"]\n}"}}},
+      {"name": "Invalid applicant", "request": {"method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "url": "{{applicantServiceUrl}}/api/v1/applicants", "body": {"mode":"raw","raw":"{\"name\":\"\",\"studentId\":\"\",\"major\":\"\",\"studyYear\":0,\"courses\":[]}"}}},
+      {"name": "Delete applicant", "request": {"method": "DELETE", "url": "{{applicantServiceUrl}}/api/v1/applicants/{{applicantId}}"}}
+    ]},
+    {"name": "University Record Service", "item": [
+      {"name": "Create record", "request": {"method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "url": "{{recordServiceUrl}}/api/v1/university-records", "body": {"mode":"raw","raw":"{\n  \"studentId\": \"FAF-221\",\n  \"name\": \"Ana Popescu\",\n  \"major\": \"FAF\",\n  \"enrolledSince\": \"2025-09-01\",\n  \"status\": \"ENROLLED\",\n  \"outlookGroups\": [\"FAF-221\"],\n  \"courses\": [\"PAD\"],\n  \"fcimMessages\": [\"Welcome to FAF\"]\n}"}}, "event": [{"listen":"test","script":{"exec":["pm.collectionVariables.set('recordId', pm.response.json().id);"]}}]},
+      {"name": "List records", "request": {"method": "GET", "url": "{{recordServiceUrl}}/api/v1/university-records"}},
+      {"name": "Get record", "request": {"method": "GET", "url": "{{recordServiceUrl}}/api/v1/university-records/{{recordId}}"}},
+      {"name": "Update record", "request": {"method": "PUT", "header": [{"key":"Content-Type","value":"application/json"}], "url": "{{recordServiceUrl}}/api/v1/university-records/{{recordId}}", "body": {"mode":"raw","raw":"{\n  \"studentId\": \"FAF-221\",\n  \"name\": \"Ana Popescu\",\n  \"major\": \"FAF\",\n  \"enrolledSince\": \"2025-09-01\",\n  \"status\": \"ENROLLED\",\n  \"outlookGroups\": [\"FAF-221\"],\n  \"courses\": [\"PAD\", \"OOP\"],\n  \"fcimMessages\": []\n}"}}},
+      {"name": "Invalid record", "request": {"method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "url": "{{recordServiceUrl}}/api/v1/university-records", "body": {"mode":"raw","raw":"{\"studentId\":\"\",\"enrolledSince\":\"not-a-date\"}"}}},
+      {"name": "Delete record", "request": {"method": "DELETE", "url": "{{recordServiceUrl}}/api/v1/university-records/{{recordId}}"}}
+    ]}
+  ]
+}

@@ -23,14 +23,23 @@ traumatize Mr. Pumpkin with the emojis.
    - [Surface map](#surface-map)
    - [Data management](#data-management)
    - [Applicant initialization](#applicant-initialization)
+   - [Gateway routing](#gateway-routing)
    - [REST endpoints](#rest-endpoints)
    - [gRPC services](#grpc-services)
    - [WebSocket protocol](#websocket-protocol)
    - [Asynchronous events](#asynchronous-events)
+   - [Task limits](#task-limits)
    - [Error envelope and status mapping](#error-envelope-and-status-mapping)
+   - [Status endpoint and request tracing](#status-endpoint-and-request-tracing)
+   - [Docker Hub images](#docker-hub-images)
+   - [Running the system](#running-the-system)
+   - [Testing with Postman](#testing-with-postman)
+   - [Mocks in Lab 1](#mocks-in-lab-1)
+   - [Communication contract: Lab 1 changes](#communication-contract-lab-1-changes)
 6. [Repository structure](#repository-structure)
 7. [Contribution guide](#contribution-guide)
 8. [Project board](#project-board)
+9. [Lab 1 deployment](#lab-1-deployment)
 
 ---
 
@@ -191,17 +200,23 @@ Credential and University Record services is described in
 
 | Service | Language | Framework | Database | Surfaces exposed |
 | --- | --- | --- | --- | --- |
-| Player | Java 21 | Spring Boot | PostgreSQL | REST |
+| Player | Java 21 | Quarkus | PostgreSQL | REST |
 | Moderation Session | Go | Fiber | PostgreSQL + Redis | REST, gRPC |
-| Applicant | Java 21 | Spring Boot | PostgreSQL | gRPC |
+| Applicant | Java 21 | Quarkus | PostgreSQL | gRPC |
 | Credential | Java 21 | Spring Boot | PostgreSQL | REST, gRPC |
 | University Record | Go | Fiber | PostgreSQL | REST, gRPC |
 | Server Rules | Go | Fiber | PostgreSQL | REST, gRPC |
-| Moderation | Java 21 | Spring Boot | PostgreSQL | REST, gRPC |
+| Moderation | Java 21 | Quarkus | PostgreSQL | REST, gRPC |
 | Discord DMs | Go | Gorilla WebSocket | Redis | WebSocket, REST |
 
-Message broker: **RabbitMQ**. API gateway: **Traefik**. Everything runs under
-`docker compose`.
+This table describes the planned full system. In Lab 1, Credential runs on
+Spring Boot and exposes REST endpoints; Server Rules also exposes REST endpoints.
+Their gRPC contracts below remain integration targets for later labs.
+
+Message broker: **RabbitMQ**. API gateway: a **Python 3.12 / FastAPI** service of our own
+(see [Gateway routing](#gateway-routing)) rather than Traefik, so the route map, the error
+envelope it returns and the identity it forwards are our code and are tested like any other
+service. Everything runs under `docker compose`.
 
 ### Why these choices
 
@@ -273,6 +288,13 @@ players in the same session landing on different processes and losing each other
 
 ## Communication contract
 
+Lab 3's additive internal control-plane API is documented in the
+[Service Discovery startup registration contract](docs/service-discovery-registration.md).
+Credential and Rules are its initial callers. The
+[scaled deployment and instance-routing guide](docs/service-discovery-scaled.md)
+describes Lab 3 Grade 5, controlled instance removal and cross-instance streams.
+It updates the shared `docker-compose.yml`; public business routes remain unchanged.
+
 ### Surface map
 
 Every service exposes at most three kinds of surface. This table is the index;
@@ -282,16 +304,16 @@ each surface is specified in full below.
 | --- | --- | --- | --- |
 | Player | auth, profiles, friends, teams | — | `PlayerProgressed` |
 | Moderation Session | sessions, roles, shift control | `SessionService` | `ShiftStarted`, `SessionCompleted` |
-| Applicant | — | `ApplicantService` | `ApplicantInitialized` |
+| Applicant | Lab 1 applicant CRUD | `ApplicantService` (planned) | `ApplicantInitialized` (planned) |
 | Credential | credential read for the moderator UI | `CredentialService` | `ApplicantInitialized` |
 | University Record | partitioned record lookups | `RecordService` | `ApplicantInitialized` |
 | Server Rules | current ruleset read | `RulesService` | `RulesUpdated` |
 | Moderation | decision submission, history | `ModerationService` | `DecisionRecorded` |
 | Discord DMs | channel list, history | — | — |
 
-The Applicant Service has no REST surface. The client never queries applicants
-directly; it receives the current applicant through the Session Service, which
-keeps the queue and the "who is at the door right now" state in one place.
+Applicant's existing Lab 1 CRUD API is available through Gateway at
+`/api/v1/applicants`. In the planned game flow, the client receives the current
+applicant through the Session Service, which owns the queue and its current item.
 
 ### Data management
 
@@ -314,11 +336,11 @@ Access control on the University Record Service is enforced per session and per
 player. Every read is checked against the record assignment for that shift, so a
 junior moderator cannot query records they were not given.
 
-**Deployment note.** All eight databases run inside a single PostgreSQL container
-in development, as eight separate databases with eight separate credentials. This
-is a resource concession for local machines, not a relaxation of the boundary: no
-service holds credentials for another's database and no query crosses a schema.
-In any non-local deployment each service gets its own instance.
+**Deployment note.** The intended full-team setup uses separate databases and
+credentials for each PostgreSQL-backed service. The current Lab 1 Compose file
+deploys four services: Credential and Server Rules use separate databases in one
+PostgreSQL container, Moderation uses its own PostgreSQL container, and Discord
+DMs uses Redis. No service reads another service's database.
 
 ### Applicant initialization
 
@@ -365,12 +387,77 @@ that the lying is coordinated rather than random:
 
 ---
 
+### Gateway routing
+
+Every client-to-service REST call enters the system through the **Gateway**, which
+forwards it to the service owning the path and keeps the `/api/v1` prefix exactly as
+specified below. A client therefore has one address for the whole system instead of one
+per service, and a service's host port is an implementation detail rather than part of the
+contract.
+
+| Path prefix | Service | Routed |
+| --- | --- | --- |
+| `/api/v1/players`, `/api/v1/teams` | Player | owner to add |
+| `/api/v1/sessions` | Moderation Session | owner to add |
+| `/api/v1/applicants` | Applicant Lab 1 CRUD | yes |
+| `/api/v1/credentials` | Credential | yes |
+| `/api/v1/records`, `/api/v1/university-records` | University Record | yes |
+| `/api/v1/rules` | Server Rules | yes |
+| `/api/v1/decisions` | Moderation | yes |
+| `/api/v1/penalty-policies` | Moderation | yes |
+| `/api/v1/channels` | Discord DMs | yes |
+| `/api/v1/messages` | Discord DMs | yes |
+
+Credential and Server Rules currently have no outbound REST business-service
+calls to reroute: those dependencies remain in-process mocks. Their internal
+Discovery startup registration uses the direct control-plane contract, while
+client-facing CRUD requests use the Gateway.
+
+A prefix matches only on a segment boundary. The method, path, query string, body and
+headers reach the service unchanged, and its status, body and headers are relayed back
+unchanged, error envelope included, so a service's own `404` or `422` is not rewritten by
+the Gateway. Hop-by-hop headers are dropped on each hop.
+
+`X-Trace-Id` is reused when the caller sends one and generated when it does not. It is
+forwarded to the service and returned on every response, so one id spans both hops.
+
+**What does not go through the Gateway.**
+
+| Traffic | Reason |
+| --- | --- |
+| All service-to-service calls | They are gRPC or RabbitMQ events; the Gateway speaks REST only. |
+| `/api/v1/internal/...` on Discord DMs | RabbitMQ stand-ins, excluded from the Gateway by this contract. |
+| `WS /ws/v1/sessions/{sessionId}` | The Gateway returns a direct DMs URL through the negotiation endpoint below; the socket itself stays direct. |
+
+Service-to-service traffic is unaffected by the Gateway because none of it is REST. Both
+services owned by Gurev Andreea illustrate this: the Moderation Service reaches the
+Applicant, Credential, Server Rules and Session services over `ApplicantService`,
+`CredentialService`, `RulesService` and `SessionService` gRPC, and publishes
+`DecisionRecorded` to RabbitMQ; the Discord DMs Service calls
+`SessionService.VerifyMembership` over gRPC. Every one of those stays a direct call.
+
+The Gateway adds three failure codes of its own, each carrying
+`"service": "gateway-service"`:
+
+| HTTP | Code | Condition |
+| --- | --- | --- |
+| 404 | `ROUTE_NOT_FOUND` | No service is routed for this path. |
+| 503 | `UPSTREAM_TIMEOUT` | The service did not answer within the Gateway's read timeout. |
+| 503 | `UPSTREAM_UNAVAILABLE` | The service could not be reached. |
+
+---
+
 ### REST endpoints
 
-All REST paths are prefixed `/api/v1`. Bodies are JSON. Authenticated endpoints
-require `Authorization: Bearer <token>`.
+All REST paths are prefixed `/api/v1` and are reached through the
+[Gateway](#gateway-routing). Bodies are JSON. Authenticated endpoints require
+`Authorization: Bearer <token>`.
 
 #### Player Service
+
+Registration and profile updates return `409 PLAYER_ALREADY_EXISTS` for
+case-insensitive conflicts, including concurrent requests across replicas.
+See the [reliability and schema-upgrade notes](docs/owned-service-reliability.md).
 
 ```
 POST /api/v1/players/register
@@ -404,6 +491,19 @@ Errors:   404 player not found
 ```
 
 ```
+PUT /api/v1/players/{playerId}
+Request:  { "username": "string", "email": "string" }
+Response: 200 { "playerId": "uuid", "username": "string", "level": 7, "xp": 3420 }
+Errors:   404 player not found | 409 username or email taken | 422 validation failed
+```
+
+```
+DELETE /api/v1/players/{playerId}
+Response: 204 No Content
+Errors:   404 player not found
+```
+
+```
 POST /api/v1/players/{playerId}/friends
 Request:  { "targetPlayerId": "uuid" }
 Response: 202 { "status": "PENDING" }
@@ -430,6 +530,11 @@ Errors:   404 team not found | 409 already a member | 422 team full
 ```
 
 #### Moderation Session Service
+
+Database failures return `503 DATABASE_UNAVAILABLE`, including SSE handshakes;
+genuine missing sessions remain `404 SESSION_NOT_FOUND` and task deadlines remain
+`504 TASK_TIMEOUT`. See the [owned-service reliability notes](docs/owned-service-reliability.md)
+for the unchanged error envelope and transaction/event behavior.
 
 ```
 POST /api/v1/sessions
@@ -477,6 +582,23 @@ Response: 200 {
   "score": 340, "penalties": 1, "timeRemaining": 512
 }
 Errors:   404 session not found
+```
+
+```
+PUT /api/v1/sessions/{sessionId}
+Headers:  X-Player-Id: hostPlayerId
+Request:  { "difficulty": "EASY|NORMAL|HARD" }
+Response: 200 { "sessionId": "uuid", "state": "LOBBY", "difficulty": "HARD" }
+Errors:   403 caller is not the host | 404 session not found
+          | 409 session is not in LOBBY | 422 validation failed
+```
+
+```
+DELETE /api/v1/sessions/{sessionId}
+Headers:  X-Player-Id: hostPlayerId
+Response: 204 No Content
+Errors:   403 caller is not the host | 404 session not found
+          | 409 session is not in LOBBY | 422 validation failed
 ```
 
 ```
@@ -532,6 +654,22 @@ Errors:   403 caller is not in this session | 404 applicant not found
 GET /api/v1/credentials/types
 Response: 200 { "types": ["STUDENT_ID", "UNIVERSITY_EMAIL",
                           "ENROLLMENT_CONFIRMATION", "COURSE_REGISTRATION"] }
+```
+
+```
+POST /api/v1/credentials
+Request:  { "applicantId": "uuid", "type": "STUDENT_ID", "issuedAt": "2024-09-01",
+            "expiresAt": "2028-07-01", "fields": { "studentId": "FAF-221", "photoUrl": "string" } }
+Response: 201 { "credentialId": "uuid", "applicantId": "uuid", "type": "STUDENT_ID", ... }
+Errors:   400 malformed request | 422 invalid credential fields
+```
+
+```
+GET    /api/v1/credentials/{credentialId}
+PUT    /api/v1/credentials/{credentialId}
+DELETE /api/v1/credentials/{credentialId}
+Responses: 200 credential | 204 deletion complete
+Errors:    404 credential not found
 ```
 
 #### University Record Service
@@ -596,6 +734,33 @@ Response: 200 {
   ]
 }
 Errors:   404 session not found
+```
+
+```
+POST /api/v1/rules
+Request:  { "code": "MIN_2_YEARS", "description": "Must be enrolled for at least 2 years",
+            "type": "MIN_ENROLLMENT_YEARS", "severity": "MAJOR", "active": true,
+            "minimumYears": 2 }
+Response: 201 { "ruleId": "uuid", "code": "MIN_2_YEARS", ... }
+Errors:   400 malformed request | 422 invalid rule
+```
+
+```
+GET    /api/v1/rules
+GET    /api/v1/rules/{ruleId}
+PUT    /api/v1/rules/{ruleId}
+DELETE /api/v1/rules/{ruleId}
+Responses: 200 rule or list | 204 deletion complete
+Errors:    404 rule not found
+```
+
+```
+POST /api/v1/rules/evaluate
+Request:  { "applicantId": "uuid", "major": "FAF", "enrollmentYears": 2,
+            "role": "STUDENT", "previouslyBanned": false, "requestedChannel": "#general" }
+Response: 200 { "applicantId": "uuid", "rulesetVersion": 1, "violations": [],
+                "recommendedAction": "ACCEPT" }
+Errors:   400 malformed request | 422 invalid applicant data
 ```
 
 #### Moderation Service
@@ -864,9 +1029,70 @@ message ScoreDeltaRequest { string session_id = 1; int32 delta = 2; int32 penalt
 Service call to enforce per-player access, so the assignment of records and
 channels is decided in exactly one place.
 
+**Player and Session Lab 1 mock contract.** These are typed, in-process fixtures
+in the service source, not new REST/gRPC endpoints or live RabbitMQ consumers.
+The mock Player team lookup returns
+`{teamId, name, ownerId, members: [playerId]}`; unknown team/player IDs fail.
+For the agreed fixture, team `66666666-6666-6666-6666-666666666666` has owner
+`11111111-1111-1111-1111-111111111111` and the four members listed in
+[Mocks in Lab 1](#mocks-in-lab-1). Session
+`55555555-5555-5555-5555-555555555555` uses ruleset version `1` and a
+one-item queue: applicant `a0000000-0000-0000-0000-000000000001`, seed
+`918273`. This applicant-to-scenario mapping was chosen for Lab 1; the
+applicant claims remain with the fake Applicant client and are relayed only
+after it reports the applicant ready. Its profile is Vlad Cebotari, FAF-221,
+major FAF, year 2, `ENROLLED` `STUDENT`, courses `PAD`, `SO`, `AI`, with
+deception `NONE`.
+
+For this session, `VerifyMembership` gives the Moderator all mock channels but
+no record assignment; the juniors get `ENROLLMENT_LIST` and
+`#enrollment-check`, `OUTLOOK_GROUPS` and `#faculty-check`, or
+`COURSE_CATALOG` plus `FCIM_RECORD` and `#course-registration`, respectively.
+All four get `#general-mod-chat`. Unknown session/player IDs and missing
+permissions fail closed for both Record and Discord DMs checks.
+
+The fixture's correct `ACCEPT` decision has ID
+`d0000000-0000-0000-0000-000000000001`, score delta `+100`, and penalty `0`.
+`ApplyScoreDelta` is the only score/penalty mutation; `DecisionRecorded` then
+advances the queue and counts the decision without scoring it again. Repeated
+delivery is deduplicated. Its completed result is processed `1`, correct `1`,
+incorrect `0`, score `100`, penalties `0`, accuracy `1.0`, outcome `PASSED`.
+`SessionCompleted.players` is an array of player UUIDs; `accuracy` is a
+fraction from `0` to `1`, and `outcome` is `PASSED` or `FAILED`. For this
+fixture, Player grants each listed player `+100` cumulative XP once per
+`(sessionId, playerId)` and emits `PlayerProgressed.xp` as the **new total**.
+The general XP formula remains Player-owned.
+
+**Proposed additive contract fields (not yet agreed):** add UUID
+`decision_id` to `ScoreDeltaRequest` to make retries idempotent by
+`(session_id, decision_id)`, and add matching UUID `decisionId` to the
+`DecisionRecorded` payload for correlation. The event envelope's `eventId`
+remains separate. The current protobuf and event table above remain unchanged
+until the producing/consuming owners agree to these additions.
+
 ---
 
 ### WebSocket protocol
+
+#### Gateway negotiation (Grade 7 proposal)
+
+Before opening the socket, the client requests
+`GET /api/v1/ws/sessions/{sessionId}/negotiate?playerId={playerId}` from the
+Gateway with `Authorization: Bearer <jwt>`. Both IDs are UUIDs. The response is
+`200 { "webSocketUrl": "ws://localhost:8088/ws/v1/sessions/{sessionId}?playerId={playerId}&token={jwt}" }`
+in the local Compose deployment. The client then connects to that URL **directly**;
+the Gateway does not hold a WebSocket connection.
+
+`DMS_PUBLIC_WS_ORIGIN` configures the browser-reachable `ws://` or `wss://`
+origin used in the response. The local default is `ws://localhost:8088`; remote
+deployments must use their public host and TLS. The Gateway does not derive it
+from the request Host header. The response uses `Cache-Control: no-store`
+because it includes the JWT. The Gateway checks the Bearer header's presence,
+not the JWT's validity or session membership; Discord DMs still decides those
+at the WebSocket handshake. Missing/malformed Bearer headers return the shared
+`401 UNAUTHENTICATED` envelope; invalid or duplicate UUID inputs return
+`400 INVALID_SESSION_ID` or `400 INVALID_PLAYER_ID`. This is a proposed
+cross-service contract pending Gateway and DMs owner review.
 
 ```
 WS /ws/v1/sessions/{sessionId}?playerId={playerId}&token={jwt}
@@ -932,6 +1158,58 @@ message is routed to `studentid.events.dlq`.
 
 ---
 
+### Task limits
+
+Every service bounds the work it takes on, so that one slow dependency or one flooding
+client cannot pile up requests until the service stops answering at all. Two limits, both
+per process:
+
+| Limit | Refusal | Status table row |
+| --- | --- | --- |
+| Requests, or tasks, in flight | `TASK_LIMIT_REACHED` | `429 RESOURCE_EXHAUSTED` |
+| Deadline for one request | `TASK_TIMEOUT` | `503 UNAVAILABLE` |
+
+Both refusals use the standard error envelope and carry `Retry-After: 1`. A request over
+the capacity limit is **refused immediately rather than queued**: telling a player to retry
+is better than holding them behind a queue of unknown length, and an unbounded queue only
+moves the failure later.
+
+`429` is the table's own row for a capacity refusal. The deadline uses `503`, the closest
+row available, because the table has neither `408` nor `504` — see the open question below.
+
+Each owner chooses what the bounded task is and what the limits default to:
+
+| Service | Bounded task | Capacity | Deadline | Exempt |
+| --- | --- | --- | --- | --- |
+| Gateway | every `/api/v1` request, with a separate pool for Session SSE | `GATEWAY_MAX_CONCURRENT_TASKS` (16), `GATEWAY_MAX_STREAMS` (64) | `GATEWAY_TASK_TIMEOUT_SECONDS` (5), `GATEWAY_STREAM_TIMEOUT_SECONDS` (1800) | `/health` |
+| Moderation | submitting a decision, which fans out to four services | `MODERATION_MAX_CONCURRENT_DECISIONS` (16) | `MODERATION_TASK_TIMEOUT_MS` (5000) | reads, health |
+| Discord DMs | every REST request | `MAX_CONCURRENT_TASKS` (16) | `TASK_TIMEOUT_SECONDS` (5) | `/health`, `WS /ws/v1/...` |
+| Applicant | every Applicant CRUD task | `MAX_CONCURRENT_TASKS` (16), CPR `APPLICANT_MAX_CONCURRENT_TASKS` | `TASK_TIMEOUT_MS` (2000), CPR `APPLICANT_TASK_TIMEOUT_MS` | `/health`, `/q/health` |
+| University Record | every Record CRUD and enrollment lookup task | `MAX_CONCURRENT_TASKS` (16), CPR `RECORD_MAX_CONCURRENT_TASKS` | `TASK_TIMEOUT_MS` (2000), CPR `RECORD_TASK_TIMEOUT_MS` | `/health` |
+| Service Discovery | every registry request | `MAX_CONCURRENT_TASKS` (16) | `TASK_TIMEOUT_SECONDS` (5) | `/health`, `/health/ready`, `/status` |
+
+Applicant and University Record report capacity refusal as
+`429 CONCURRENT_TASK_LIMIT` with `Retry-After: 1`, and deadline expiry as
+`504 TASK_TIMEOUT`. Their responses use the existing error envelope with the
+owning service name. Their CRUD paths and payloads retain their behavior; see
+the [owned task-limit guide](docs/applicant-record-lab2-grade8.md) for cancellation,
+recovery and verification details.
+
+Health endpoints are exempt everywhere: a saturated instance must still be diagnosable and
+must still answer its Compose healthcheck. The Discord DMs WebSocket is exempt because the
+upgrade hijacks the connection and because a shift's socket is meant to stay open for the
+whole shift, which is exactly what a request deadline would break.
+
+> **Open question for the team.** The Gateway currently answers a deadline with
+> `504 TASK_TIMEOUT`, while Moderation and Discord DMs answer with `503`, because `504` is
+> not a row in the [status table](#error-envelope-and-status-mapping). Either the table
+> gains a `504 DEADLINE_EXCEEDED` row, which is the more accurate code for a proxy and is
+> what gRPC's `DEADLINE_EXCEEDED` conventionally maps to, or the Gateway moves to `503`.
+> Until that is settled the three services disagree on one status code.
+
+
+---
+
 ### Error envelope and status mapping
 
 Every REST service returns the same shape on failure:
@@ -966,6 +1244,541 @@ the same row.
 | 503 | `UNAVAILABLE` | Downstream dependency unavailable |
 
 ---
+
+---
+
+### Status endpoint and request tracing
+
+Owner: Gurev Andreea. Added in Lab 3 across the four services this owner maintains
+(Gateway, Service Discovery, Moderation, Discord DMs). It is additive: no existing path,
+payload, event or error code changes.
+
+#### `GET /status`
+
+Every one of those four services answers `GET /status` with the **same body**, so one
+scraper, dashboard or `curl` loop reads them all:
+
+```json
+{
+  "service": "moderation-service",
+  "status": "UP",
+  "version": "0.2.0",
+  "uptimeSeconds": 412.5,
+  "startedAt": "2026-10-26T18:00:00Z",
+  "traceId": "c0ffee00-dead-4bee-8bad-f00dfeedface",
+  "checks": [
+    { "name": "database", "status": "UP", "latencyMs": 1.2,
+      "detail": "decisions and penalty policies" }
+  ],
+  "limits": { "maxConcurrentTasks": 16, "taskTimeoutSeconds": 5.0 }
+}
+```
+
+`status` and every `checks[].status` is `UP`, `DEGRADED` or `DOWN`. A `DOWN` dependency the
+service cannot work without makes the service `DOWN`; a `DEGRADED` one is reported without
+claiming the service is unusable. The HTTP status is **200 unless the body says `DOWN`,
+which is 503**, so a load balancer can use the code and an operator can read the body. The
+response carries `Cache-Control: no-store`.
+
+What each service checks, and what it reports as its bounded task:
+
+| Service | `checks` | `limits` |
+| --- | --- | --- |
+| Gateway | `http-client`, with the number of routed services as `detail` | `GATEWAY_MAX_CONCURRENT_TASKS`, `GATEWAY_TASK_TIMEOUT_SECONDS` |
+| Moderation | `database` (PostgreSQL) | `MODERATION_MAX_CONCURRENT_DECISIONS`, `MODERATION_TASK_TIMEOUT_MS` |
+| Discord DMs | `store` (Redis, or the in-memory store) | `MAX_CONCURRENT_TASKS`, `TASK_TIMEOUT_SECONDS` |
+| Service Discovery | `registry`, with the registered instance count as `detail` | `MAX_CONCURRENT_TASKS`, `TASK_TIMEOUT_SECONDS` |
+
+The Gateway lists its routed services rather than probing them: probing eight services on
+every call would make this endpoint as slow and as fragile as the slowest one of them, and
+each service answers for itself on its own `/status`.
+
+`/status` **does not replace** the existing health endpoints and is not routed through the
+Gateway. `GET /q/health/ready` (Moderation), `GET /health` (Discord DMs, Gateway) and
+`GET /health` with `GET /health/ready` (Service Discovery) stay
+exactly as they are: they answer the Compose healthchecks and, for Discovery, the
+registration `readinessPath`, and MicroProfile Health fixes
+the shape of Quarkus's, which therefore cannot be the shape a Go and a Python service also
+emit. `/status` is the one that is identical everywhere. Like health, it is **exempt from
+the [task limits](#task-limits)**: a saturated instance must stay diagnosable.
+
+#### `X-Trace-Id`
+
+One id names a request in the Gateway's log and in the service's log, so both hops of a
+REST call can be read together.
+
+- The **Gateway** reuses the caller's `X-Trace-Id` when there is one and generates a UUID
+  when there is not, then forwards it to the service and returns it on **every** response,
+  errors and refusals included.
+- A **service** reuses the id the Gateway sent, and generates one when it is called
+  directly. `X-Request-Id` is accepted as an alias on the way in, because Moderation and
+  Discord DMs shipped reading that name before this header was agreed, and Service
+  Discovery accepts it for consistency. All of them always answer with `X-Trace-Id`.
+- The id in the response header is the **same id** as `error.traceId` in the
+  [error envelope](#error-envelope-and-status-mapping), and the same one in every log line
+  of that request.
+- An id that is not 1 to 64 characters of `[A-Za-z0-9._-]` is **replaced, not rejected**: a
+  malformed id is no reason to fail a player's request, and a newline injected into a log
+  line is not acceptable.
+
+#### Structured logging
+
+The four services emit **one JSON object per line** on stdout with the same field names, so
+`docker compose logs` is one searchable stream rather than four formats:
+
+| Field | On which lines | Meaning |
+| --- | --- | --- |
+| `ts`, `service`, `level`, `event`, `traceId` | all | when, who, how bad, what happened, which request |
+| `method`, `path`, `query`, `status`, `durationMs` | `request.in`, `request.out` | one pair per inbound request |
+| `target`, `op`, `ok`, `durationMs` | `call.out`, `call.in` | one pair per outbound call |
+| `code`, `status` | `error` | the **contract error code** the caller was given |
+
+Event names are shared: `request.in`, `request.out`, `call.out`, `call.in`, `error`,
+`startup`, `shutdown`, and in Discord DMs also `ws.open`, `ws.close`, `ws.reject`,
+`ws.frame`, in the Gateway also `ws.negotiate` and `auth.ok`, and in Service Discovery also
+`registry.register` and `registry.remove`. Every inbound request, every outbound call and every error is logged, which
+means a refusal can be found in the log by the same `code` the client was given.
+
+**Never logged, in any of the four:** a token, ticket, password or signature (query
+parameters whose name contains one of those words are logged as `REDACTED`), any header
+value including `Authorization`, and any request or response body. Specifically, a chat
+message's content is logged as `contentLength` and a decision's `reason` is not logged at
+all. A player id **is** logged: it is an identifier, not a credential, and it is what makes
+a log line answerable about who did something. `LOG_LEVEL` defaults to `INFO`; `DEBUG` adds
+one line per data-store call.
+
+## Docker Hub images
+
+The Compose file references versioned Docker Hub image tags
+(`<user>/<service>:<version>`); it never builds from a Dockerfile. An image must
+be published publicly before a fresh machine can pull it.
+
+|Service|Image|Published host port|Database|
+|-|-|-|-|
+|Moderation| [`meow3r/student-id-moderation-service:lab3-0.4.1`](https://hub.docker.com/r/meow3r/student-id-moderation-service) | 8087 | PostgreSQL 16 (`moderation-db`, volume `moderation-pg-data`) |
+|Discord DMs| [`meow3r/student-id-discord-dms-service:lab3-0.4.2`](https://hub.docker.com/r/meow3r/student-id-discord-dms-service) | 8088 | Redis 7.4 with AOF (`dms-redis`, volume `dms-redis-data`) |
+|Credential|[`cmmarin/student-id-credential-service:lab3-0.4.0`](https://hub.docker.com/r/cmmarin/student-id-credential-service)|internal only|PostgreSQL 17 (`credential_db`, volume `postgres-data`)|
+|Server Rules|[`cmmarin/student-id-rules-service:lab3-0.4.0`](https://hub.docker.com/r/cmmarin/student-id-rules-service)|internal only|PostgreSQL 17 (`rules_db`, volume `postgres-data`)|
+|Player|[`vasiok11/student-id-player-service:lab3-0.6.0-build.18`](https://hub.docker.com/r/vasiok11/student-id-player-service)|8082|PostgreSQL 16 (`player-db`, volume `player-pg-data`)|
+|Session|[`vasiok11/student-id-session-service:lab3-0.7.0-build.22`](https://hub.docker.com/r/vasiok11/student-id-session-service)|8083|PostgreSQL 16 (`session-db`, volume `session-pg-data`)|
+|Applicant|[`andreiisthebest/student-id-applicant-service:lab3-0.3.0`](https://hub.docker.com/r/andreiisthebest/student-id-applicant-service)|internal only (Gateway 8090)|PostgreSQL 16 (`applicant-db`, volume `applicant-pg-data`)|
+|University Record|[`andreiisthebest/student-id-university-record-service:lab3-0.3.0`](https://hub.docker.com/r/andreiisthebest/student-id-university-record-service)|internal only (Gateway 8090)|PostgreSQL 16 (`university-record-db`, volume `record-pg-data`)|
+|Gateway|[`vasiok11/student-id-gateway-service:lab3-0.7.0-build.43`](https://hub.docker.com/r/vasiok11/student-id-gateway-service)|8090|none|
+|Service Discovery|[`cmmarin/student-id-service-discovery:lab3-0.7.0`](https://hub.docker.com/r/cmmarin/student-id-service-discovery)|127.0.0.1:8089|none, in-memory registry|
+
+**Every tag in the table above is published and pullable**, and `.env.example` now pins
+all of them, so a fresh clone needs no local build. Each tag matches the submodule
+revision recorded here, because the pointer and the pin are advanced together.
+
+**Service Discovery** is pinned to `lab3-0.7.0`, which has the shared `/status` endpoint,
+aligned logging, task limits, controlled instance removal, Grade 8 health polling, the
+**Grade 9 Discord notifications** (set `DISCOVERY_DISCORD_WEBHOOK_URL` to enable them) and
+**Grade 10 automatic removal**: three failed polls of one instance inside the circuit window
+remove it from the registry, so the Gateway stops routing to it until a probe after the
+cooldown restores it. The stack polls every 5 s (`DISCOVERY_POLL_INTERVAL_SECONDS`), which
+keeps that window at exactly task timeout x 3.5 = 17.5 s; at the image's 10 s default it
+widens to 35 s.
+
+**Gateway** is pinned to `lab3-0.7.0-build.43`. It looks up Service Discovery on every
+request and rotates round-robin between the registered instances of each service (Grade 6),
+logs `circuit_tripped` after three failed calls to one instance inside task timeout x 3.5
+(Grade 7), and when that circuit trips it removes the instance from Discovery with
+`DELETE /internal/v1/instances/{service}/{instanceId}`, so no other caller is routed to it
+either (Grade 10).
+
+Images are built and pushed by each repository's `publish` workflow when a release PR merges
+to `main`. A workflow refuses to publish over a tag that already exists, so one tag cannot
+come to mean two different builds. Verify a tag rather than trusting a green build:
+
+```bash
+docker buildx imagetools inspect meow3r/student-id-moderation-service:lab3-0.4.0
+```
+
+Other image tags are maintained by their respective owners.
+
+For the Player and Session services, the linked Docker Hub repositories above
+are [`vasiok11/student-id-player-service`](https://hub.docker.com/r/vasiok11/student-id-player-service)
+and [`vasiok11/student-id-session-service`](https://hub.docker.com/r/vasiok11/student-id-session-service).
+Player `lab3-0.6.0-build.18` and Session `lab3-0.7.0-build.22` include measured
+`/status` telemetry and Discovery registration circuit-trip logging. Player adds
+versioned database migrations and case-insensitive identity uniqueness; Session
+reports database failures accurately and preserves its PostgreSQL-backed
+cross-instance SSE at `GET /api/v1/sessions/{sessionId}/events`. The existing
+CRUD and task-limit behavior remains, and fixture flows stay in-process rather
+than becoming live service integrations. Before upgrading Player, follow its
+private README's migration checks: existing case-insensitive duplicate accounts
+require deliberate operator resolution. Preserve the existing database volumes.
+These owned releases do not resolve the separately tracked shared Discovery
+registration and conditional-removal defects.
+
+## Running the system
+
+For Lab 3 Grade 5, use the [scaled startup guide](docs/service-discovery-scaled.md)
+and `python scripts/scaled_stack.py up` with the updated `.env.example` settings.
+The shared `docker-compose.yml` contains both replicas; the helper initializes
+primary schemas before enabling the second instances. The Lab 2 release notes
+below describe the earlier baseline, not the pending Lab 3 image pins.
+
+Applicant and University Record now use their published Lab 2 Grade 9 builds.
+Their CPR submodule references match the merged private source commits:
+
+| Service | Source commit | Grade 9 PR |
+| --- | --- | --- |
+| Applicant | `4844b116e8f7dc9dcded5a588a4058e0845277bd` | [Applicant #10](https://github.com/Andreiisthebest/student-id-applicant-service/pull/10) |
+| University Record | `e3e20372ba390f88117c20d7394a844e91fc056a` | [University Record #9](https://github.com/Andreiisthebest/student-id-university-record-service/pull/9) |
+
+Both private workflows passed validation and Docker Hub publication. Compose
+pins the versioned tags above so each image matches its submodule source.
+These short tags match the team's `lab2-<version>` naming and currently point
+to exactly the same images as the original commit-specific Grade 9 tags.
+The proposed private workflow updates publish the short release tag, `latest`,
+and an additional commit-specific traceability tag. Increase the service version
+for each release and update its CPR image tag and source reference together.
+
+**Requirements:** Docker Engine 24+ with Compose v2, Python 3.12+, enough RAM
+for 16 backend instances and their databases, and free host ports 8082, 8083,
+8087, 8088, 8089, 8090 and 8091. Configure `.env` using `.env.example` and the
+scaled startup guide; preserve existing credentials and update old image overrides.
+
+```bash
+git clone --recurse-submodules https://github.com/m3ower/faf-student-id-please.git
+cd faf-student-id-please
+cp .env.example .env      # replace every example password
+docker compose pull gateway-service
+docker compose up -d
+docker compose ps
+```
+
+Data survives `docker compose down` because every database uses a named volume;
+`docker compose down -v` wipes it.
+
+Credentials exist only in `.env`, which is git-ignored. `.env.example` holds
+placeholders so everyone knows which variables to set.
+
+### Gateway deployment and authorization
+
+Gateway uses the published image above. Update an existing ignored `.env`'s
+`GATEWAY_IMAGE` to that tag, or remove the override to use the Compose default.
+An older override takes precedence over an updated `docker-compose.yml`.
+
+Set `GATEWAY_JWT_PUBLIC_KEY_B64` in local `.env` to the base64 encoding of the
+matching issuer's PEM RSA **public** key (SubjectPublicKeyInfo, at least 2048 bits).
+Gateway must never receive the private signing key. Do not commit JWTs, private
+keys or local `.env` files; `.env.example` intentionally leaves this setting empty.
+
+With an empty key setting, protected requests with a Bearer token fail closed
+with `503 AUTH_NOT_CONFIGURED`; requests without a token return
+`401 UNAUTHENTICATED`. A configured key verifies RS256 access JWTs with
+`iss=student-id-player-service`, `aud=student-id-api`, UUID `sub`, numeric
+`iat`/`exp` no more than 3600 seconds apart, and `token_use=access`.
+Expired/invalid tokens return `401 UNAUTHENTICATED`. Gateway removes
+`Authorization` before forwarding requests, including public requests.
+
+Health endpoints, `OPTIONS`, and Player registration/login/refresh paths are
+public. **Player login, refresh and token issuance are not implemented yet**;
+local testing needs an explicitly labelled disposable test JWT and matching
+public key, not an invented login flow. Postman authentication setup and final
+full-stack verification remain separate work.
+
+After updating local settings, adopt the release without clearing data:
+
+```bash
+docker compose pull gateway-service
+docker compose up -d --no-deps gateway-service
+```
+
+Use the same project name and overrides as the existing stack. Local Gateway
+health is `GET http://localhost:8090/health`. Protected Session SSE requests also
+retain the temporary `X-Player-Id` header; Gateway does not bind it to the JWT
+subject or implement ownership/role checks. Direct published service ports
+bypass Gateway, so this local lab deployment is not a production security boundary.
+
+### Moderation and Discord DMs: what they need
+
+| Variable | Used by | Meaning |
+| --- | --- | --- |
+| `MODERATION_DB_PASSWORD` | `moderation-db`, `moderation-service` | PostgreSQL password; the same value in both |
+| `DMS_REDIS_PASSWORD` | `dms-redis`, `discord-dms-service` | Redis password |
+| `DOCKERHUB_USER` | both | `meow3r` |
+| `MODERATION_VERSION`, `DMS_VERSION` | both | image tags, see the table above |
+
+Health checks: `GET http://localhost:8087/q/health/ready` (Quarkus, reports the database
+too) and `GET http://localhost:8088/health`. Both must report `UP` before the Postman
+collections will pass.
+
+Both services keep their data in named volumes, so a `docker compose restart` preserves
+decisions and chat history; only `docker compose down -v` clears them.
+**Player and Session run requirements:** set `PLAYER_DB_PASSWORD` and
+`SESSION_DB_PASSWORD` to local values in the ignored `.env` file before
+starting the shared Compose stack. Keep all keys from `.env.example` defined,
+because Compose validates the whole shared file even when starting only two
+services. The Session connection URL currently embeds its password, so use
+URL-safe characters (letters, digits, `_`, `-`) for `SESSION_DB_PASSWORD`.
+Run `docker compose up -d player-service session-service`
+to pull the two published images and start their separate PostgreSQL 16
+containers; ports `8082` (Player) and `8083` (Session) must be free.
+`PLAYER_IMAGE` and `SESSION_IMAGE` select the published releases listed above.
+If an existing ignored `.env` still sets these variables to older tags,
+update those two values to match `.env.example`; local values take precedence.
+Docker Compose supplies the database URLs, users, and named volumes, so
+Java and Go are not needed on the host for this image-based run. To build or
+test the current source instead, Player needs Java 21 (Maven Wrapper included),
+Session needs Go 1.27, and running either outside Compose needs its PostgreSQL
+database configured separately.
+
+**Applicant and University Record run requirements:** keep all keys from
+`.env.example` in the ignored `.env`, and replace `APPLICANT_DB_PASSWORD` and
+`RECORD_DB_PASSWORD` with distinct local values. Use URL-safe characters for
+`RECORD_DB_PASSWORD` because its value is embedded in the record service's
+PostgreSQL URL. Their Lab 2 REST entry point is Gateway on host port `8090`.
+Use the published Gateway image and its authorization settings documented above. Run
+`docker compose up -d applicant-service university-record-service gateway-service`
+to start these services and their separate PostgreSQL 16 containers. Data persists in
+the `applicant-pg-data` and `record-pg-data` named volumes. The image tags can
+be overridden with `APPLICANT_IMAGE` and `RECORD_IMAGE`. Update these two values
+in an existing ignored `.env` to match `.env.example`; older overrides take
+precedence over the Compose defaults. To adopt the published images in an
+already running stack, run these commands from the CPR directory:
+
+```bash
+docker compose pull applicant-service university-record-service
+docker compose up -d --no-deps applicant-service university-record-service
+```
+
+Use the same Compose project name and overrides as the existing deployment.
+This refreshes only these two services and preserves their database volumes.
+Check
+`http://localhost:8090/api/v1/health/applicant-service` and
+`http://localhost:8090/api/v1/health/university-record-service`.
+For this shared deployment, import the CPR's
+[`Applicant collection`](postman/applicant-service.postman_collection.json),
+[`University Record collection`](postman/university-record-service.postman_collection.json),
+or [`combined collection`](postman/Student-ID-Please-Lab-1.postman_collection.json).
+All three use `http://localhost:8090`. The older collection inside the Applicant
+submodule defaults to standalone ports `8080` and `8081`; override both service
+URL variables to `http://localhost:8090` if using that collection with Compose.
+The current HTTP and in-process mock contract is documented in
+[Applicant and University Record Lab 1 contract notes](docs/applicant-university-record-lab1.md).
+Their dedicated networks and Gateway configuration are documented in
+[Applicant and University Record Grade 6 integration](docs/applicant-record-lab2-grade6.md).
+
+## Testing with Postman
+
+Collections live in [`postman/`](postman). Import one and run it with the Collection
+Runner. The Credential and Server Rules collections create and delete their
+test records in one run.
+
+|Collection|Base URL|
+|-|-|
+|`moderation-service.postman_collection.json`|`http://localhost:8090`|
+|`discord-dms-service.postman_collection.json`|`http://localhost:8090`|
+|`credential-service.postman_collection.json`|`http://localhost:8090`|
+|`server-rules-service.postman_collection.json`|`http://localhost:8090`|
+|`player-service.postman_collection.json`|`http://localhost:8082`|
+|`session-service.postman_collection.json`|`http://localhost:8083`|
+|`applicant-service.postman_collection.json`|`http://localhost:8090`|
+|`university-record-service.postman_collection.json`|`http://localhost:8090`|
+
+## Mocks in Lab 1
+
+Until the services are connected in Lab 2, every service replaces its dependencies with
+mocks that use the contract's data types. The Moderation and Discord DMs services share
+the same demo players, so the collections line up:
+
+|Player id|Role|
+|-|-|
+|`11111111-1111-1111-1111-111111111111`|Moderator|
+|`22222222-2222-2222-2222-222222222222`|Junior (enrollment list, `#enrollment-check`)|
+|`33333333-3333-3333-3333-333333333333`|Junior (Outlook groups, `#faculty-check`)|
+|`44444444-4444-4444-4444-444444444444`|Junior (course catalog, `#course-registration`)|
+
+Demo applicants `a0000000-0000-0000-0000-00000000000{1..8}` each carry a fixed deception
+(none, impersonation, forged document, ...); see the Moderation Service README.
+
+The three Grade 9 fixtures (F1–F3) and the decision precedence are specified under
+[Communication contract: Lab 1 changes](#communication-contract-lab-1-changes).
+
+## Communication contract: Lab 1 changes
+
+Additive only, so no MAJOR version bump.
+
+**Moderation Service**
+
+* Added `GET /api/v1/decisions?sessionId&moderatorId`, `PATCH /api/v1/decisions/{id}`
+(reason only, author only) and `DELETE /api/v1/decisions/{id}` (moderator only, reverts
+the score) to complete CRUD.
+* Added penalty policies: `POST/GET/PUT/DELETE /api/v1/penalty-policies[/{id}]` and
+`GET /api/v1/penalty-policies/effective`. They override the default penalty per
+(expected, actual) pair.
+* Decision responses now always carry the full record (`sessionId`, `applicantId`,
+`moderatorId`, `action`, `reason`, `appealStatus`, `penaltyRefunded`, `decidedAt`);
+`sessionScore` appears only in the submit response.
+* `violatedRules` now also lists the applicant's deception type (e.g. `IMPERSONATION`).
+* Appeal outcome is defined: a wrong `FLAG` is overturned with half the penalty refunded;
+everything else is upheld. One appeal per decision, within 10 minutes.
+* New error codes: `NOT_MODERATOR`, `NOT_DECISION_AUTHOR`, `DECISION_EXISTS`,
+`ALREADY_APPEALED`, `APPEAL_WINDOW_CLOSED`, `POLICY_EXISTS`, `POLICY_SAME_ACTION`,
+`POLICY_NOT_FOUND`, `VALIDATION_FAILED`, `MALFORMED_REQUEST`.
+
+**Discord DMs Service**
+
+* Added channel CRUD (`POST /api/v1/channels`, `GET/PUT/DELETE /api/v1/channels/{channel}`),
+moderator-only for writes, with a `readOnly` flag.
+* Added REST messaging next to the WebSocket: `POST /api/v1/channels/{channel}/messages`,
+`PATCH` and `DELETE /api/v1/messages/{messageId}`.
+* Channel names in URL paths are written without `#`, because `#` starts a URL fragment.
+* The caller is identified by the `X-Player-Id` header (JWT subject from Lab 2).
+* New WebSocket server frames: `MESSAGE_EDITED`, `MESSAGE_DELETED`, `USER_TYPING`,
+`CHANNEL_JOINED`.
+* Internal endpoints that stand in for RabbitMQ consumers until Lab 2:
+`POST /api/v1/internal/sessions/{id}/channels/defaults` (ShiftStarted) and
+`POST /api/v1/internal/sessions/{id}/broadcast` (Session events). Not routed through
+the gateway.
+
+### Moderation Service: Grade 9 decisions
+
+**Fixtures.** Session `55555555-5555-5555-5555-555555555555`, ruleset version 1. All three
+applicants claim major FAF, year 2, ENROLLED, STUDENT, with a matching ACTIVE university
+enrollment since 2024-09-01 and `enrollmentYears = 2`. That is fixed fixture data, not a
+calculation from today's date.
+
+| # | Applicant id | Name, group, seed | Deception | Credentials | Rules | Rules says | Expected |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| F1 | `a0000000-…-000000000001` | Vlad Cebotari, FAF-221, 918273 | NONE | valid, authentic | – | ACCEPT | **ACCEPT** |
+| F2 | `a0000000-…-000000000002` | Ana Rusu, FAF-222, 918274 | FORGED_DOCUMENT | STUDENT_ID structurally valid, `authentic=false`, issue `SIGNATURE_MISMATCH` | – | ACCEPT | **REJECT** |
+| F3 | `a0000000-…-000000000003` | Mihai Lupu, FAF-223, 918275 | PREVIOUSLY_BANNED | valid, authentic | `NO_BANNED` (CRITICAL) | BAN | **BAN** |
+
+**Decision precedence**, owned by the Moderation Service:
+
+1. a prior ban, or any CRITICAL rule violation → **BAN**
+2. a credential that is invalid, inauthentic or expired, any remaining rule violation, or
+   any other declared deception → **REJECT**
+3. nothing against the applicant → **ACCEPT**
+
+Rules' `recommendedAction` is **advisory**. F2 is the case that proves it: Rules sees no
+violation and recommends ACCEPT, but the forged document is credential evidence, so the
+expected action is REJECT.
+
+Unknown ids are never treated as clean: an unknown applicant is `404 APPLICANT_NOT_FOUND`,
+an unknown session has no members, and an unknown credential is reported invalid.
+
+**PROPOSED, additive: `decisionId`.** The Moderation Service sends `decisionId` to
+`ApplyScoreDelta` and publishes it in `DecisionRecorded`. It is the idempotency key for the
+score change: applying the same `decisionId` twice must leave the session score unchanged,
+so a retried call or a redelivered event cannot score a decision twice. A consumer that
+ignores the field still works, so this is additive and needs no MAJOR bump. **This one needs
+the Session Service owner's agreement.**
+
+In the fixture session the scenarios have pinned ids so every owner can refer to the same
+decision: F1 `d0000000-0000-0000-0000-000000000001`, F2 `…002`, F3 `…003`. A correct F1
+ACCEPT scores `+100` with penalty `0`.
+
+### Discord DMs Service: Grade 9 membership
+
+The service depends on Session `VerifyMembership` only, never on Credential or Rules.
+It uses the same fixture session and players as the Moderation Service:
+
+| Player id | Role | Channels |
+| --- | --- | --- |
+| `11111111-1111-1111-1111-111111111111` | MODERATOR | all four |
+| `22222222-2222-2222-2222-222222222222` | JUNIOR_MODERATOR | `#enrollment-check`, `#general-mod-chat` |
+| `33333333-3333-3333-3333-333333333333` | JUNIOR_MODERATOR | `#faculty-check`, `#general-mod-chat` |
+| `44444444-4444-4444-4444-444444444444` | JUNIOR_MODERATOR | `#course-registration`, `#general-mod-chat` |
+
+An unknown session id or player id is not a member: REST returns
+`403 PLAYER_NOT_IN_SESSION` and a WebSocket upgrade is refused before any frame is sent.
+Deception and credential authenticity never appear in this service's payloads; it
+transports messages and judges nothing.
+
+### Moderation Service: framework
+
+The Moderation Service runs on **Quarkus 3.15** (Java 21, PostgreSQL). REST paths, request
+and response bodies, the error envelope and the gRPC contract are unchanged. The only
+visible difference is the health endpoint: `GET /q/health/ready` and `/q/health/live`
+instead of `/actuator/health`.
+
+---
+## Lab 1 deployment
+
+The shared [`docker-compose.yml`](docker-compose.yml) also deploys the Credential
+and Server Rules services owned by Clima Marin. They share one PostgreSQL
+container while using separate databases, users, and the `postgres-data` Docker
+volume; the Moderation and Discord DMs services retain their own database and
+Redis volumes.
+
+Published versioned Docker Hub images for these two services:
+
+- [Credential Service — `cmmarin/student-id-credential-service:lab3-0.4.0`](https://hub.docker.com/r/cmmarin/student-id-credential-service)
+- [Server Rules Service — `cmmarin/student-id-rules-service:lab3-0.4.0`](https://hub.docker.com/r/cmmarin/student-id-rules-service)
+
+To run only these two services through the Gateway, you need Docker Engine with
+Compose v2 and free host port 8090. Copy `.env.example` to the
+git-ignored `.env` and replace at least `POSTGRES_PASSWORD`,
+`CREDENTIAL_DB_PASSWORD`, and `RULES_DB_PASSWORD` with your own values. Complete
+the other required settings from the current `.env.example`, including the
+Discovery machine token and reviewed shared image selections; the earlier
+Lab 1 three-password setup alone is no longer sufficient. Protected Gateway
+requests also require its matching public key and a valid client access token.
+Follow the [shared startup guide](docs/service-discovery-scaled.md) for the
+team-wide configuration; this owned-service update changes neither shared
+authentication nor other members' image selections. Do not commit `.env` or
+real credentials. To start just these services and their dependencies:
+
+```bash
+docker compose up -d gateway-service postgres credential-service rules-service
+docker compose ps
+```
+
+The Compose file references these published image tags, never the services'
+local Dockerfiles. Both services use separate databases and users in the shared
+PostgreSQL container, with data persisted in the `postgres-data` named volume.
+The private service READMEs explain how to run each service from source.
+
+Credential and Rules `lab3-0.4.0` add internal `GET /status` with measured
+database `checks[].latencyMs`, enabling Discovery's dependency-pressure alerts
+without changing existing health or business responses. Rules also reads rules
+and their version from one repeatable-read snapshot across concurrent replica
+writes. See [the owned-service health guide](docs/credential-rules-discovery-health.md)
+for the additive contract and the original Grade 3 health/logging notes.
+Existing local `.env` image overrides take precedence: update only
+`CREDENTIAL_IMAGE` and `RULES_IMAGE` to the tags above when adopting this release.
+
+The PostgreSQL initialization script runs only when the volume is first
+created. To recreate development databases, intentionally remove the named
+volume and start Compose again.
+
+### Credential and Server Rules mock contract
+
+The Grade 9 code in these two private services prepares the existing internal
+contract without changing their Lab 1 HTTP endpoints. Credential models
+`ApplicantInitialized` plus `GenerateCredentials`, `GetCredentials`, and
+`ValidateCredential` in process. An identical initialization event is safe to
+replay; conflicting seed or event data is rejected. Validation reports
+`structurally_valid`, `authentic`, and `issues` separately. The current
+`X-Session-Id` HTTP check is only a session-presence mock, not per-player
+authorization.
+
+Rules models `GetCurrentRuleset(sessionId)` and
+`Evaluate(sessionId, applicantId)` with a session-scoped fact provider. The
+existing HTTP evaluation endpoint still takes applicant facts in its request;
+the internal mock resolves those facts by IDs. Rules returns violations and an
+advisory `recommendedAction`; Moderation owns the final admission decision, so
+the forged-document fixture's `ACCEPT` recommendation is not its final verdict.
+
+For session `55555555-5555-5555-5555-555555555555`, the agreed in-process
+fixtures use ruleset version 1 and fixed `enrollmentYears=2`:
+
+| Applicant ID | Seed and deception | Credential result | Rules result |
+| --- | --- | --- | --- |
+| `a0000000-0000-0000-0000-000000000001` | `918273`, `NONE` | Student ID structurally valid and authentic | No violations; `ACCEPT` recommendation |
+| `a0000000-0000-0000-0000-000000000002` | `918274`, `FORGED_DOCUMENT` | Student ID structurally valid, not authentic; `SIGNATURE_MISMATCH` | No violations; `ACCEPT` recommendation |
+| `a0000000-0000-0000-0000-000000000003` | `918275`, `PREVIOUSLY_BANNED` | Credentials valid; the ban does not invalidate a document | `NO_BANNED` (`CRITICAL`); `BAN` recommendation |
+
+These are in-process mock fixtures, not live gRPC or RabbitMQ integrations.
+The published `0.1.0` Docker images predate the Grade 9 mock code now merged
+into both private repositories;
+run `mvn test` in Credential and `go test ./...` in Rules to test those mocks
+until a new versioned image is published.
 
 ## Repository structure
 
@@ -1094,7 +1907,7 @@ whether it works.
 
 Work is tracked on the GitHub Project linked to this repository:
 
-**[Student ID, please — project board](https://github.com/orgs/<org>/projects/<n>)**
+**[Student ID, please — project board](https://github.com/users/m3ower/projects/1/views/2)**
 
 Columns are **Backlog → In Progress → In Review → Done**. Every PR is linked to an
 issue, and every issue is assigned to the owner of the affected service.

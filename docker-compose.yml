@@ -1,0 +1,385 @@
+# Shared deployment. Images are pulled from Docker Hub; no local Dockerfile is built.
+# Copy .env.example to .env, select reviewed images and supply local credentials.
+# Use scripts/scaled_stack.py up to initialize primary schemas before replicas.
+
+x-registration: &registration
+  DISCOVERY_URL: http://service-discovery:8089
+  DISCOVERY_REGISTRATION_TOKEN: ${DISCOVERY_REGISTRATION_TOKEN:?set DISCOVERY_REGISTRATION_TOKEN in .env}
+
+services:
+  service-discovery:
+    image: ${DISCOVERY_IMAGE:?set a published removal-capable DISCOVERY_IMAGE in .env}
+    networks: [default, applicant-net, record-net]
+    environment:
+      DISCOVERY_REGISTRATION_TOKEN: ${DISCOVERY_REGISTRATION_TOKEN:?set DISCOVERY_REGISTRATION_TOKEN in .env}
+      # 5 s polls keep the circuit window at exactly task timeout x 3.5 (17.5 s); at the
+      # image's 10 s default Discovery widens it to 35 s so three polls can fit.
+      DISCOVERY_POLL_INTERVAL_SECONDS: ${DISCOVERY_POLL_INTERVAL_SECONDS:-5}
+      # Empty disables Discord alerts.
+      DISCOVERY_DISCORD_WEBHOOK_URL: ${DISCOVERY_DISCORD_WEBHOOK_URL:-}
+      # Discovery rejects a blank number once a webhook is set, so these fall back to its
+      # own defaults instead of passing an empty string through.
+      DISCOVERY_NOTIFY_TIMEOUT_SECONDS: ${DISCOVERY_NOTIFY_TIMEOUT_SECONDS:-5}
+      DISCOVERY_NOTIFY_QUEUE_SIZE: ${DISCOVERY_NOTIFY_QUEUE_SIZE:-64}
+    ports: ["127.0.0.1:8089:8089"]
+    volumes: ["./scripts:/integration:ro"]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8089/health/ready', timeout=2)"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      CREDENTIAL_DB_NAME: ${CREDENTIAL_DB_NAME:-credential_db}
+      CREDENTIAL_DB_USER: ${CREDENTIAL_DB_USER:-credential_user}
+      CREDENTIAL_DB_PASSWORD: ${CREDENTIAL_DB_PASSWORD:?set CREDENTIAL_DB_PASSWORD in .env}
+      RULES_DB_NAME: ${RULES_DB_NAME:-rules_db}
+      RULES_DB_USER: ${RULES_DB_USER:-rules_user}
+      RULES_DB_PASSWORD: ${RULES_DB_PASSWORD:?set RULES_DB_PASSWORD in .env}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./docker/postgres-init-owned-services.sh:/docker-entrypoint-initdb.d/10-owned-services.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  credential-service: &credential
+    image: ${CREDENTIAL_IMAGE:-cmmarin/student-id-credential-service:lab3-0.4.0}
+    environment: &credential-env
+      <<: *registration
+      SERVICE_ADVERTISE_URL: http://credential-service:8080
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${CREDENTIAL_DB_NAME:-credential_db}
+      DB_USER: ${CREDENTIAL_DB_USER:-credential_user}
+      DB_PASSWORD: ${CREDENTIAL_DB_PASSWORD:?set CREDENTIAL_DB_PASSWORD in .env}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      service-discovery:
+        condition: service_healthy
+
+  credential-service-2:
+    <<: *credential
+    profiles: [replicas]
+    environment:
+      <<: *credential-env
+      SERVICE_ADVERTISE_URL: http://credential-service-2:8080
+
+  rules-service: &rules
+    image: ${RULES_IMAGE:-cmmarin/student-id-rules-service:lab3-0.4.0}
+    environment: &rules-env
+      <<: *registration
+      SERVICE_ADVERTISE_URL: http://rules-service:8081
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${RULES_DB_NAME:-rules_db}
+      DB_USER: ${RULES_DB_USER:-rules_user}
+      DB_PASSWORD: ${RULES_DB_PASSWORD:?set RULES_DB_PASSWORD in .env}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      service-discovery:
+        condition: service_healthy
+
+  rules-service-2:
+    <<: *rules
+    profiles: [replicas]
+    environment:
+      <<: *rules-env
+      SERVICE_ADVERTISE_URL: http://rules-service-2:8081
+
+  player-service: &player
+    image: ${PLAYER_IMAGE:-vasiok11/student-id-player-service:lab3-0.6.0-build.18}
+    ports:
+      - "8082:8080"
+    environment: &player-env
+      <<: *registration
+      SERVICE_ADVERTISE_URL: http://player-service:8080
+      PLAYER_DB_URL: jdbc:postgresql://player-db:5432/${PLAYER_DB_NAME:-player}
+      PLAYER_DB_USER: ${PLAYER_DB_USER:-player}
+      PLAYER_DB_PASSWORD: ${PLAYER_DB_PASSWORD:?set PLAYER_DB_PASSWORD in .env}
+    depends_on:
+      player-db:
+        condition: service_healthy
+      service-discovery:
+        condition: service_healthy
+
+  player-service-2:
+    <<: *player
+    profiles: [replicas]
+    ports: []
+    environment:
+      <<: *player-env
+      SERVICE_ADVERTISE_URL: http://player-service-2:8080
+
+  player-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${PLAYER_DB_NAME:-player}
+      POSTGRES_USER: ${PLAYER_DB_USER:-player}
+      POSTGRES_PASSWORD: ${PLAYER_DB_PASSWORD:?set PLAYER_DB_PASSWORD in .env}
+    volumes:
+      - player-pg-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  session-service: &session
+    image: ${SESSION_IMAGE:?set a published distributed-SSE SESSION_IMAGE in .env}
+    ports:
+      - "8083:8080"
+    environment: &session-env
+      <<: *registration
+      SERVICE_ADVERTISE_URL: http://session-service:8080
+      SESSION_DB_URL: postgres://${SESSION_DB_USER:-session}:${SESSION_DB_PASSWORD:?set SESSION_DB_PASSWORD in .env}@session-db:5432/${SESSION_DB_NAME:-session}?sslmode=disable
+    depends_on:
+      session-db:
+        condition: service_healthy
+      service-discovery:
+        condition: service_healthy
+
+  session-service-2:
+    <<: *session
+    profiles: [replicas]
+    ports: []
+    environment:
+      <<: *session-env
+      SERVICE_ADVERTISE_URL: http://session-service-2:8080
+
+  session-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${SESSION_DB_NAME:-session}
+      POSTGRES_USER: ${SESSION_DB_USER:-session}
+      POSTGRES_PASSWORD: ${SESSION_DB_PASSWORD:?set SESSION_DB_PASSWORD in .env}
+    volumes:
+      - session-pg-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  applicant-service: &applicant
+    image: ${APPLICANT_IMAGE:-andreiisthebest/student-id-applicant-service:lab3-0.3.0}
+    networks: [applicant-net]
+    environment: &applicant-env
+      <<: *registration
+      SERVICE_ADVERTISE_URL: http://applicant-service:8080
+      GATEWAY_URL: http://gateway-service:8080
+      APPLICANT_SERVICE_URL: http://gateway-service:8080
+      RECORD_SERVICE_URL: http://gateway-service:8080
+      DB_URL: jdbc:postgresql://applicant-db:5432/applicant_db
+      DB_USER: applicant_user
+      DB_PASSWORD: ${APPLICANT_DB_PASSWORD:?set APPLICANT_DB_PASSWORD in .env}
+      TASK_TIMEOUT_MS: ${APPLICANT_TASK_TIMEOUT_MS:-2000}
+      MAX_CONCURRENT_TASKS: ${APPLICANT_MAX_CONCURRENT_TASKS:-16}
+    depends_on:
+      applicant-db:
+        condition: service_healthy
+      service-discovery:
+        condition: service_healthy
+
+  applicant-service-2:
+    <<: *applicant
+    profiles: [replicas]
+    environment:
+      <<: *applicant-env
+      SERVICE_ADVERTISE_URL: http://applicant-service-2:8080
+
+  applicant-db:
+    image: postgres:16-alpine
+    networks: [applicant-net]
+    environment:
+      POSTGRES_DB: applicant_db
+      POSTGRES_USER: applicant_user
+      POSTGRES_PASSWORD: ${APPLICANT_DB_PASSWORD:?set APPLICANT_DB_PASSWORD in .env}
+    volumes:
+      - applicant-pg-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  university-record-service: &record
+    image: ${RECORD_IMAGE:-andreiisthebest/student-id-university-record-service:lab3-0.3.0}
+    networks: [record-net]
+    environment: &record-env
+      <<: *registration
+      SERVICE_ADVERTISE_URL: http://university-record-service:8081
+      GATEWAY_URL: http://gateway-service:8080
+      APPLICANT_SERVICE_URL: http://gateway-service:8080
+      RECORD_SERVICE_URL: http://gateway-service:8080
+      DB_URL: postgres://record_user:${RECORD_DB_PASSWORD:?set RECORD_DB_PASSWORD in .env}@university-record-db:5432/record_db?sslmode=disable
+      TASK_TIMEOUT_MS: ${RECORD_TASK_TIMEOUT_MS:-2000}
+      MAX_CONCURRENT_TASKS: ${RECORD_MAX_CONCURRENT_TASKS:-16}
+    depends_on:
+      university-record-db:
+        condition: service_healthy
+      service-discovery:
+        condition: service_healthy
+
+  university-record-service-2:
+    <<: *record
+    profiles: [replicas]
+    environment:
+      <<: *record-env
+      SERVICE_ADVERTISE_URL: http://university-record-service-2:8081
+
+  university-record-db:
+    image: postgres:16-alpine
+    networks: [record-net]
+    environment:
+      POSTGRES_DB: record_db
+      POSTGRES_USER: record_user
+      POSTGRES_PASSWORD: ${RECORD_DB_PASSWORD:?set RECORD_DB_PASSWORD in .env}
+    volumes:
+      - record-pg-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  moderation-service: &moderation
+    image: ${DOCKERHUB_USER:-meow3r}/student-id-moderation-service:${MODERATION_VERSION:?set the reviewed MODERATION_VERSION in .env}
+    restart: unless-stopped
+    environment: &moderation-env
+      <<: *registration
+      SERVICE_ADVERTISE_URL: http://moderation-service:8080
+      DB_URL: jdbc:postgresql://moderation-db:5432/${MODERATION_DB_NAME:-moderation}
+      DB_USER: ${MODERATION_DB_USER:-moderation}
+      DB_PASSWORD: ${MODERATION_DB_PASSWORD:?set MODERATION_DB_PASSWORD in .env}
+      # Task limits on the decision path: over capacity is 429, past the deadline is 503.
+      MODERATION_MAX_CONCURRENT_DECISIONS: ${MODERATION_MAX_CONCURRENT_DECISIONS:-16}
+      MODERATION_TASK_TIMEOUT_MS: ${MODERATION_TASK_TIMEOUT_MS:-5000}
+    ports:
+      - "8087:8080"
+    depends_on:
+      moderation-db:
+        condition: service_healthy
+      service-discovery:
+        condition: service_healthy
+
+  moderation-service-2:
+    <<: *moderation
+    profiles: [replicas]
+    ports: []
+    environment:
+      <<: *moderation-env
+      SERVICE_ADVERTISE_URL: http://moderation-service-2:8080
+
+  moderation-db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${MODERATION_DB_NAME:-moderation}
+      POSTGRES_USER: ${MODERATION_DB_USER:-moderation}
+      POSTGRES_PASSWORD: ${MODERATION_DB_PASSWORD:?set MODERATION_DB_PASSWORD in .env}
+    volumes:
+      - moderation-pg-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  discord-dms-service: &dms
+    image: ${DOCKERHUB_USER:-meow3r}/student-id-discord-dms-service:${DMS_VERSION:?set the reviewed DMS_VERSION in .env}
+    restart: unless-stopped
+    environment: &dms-env
+      <<: *registration
+      SERVICE_ADVERTISE_URL: http://discord-dms-service:8080
+      STORE: redis
+      REDIS_ADDR: dms-redis:6379
+      REDIS_PASSWORD: ${DMS_REDIS_PASSWORD:?set DMS_REDIS_PASSWORD in .env}
+      SESSION_CLIENT: mock
+      WS_ALLOWED_ORIGINS: ${WS_ALLOWED_ORIGINS:-*}
+      WS_TICKET_SECRET: ${WS_TICKET_SECRET:-}
+      # Task limits on the REST surface; the WebSocket is deliberately exempt.
+      MAX_CONCURRENT_TASKS: ${DMS_MAX_CONCURRENT_TASKS:-16}
+      TASK_TIMEOUT_SECONDS: ${DMS_TASK_TIMEOUT_SECONDS:-5}
+    ports:
+      - "8088:8080"
+    depends_on:
+      dms-redis:
+        condition: service_healthy
+      service-discovery:
+        condition: service_healthy
+
+  discord-dms-service-2:
+    <<: *dms
+    profiles: [replicas]
+    ports: ["8091:8080"]
+    environment:
+      <<: *dms-env
+      SERVICE_ADVERTISE_URL: http://discord-dms-service-2:8080
+
+  dms-redis:
+    image: redis:7.4-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes", "--requirepass", "${DMS_REDIS_PASSWORD}"]
+    environment:
+      REDISCLI_AUTH: ${DMS_REDIS_PASSWORD}
+    volumes:
+      - dms-redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  gateway-service:
+    image: ${GATEWAY_IMAGE:?set a published Discovery-enabled GATEWAY_IMAGE in .env}
+    restart: unless-stopped
+    networks: [default, applicant-net, record-net]
+    environment:
+      <<: *registration
+      PLAYER_SERVICE_URL: http://player-service:8080
+      SESSION_SERVICE_URL: http://session-service:8080
+      CREDENTIAL_SERVICE_URL: http://credential-service:8080
+      RULES_SERVICE_URL: http://rules-service:8081
+      APPLICANT_SERVICE_URL: http://applicant-service:8080
+      RECORD_SERVICE_URL: http://university-record-service:8081
+      MODERATION_SERVICE_URL: http://moderation-service:8080
+      DMS_SERVICE_URL: http://discord-dms-service:8080
+      DMS_PUBLIC_WS_ORIGIN: ${DMS_PUBLIC_WS_ORIGIN:-ws://localhost:8088}
+      DMS_PUBLIC_WS_ORIGINS: '{"http://discord-dms-service:8080":"${DMS_PUBLIC_WS_ORIGIN:-ws://localhost:8088}","http://discord-dms-service-2:8080":"${DMS_SECOND_PUBLIC_WS_ORIGIN:-ws://localhost:8091}"}'
+      GATEWAY_JWT_PUBLIC_KEY_B64: ${GATEWAY_JWT_PUBLIC_KEY_B64:-}
+    depends_on:
+      service-discovery:
+        condition: service_healthy
+    ports:
+      - "8090:8080"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8080/health', timeout=2)"]
+      interval: 30s
+      timeout: 3s
+      start_period: 5s
+      retries: 3
+
+networks:
+  default:
+  applicant-net:
+    internal: true
+  record-net:
+    internal: true
+
+volumes:
+  postgres-data:
+  player-pg-data:
+  session-pg-data:
+  applicant-pg-data:
+  record-pg-data:
+  moderation-pg-data:
+  dms-redis-data:
