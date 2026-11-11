@@ -91,3 +91,14 @@ separate issue-linked PR to CPR `dev`. Publish the referenced source before
 updating that gitlink, and keep private credentials out of both repositories.
 Initializing this source checkout does not start the broker, publish a release,
 alter Compose, or move Gateway/service communication to it.
+
+## Grade 5: service routing (candidate)
+
+[Broker #7](https://github.com/Andreiisthebest/student-id-message-broker/issues/7) turns the
+broker into the service-to-service router: it routes the operations of the
+[HTTP operation catalog](http-operation-catalog.md) with per-caller and per-target
+credentials, Discovery-backed round-robin load balancing and a per-instance circuit breaker,
+all moved from the Gateway. Version `0.2.0`. It needs `DISCOVERY_URL`,
+`DISCOVERY_REGISTRATION_TOKEN`, `BROKER_CALLER_TOKENS_JSON` and the `<TARGET>_INTERNAL_TOKEN`
+values; see its README. The CPR pin above and the shared Compose file change only after the
+broker, Moderation and Discord DMs releases are reviewed and published.

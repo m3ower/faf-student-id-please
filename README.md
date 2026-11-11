@@ -307,8 +307,9 @@ Credential and Rules are its initial callers. The
 describes Lab 3 Grade 5, controlled instance removal and cross-instance streams.
 It updates the shared `docker-compose.yml`; public business routes remain unchanged.
 
-**Lab 4 Gateway service-call baseline.** Business calls between services use HTTP/JSON
-through the Gateway's authenticated service route, as listed in the shared
+**Lab 4 service calls through the message broker.** Business calls between services use
+HTTP/JSON through the message broker (Grade 5 moved them, with round-robin load balancing and
+the circuit breaker, from the Gateway's service route), as listed in the shared
 [HTTP operation catalog](docs/http-operation-catalog.md)
 ([`contracts/http/`](contracts/http/service-operations.json)). The receiving owner defines
 each operation; operations still marked `requested` there are not working end to end. The
@@ -451,8 +452,8 @@ forwarded to the service and returned on every response, so one id spans both ho
 
 | Traffic | Reason |
 | --- | --- |
-| Planned gRPC and RabbitMQ service integrations | Never implemented; business calls use the Gateway service route in the [HTTP operation catalog](docs/http-operation-catalog.md). |
-| `/api/v1/internal/...` on Discord DMs | Removed from DMs; its internal operations are reached only through the Gateway's service route (see the catalog). |
+| Service-to-service business calls | Routed by the message broker, see the [HTTP operation catalog](docs/http-operation-catalog.md). |
+| `/api/v1/internal/...` on Discord DMs | Removed from DMs; its internal operations are reached only through the message broker (see the catalog). |
 | `WS /ws/v1/sessions/{sessionId}` | The Gateway returns a direct DMs URL through the negotiation endpoint below; the socket itself stays direct. |
 
 The gRPC/event game integrations remain planned or in-process fixtures in the
@@ -468,8 +469,9 @@ shared image pins and Compose deployment still select the previous releases.
 Discovery registration stays direct. Broker routing, queues, load-balancer and
 circuit-breaker migration require subsequent implementation and confirmation.
 
-The [HTTP operation catalog](docs/http-operation-catalog.md) extends this to every business
-call: Moderation calls Session, Applicant, Credential and Rules and delivers
+Lab 4 Grade 5 then moved every service operation, together with load balancing and circuit
+breaking, from the Gateway to the message broker; the [HTTP operation catalog](docs/http-operation-catalog.md)
+lists every business call: Moderation calls Session, Applicant, Credential and Rules and delivers
 `DecisionRecorded` to Session and DMs as authenticated HTTP callbacks; Session delivers
 `ShiftStarted` to DMs; Rules may read Moderation's decision facts. Each operation's status
 there says whether its owner has implemented it; `requested` operations do not work end to
@@ -1748,7 +1750,7 @@ test records in one run.
 
 **Lab 4 note.** The Moderation and Discord DMs services no longer contain runtime mocks:
 their fixtures below survive only as synthetic test data, and production calls the real
-owners through the Gateway (see the [HTTP operation catalog](docs/http-operation-catalog.md)).
+owners through the message broker (see the [HTTP operation catalog](docs/http-operation-catalog.md)).
 
 Until the services are connected in Lab 2, every service replaces its dependencies with
 mocks that use the contract's data types. The Moderation and Discord DMs services share

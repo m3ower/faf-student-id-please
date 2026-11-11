@@ -128,7 +128,7 @@ def check_catalog(catalog: dict) -> list[str]:
             if caller not in targets:
                 problems.append(f"{name}: caller {caller!r} is not a known service")
             if caller == op["owner"]:
-                problems.append(f"{name}: an owner does not call itself through the Gateway")
+                problems.append(f"{name}: an owner does not call itself through the broker")
         if op["status"] == "owner-to-define":
             continue
         if op["method"] not in {"GET", "POST", "PUT", "DELETE"}:
@@ -213,7 +213,7 @@ def openapi(catalog: dict) -> dict:
                     "schema": {"type": "string", "format": "uuid"}} for q in query.split("&") if q]
         params += [{"name": "X-Trace-Id", "in": "header", "required": False, "schema": {"type": "string"}},
                    {"name": "X-Service-Name", "in": "header", "required": True,
-                    "description": "set by the Gateway to the authenticated caller",
+                    "description": "set by the message broker to the authenticated caller",
                     "schema": {"type": "string", "enum": op["callers"]}}]
         operation = {
             "operationId": op["name"],
@@ -222,7 +222,7 @@ def openapi(catalog: dict) -> dict:
             "x-status": op["status"],
             "x-callers": op["callers"],
             "x-idempotency": op["idempotency"],
-            "security": [{"gatewayServiceCredential": []}],
+            "security": [{"brokerServiceCredential": []}],
             "parameters": params,
             "responses": {
                 "200": {"description": "OK", "content": {"application/json": {"schema": {"$ref": f"#/components/schemas/{op['response']}"}}}},
@@ -242,13 +242,13 @@ def openapi(catalog: dict) -> dict:
     }
     return {
         "openapi": "3.1.0",
-        "info": {"title": "Student ID, please: service operations through the Gateway",
+        "info": {"title": "Student ID, please: service operations through the message broker",
                  "version": catalog["catalogVersion"],
                  "description": "Generated from contracts/http/service-operations.json. Do not edit by hand."},
         "paths": dict(sorted(paths.items())),
         "components": {"schemas": schemas,
-                       "securitySchemes": {"gatewayServiceCredential": {"type": "http", "scheme": "bearer",
-                                                                        "description": "caller credential to the Gateway; target credential from the Gateway"}}},
+                       "securitySchemes": {"brokerServiceCredential": {"type": "http", "scheme": "bearer",
+                                                                        "description": "caller credential to the broker; target credential from the broker"}}},
     }
 
 

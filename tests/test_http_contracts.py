@@ -22,6 +22,13 @@ class CatalogTest(unittest.TestCase):
         op = next(o for o in self.catalog["operations"] if o["name"] == "session.verifyMembership")
         self.assertEqual((op["method"], op["path"]), ("POST", "/internal/v1/session-memberships/verify"))
 
+    def test_transport_is_the_message_broker(self):
+        transport = self.catalog["transport"]
+        self.assertIn("<BROKER_URL>", transport["callerSends"])
+        self.assertEqual(transport["budgetsMs"], {"target": 500, "broker": 750, "caller": 1000})
+        self.assertIn("503 SERVICE_AUTH_NOT_CONFIGURED | DISCOVERY_NOT_CONFIGURED | DISCOVERY_UNAVAILABLE | "
+                      "NO_SERVICE_INSTANCES | CIRCUIT_OPEN | UPSTREAM_UNAVAILABLE", transport["brokerErrors"])
+
     def test_every_target_has_its_own_credential(self):
         envs = [t["targetCredentialEnv"] for t in self.catalog["targets"].values()]
         self.assertEqual(len(envs), len(set(envs)))
