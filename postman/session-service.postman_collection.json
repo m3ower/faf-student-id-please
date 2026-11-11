@@ -1,176 +1,961 @@
 {
   "info": {
     "name": "Student ID - Session Service",
-    "description": "Session Service CRUD through the shared Python Gateway at http://localhost:8090. Run the collection in order; it creates a fresh session and preserves temporary X-Player-Id host checks. Health is public; all other requests inherit Bearer {{accessToken}}. Set accessToken in a private local Postman environment using an explicitly disposable local test JWT: Player does not implement login, refresh or token issuance. Gateway requires RS256 with an RSA key of at least 2048 bits, iss=student-id-player-service, aud=student-id-api, sub=a player UUID, token_use=access, and numeric iat/exp at most 3600 seconds apart. Regenerate expired tokens locally; never export populated tokens or private signing keys into tracked files. Gateway removes Authorization before forwarding and does not bind JWT sub to X-Player-Id. This collection generates fresh host/member UUIDs independently of the token subject; Session restrictions still use the existing headers.",
+    "description": "Real owned-service baseline through Gateway at localhost:8090. Run Core CRUD and access first; it creates two real Player accounts/tokens, a persistent team and a session. Tokens use transient runner variables, never tracked/exported values. Optional shift requests require receiver-approved Rules selection plus real Applicant/DMs/Moderation dependencies and manual readiness/decision steps; do not call their absence a successful full-shift test. No fixture IDs or spoofed X-Player-Id headers are used. Core leaves a session/accounts for optional follow-up; clean up only these generated IDs afterward.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
     "type": "bearer",
-    "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }]
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{accessToken}}",
+        "type": "string"
+      }
+    ]
   },
   "variable": [
-    { "key": "baseUrl", "value": "http://localhost:8090" },
-    { "key": "accessToken", "value": "", "type": "string", "description": "Disposable local test JWT. Set in a private local environment; keep this collection value empty." },
-    { "key": "teamId", "value": "" },
-    { "key": "hostPlayerId", "value": "" },
-    { "key": "juniorPlayerId", "value": "" },
-    { "key": "sessionId", "value": "" },
-    { "key": "deletableSessionId", "value": "" }
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8090"
+    },
+    {
+      "key": "accessToken",
+      "value": ""
+    },
+    {
+      "key": "juniorAccessToken",
+      "value": ""
+    },
+    {
+      "key": "refreshToken",
+      "value": ""
+    },
+    {
+      "key": "hostPlayerId",
+      "value": ""
+    },
+    {
+      "key": "juniorPlayerId",
+      "value": ""
+    },
+    {
+      "key": "teamId",
+      "value": ""
+    },
+    {
+      "key": "sessionId",
+      "value": ""
+    },
+    {
+      "key": "lobbySessionId",
+      "value": ""
+    },
+    {
+      "key": "suffix",
+      "value": ""
+    },
+    {
+      "key": "password",
+      "value": ""
+    },
+    {
+      "key": "email",
+      "value": ""
+    },
+    {
+      "key": "juniorEmail",
+      "value": ""
+    }
   ],
   "item": [
     {
-      "name": "Health and setup",
-      "request": {
-        "auth": { "type": "noauth" },
-        "method": "GET",
-        "header": [],
-        "url": { "raw": "{{baseUrl}}/api/v1/health/session-service", "host": ["{{baseUrl}}"], "path": ["api", "v1", "health", "session-service"] }
-      },
-      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
-        "pm.test(\"status is 200\", () => pm.response.to.have.status(200));",
-        "pm.test(\"service is UP\", () => pm.expect(pm.response.json().status).to.eql(\"UP\"));",
-        "pm.collectionVariables.set(\"teamId\", pm.variables.replaceIn(\"{{$guid}}\"));",
-        "pm.collectionVariables.set(\"hostPlayerId\", pm.variables.replaceIn(\"{{$guid}}\"));",
-        "pm.collectionVariables.set(\"juniorPlayerId\", pm.variables.replaceIn(\"{{$guid}}\"));"
-      ] } }]
+      "name": "Core CRUD and access (real Player, Session, Gateway)",
+      "item": [
+        {
+          "name": "Health and generate disposable inputs",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/health/session-service",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "health",
+                "session-service"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", () => pm.response.to.have.status(200));",
+                  "const suffix = pm.variables.replaceIn(\"{{$guid}}\");",
+                  "pm.variables.set(\"suffix\", suffix);",
+                  "pm.variables.set(\"password\", \"Test-\" + suffix);",
+                  "pm.variables.set(\"email\", \"session-host-\" + suffix + \"@example.test\");",
+                  "pm.variables.set(\"juniorEmail\", \"session-junior-\" + suffix + \"@example.test\");"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Register real host",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/players/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "players",
+                "register"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"session-host-{{suffix}}\",\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 201\", () => pm.response.to.have.status(201));",
+                  "pm.variables.set(\"hostPlayerId\", pm.response.json().playerId);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login real host",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/players/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "players",
+                "login"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", () => pm.response.to.have.status(200));",
+                  "const tokens = pm.response.json();",
+                  "pm.test(\"real access and refresh tokens returned\", () => { pm.expect(tokens.accessToken).to.be.a(\"string\"); pm.expect(tokens.refreshToken).to.be.a(\"string\"); });",
+                  "pm.variables.set(\"accessToken\", tokens.accessToken);",
+                  "pm.variables.set(\"refreshToken\", tokens.refreshToken);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Register real junior",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/players/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "players",
+                "register"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"session-junior-{{suffix}}\",\n  \"email\": \"{{juniorEmail}}\",\n  \"password\": \"{{password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 201\", () => pm.response.to.have.status(201));",
+                  "pm.variables.set(\"juniorPlayerId\", pm.response.json().playerId);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login real junior",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/players/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "players",
+                "login"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{juniorEmail}}\",\n  \"password\": \"{{password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", () => pm.response.to.have.status(200));",
+                  "const tokens = pm.response.json();",
+                  "pm.test(\"real access and refresh tokens returned\", () => { pm.expect(tokens.accessToken).to.be.a(\"string\"); pm.expect(tokens.refreshToken).to.be.a(\"string\"); });",
+                  "pm.variables.set(\"juniorAccessToken\", tokens.accessToken);",
+                  "pm.variables.set(\"juniorAccessTokenRefresh\", tokens.refreshToken);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create real team",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/teams",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "teams"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"session-team-{{suffix}}\",\n  \"ownerId\": \"{{hostPlayerId}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 201\", () => pm.response.to.have.status(201));",
+                  "pm.variables.set(\"teamId\", pm.response.json().teamId);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Add junior to real team",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/teams/{{teamId}}/members",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "teams",
+                "{{teamId}}",
+                "members"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"playerId\": \"{{juniorPlayerId}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create session (real Player lookups)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/sessions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "sessions"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"teamId\": \"{{teamId}}\",\n  \"hostPlayerId\": \"{{hostPlayerId}}\",\n  \"difficulty\": \"NORMAL\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 201\", () => pm.response.to.have.status(201));",
+                  "pm.variables.set(\"sessionId\", pm.response.json().sessionId);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update lobby difficulty",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/sessions/{{sessionId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "sessions",
+                "{{sessionId}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"difficulty\": \"HARD\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Join junior as authenticated junior",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/sessions/{{sessionId}}/join",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "sessions",
+                "{{sessionId}}",
+                "join"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{juniorAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"playerId\": \"{{juniorPlayerId}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Start before roles is rejected",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/sessions/{{sessionId}}/start",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "sessions",
+                "{{sessionId}}",
+                "start"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 422\", () => pm.response.to.have.status(422));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Assign real roles",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/sessions/{{sessionId}}/roles",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "sessions",
+                "{{sessionId}}",
+                "roles"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"assignments\": [\n    {\n      \"playerId\": \"{{hostPlayerId}}\",\n      \"role\": \"MODERATOR\"\n    },\n    {\n      \"playerId\": \"{{juniorPlayerId}}\",\n      \"role\": \"JUNIOR_MODERATOR\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Persist explicit access",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/sessions/{{sessionId}}/access",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "sessions",
+                "{{sessionId}}",
+                "access"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"assignments\": [\n    {\n      \"playerId\": \"{{hostPlayerId}}\",\n      \"recordAccess\": [],\n      \"channels\": [\n        \"#general-mod-chat\"\n      ]\n    },\n    {\n      \"playerId\": \"{{juniorPlayerId}}\",\n      \"recordAccess\": [\n        \"ENROLLMENT_LIST\"\n      ],\n      \"channels\": [\n        \"#enrollment-check\",\n        \"#general-mod-chat\"\n      ]\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 204\", () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Read real session",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/sessions/{{sessionId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "sessions",
+                "{{sessionId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create separate lobby for delete",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/sessions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "sessions"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"teamId\": \"{{teamId}}\",\n  \"hostPlayerId\": \"{{hostPlayerId}}\",\n  \"difficulty\": \"NORMAL\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 201\", () => pm.response.to.have.status(201));",
+                  "pm.variables.set(\"lobbySessionId\", pm.response.json().sessionId);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Delete separate lobby",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/sessions/{{lobbySessionId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "sessions",
+                "{{lobbySessionId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 204\", () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Deleted session is not found",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/sessions/{{lobbySessionId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "sessions",
+                "{{lobbySessionId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 404\", () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
     },
     {
-      "name": "Create session",
-      "request": {
-        "method": "POST",
-        "header": [{ "key": "Content-Type", "value": "application/json" }],
-        "body": { "mode": "raw", "raw": "{\n  \"teamId\": \"{{teamId}}\",\n  \"hostPlayerId\": \"{{hostPlayerId}}\",\n  \"difficulty\": \"NORMAL\"\n}", "options": { "raw": { "language": "json" } } },
-        "url": { "raw": "{{baseUrl}}/api/v1/sessions", "host": ["{{baseUrl}}"], "path": ["api", "v1", "sessions"] }
-      },
-      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
-        "pm.test(\"status is 201\", () => pm.response.to.have.status(201));",
-        "const body = pm.response.json();",
-        "pm.collectionVariables.set(\"sessionId\", body.sessionId);",
-        "pm.test(\"starts in lobby\", () => pm.expect(body.state).to.eql(\"LOBBY\"));"
-      ] } }]
-    },
-    {
-      "name": "Update lobby difficulty",
-      "request": {
-        "method": "PUT",
-        "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "X-Player-Id", "value": "{{hostPlayerId}}" }],
-        "body": { "mode": "raw", "raw": "{ \"difficulty\": \"HARD\" }", "options": { "raw": { "language": "json" } } },
-        "url": { "raw": "{{baseUrl}}/api/v1/sessions/{{sessionId}}", "host": ["{{baseUrl}}"], "path": ["api", "v1", "sessions", "{{sessionId}}"] }
-      },
-      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
-        "pm.test(\"status is 200\", () => pm.response.to.have.status(200));",
-        "pm.test(\"difficulty updated\", () => pm.expect(pm.response.json().difficulty).to.eql(\"HARD\"));"
-      ] } }]
-    },
-    {
-      "name": "Get updated session",
-      "request": {
-        "method": "GET",
-        "header": [],
-        "url": { "raw": "{{baseUrl}}/api/v1/sessions/{{sessionId}}", "host": ["{{baseUrl}}"], "path": ["api", "v1", "sessions", "{{sessionId}}"] }
-      },
-      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
-        "pm.test(\"status is 200\", () => pm.response.to.have.status(200));",
-        "pm.test(\"difficulty persisted\", () => pm.expect(pm.response.json().difficulty).to.eql(\"HARD\"));"
-      ] } }]
-    },
-    {
-      "name": "Join junior player",
-      "request": {
-        "method": "POST",
-        "header": [{ "key": "Content-Type", "value": "application/json" }],
-        "body": { "mode": "raw", "raw": "{ \"playerId\": \"{{juniorPlayerId}}\" }", "options": { "raw": { "language": "json" } } },
-        "url": { "raw": "{{baseUrl}}/api/v1/sessions/{{sessionId}}/join", "host": ["{{baseUrl}}"], "path": ["api", "v1", "sessions", "{{sessionId}}", "join"] }
-      },
-      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
-        "pm.test(\"status is 200\", () => pm.response.to.have.status(200));",
-        "pm.test(\"two players joined\", () => pm.expect(pm.response.json().players.length).to.eql(2));"
-      ] } }]
-    },
-    {
-      "name": "Start before roles (422)",
-      "request": {
-        "method": "POST",
-        "header": [{ "key": "X-Player-Id", "value": "{{hostPlayerId}}" }],
-        "url": { "raw": "{{baseUrl}}/api/v1/sessions/{{sessionId}}/start", "host": ["{{baseUrl}}"], "path": ["api", "v1", "sessions", "{{sessionId}}", "start"] }
-      },
-      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
-        "pm.test(\"status is 422\", () => pm.response.to.have.status(422));",
-        "pm.test(\"roles required\", () => pm.expect(pm.response.json().error.code).to.eql(\"ROLES_NOT_ASSIGNED\"));"
-      ] } }]
-    },
-    {
-      "name": "Assign roles",
-      "request": {
-        "method": "POST",
-        "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "X-Player-Id", "value": "{{hostPlayerId}}" }],
-        "body": { "mode": "raw", "raw": "{\n  \"assignments\": [\n    { \"playerId\": \"{{hostPlayerId}}\", \"role\": \"MODERATOR\" },\n    { \"playerId\": \"{{juniorPlayerId}}\", \"role\": \"JUNIOR_MODERATOR\" }\n  ]\n}", "options": { "raw": { "language": "json" } } },
-        "url": { "raw": "{{baseUrl}}/api/v1/sessions/{{sessionId}}/roles", "host": ["{{baseUrl}}"], "path": ["api", "v1", "sessions", "{{sessionId}}", "roles"] }
-      },
-      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
-        "pm.test(\"status is 200\", () => pm.response.to.have.status(200));",
-        "pm.test(\"host is moderator\", () => pm.expect(pm.response.json().players[0].role).to.eql(\"MODERATOR\"));"
-      ] } }]
-    },
-    {
-      "name": "Start session",
-      "request": {
-        "method": "POST",
-        "header": [{ "key": "X-Player-Id", "value": "{{hostPlayerId}}" }],
-        "url": { "raw": "{{baseUrl}}/api/v1/sessions/{{sessionId}}/start", "host": ["{{baseUrl}}"], "path": ["api", "v1", "sessions", "{{sessionId}}", "start"] }
-      },
-      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
-        "pm.test(\"status is 200\", () => pm.response.to.have.status(200));",
-        "pm.test(\"session is active\", () => pm.expect(pm.response.json().state).to.eql(\"ACTIVE\"));"
-      ] } }]
-    },
-    {
-      "name": "End session",
-      "request": {
-        "method": "POST",
-        "header": [],
-        "url": { "raw": "{{baseUrl}}/api/v1/sessions/{{sessionId}}/end", "host": ["{{baseUrl}}"], "path": ["api", "v1", "sessions", "{{sessionId}}", "end"] }
-      },
-      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
-        "pm.test(\"status is 200\", () => pm.response.to.have.status(200));",
-        "pm.test(\"session is completed\", () => pm.expect(pm.response.json().state).to.eql(\"COMPLETED\"));"
-      ] } }]
-    },
-    {
-      "name": "Create lobby session for deletion",
-      "request": {
-        "method": "POST",
-        "header": [{ "key": "Content-Type", "value": "application/json" }],
-        "body": { "mode": "raw", "raw": "{\n  \"teamId\": \"{{teamId}}\",\n  \"hostPlayerId\": \"{{hostPlayerId}}\",\n  \"difficulty\": \"EASY\"\n}", "options": { "raw": { "language": "json" } } },
-        "url": { "raw": "{{baseUrl}}/api/v1/sessions", "host": ["{{baseUrl}}"], "path": ["api", "v1", "sessions"] }
-      },
-      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
-        "pm.test(\"status is 201\", () => pm.response.to.have.status(201));",
-        "pm.collectionVariables.set(\"deletableSessionId\", pm.response.json().sessionId);"
-      ] } }]
-    },
-    {
-      "name": "Delete lobby session",
-      "request": {
-        "method": "DELETE",
-        "header": [{ "key": "X-Player-Id", "value": "{{hostPlayerId}}" }],
-        "url": { "raw": "{{baseUrl}}/api/v1/sessions/{{deletableSessionId}}", "host": ["{{baseUrl}}"], "path": ["api", "v1", "sessions", "{{deletableSessionId}}"] }
-      },
-      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
-        "pm.test(\"status is 204\", () => pm.response.to.have.status(204));"
-      ] } }]
-    },
-    {
-      "name": "Get deleted session (404)",
-      "request": {
-        "method": "GET",
-        "header": [],
-        "url": { "raw": "{{baseUrl}}/api/v1/sessions/{{deletableSessionId}}", "host": ["{{baseUrl}}"], "path": ["api", "v1", "sessions", "{{deletableSessionId}}"] }
-      },
-      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
-        "pm.test(\"status is 404\", () => pm.response.to.have.status(404));",
-        "pm.test(\"session not found\", () => pm.expect(pm.response.json().error.code).to.eql(\"SESSION_NOT_FOUND\"));"
-      ] } }]
+      "name": "Optional shift lifecycle - real external services required",
+      "description": "Run requests individually after Core with real Rules/Applicant/DMs services, waiting for readiness and real Moderation decisions. Credential initialization and consumer context semantics must be reconciled; this is not a fixture-based full-stack pass.",
+      "item": [
+        {
+          "name": "Start durable Rules/applicant/chat initialization",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/sessions/{{sessionId}}/start",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "sessions",
+                "{{sessionId}}",
+                "start"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 202\", () => pm.response.to.have.status(202));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Read initialization state; repeat until ACTIVE",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/sessions/{{sessionId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "sessions",
+                "{{sessionId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Read current applicant once ACTIVE",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/sessions/{{sessionId}}/current-applicant",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "sessions",
+                "{{sessionId}}",
+                "current-applicant"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Advance after real Moderation decision callback",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/sessions/{{sessionId}}/next-applicant",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "sessions",
+                "{{sessionId}}",
+                "next-applicant"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "End after decisions (incomplete queue deliberately fails result)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/sessions/{{sessionId}}/end",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "sessions",
+                "{{sessionId}}",
+                "end"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
     }
   ]
 }
