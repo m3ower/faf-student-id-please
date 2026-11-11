@@ -450,7 +450,8 @@ forwarded to the service and returned on every response, so one id spans both ho
 
 The gRPC/event game integrations remain planned or in-process fixtures in the
 current releases; their contracts do not establish live transport. The additive
-[Lab 4 Gateway membership baseline](docs/gateway-membership-baseline.md) prepares
+[Lab 4 Gateway membership baseline](docs/gateway-membership-baseline.md) and the
+[owned real-integration contract](docs/owned-real-integrations.md) prepares
 real Record and Discord DMs calls through Gateway to persisted Session permissions.
 Its service-only `POST /internal/v1/session-memberships/verify` operation uses
 dedicated caller and target credentials. Gateway binds public `X-Player-Id` to the
