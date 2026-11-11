@@ -76,23 +76,17 @@ a stand-in used in a caller's unit tests does not change that.
 Service-to-service communication, round-robin load balancing and the circuit breaker moved
 from the Gateway into the message broker
 ([broker #7](https://github.com/Andreiisthebest/student-id-message-broker/issues/7)).
-The broker's operation table (`app/operations.py`) mirrors this catalog:
+The broker bundles a snapshot of [`contracts/http/service-operations.json`](../contracts/http/service-operations.json)
+and routes every operation in it whose status is `candidate` or `implemented-pending-review`
+(all 31 today), with that operation's owner as the target, its caller allowlist and its
+`budgetsMs.broker` deadline. `requested` and `owner-to-define` entries are not routed. The
+snapshot is updated together with this catalog; the broker never fetches routing policy at
+runtime.
 
-| Method and path | Target | Allowed callers | Target credential |
-| --- | --- | --- | --- |
-| `POST /internal/v1/session-memberships/verify` | session-service | university-record-service, discord-dms-service, moderation-service | `SESSION_INTERNAL_TOKEN` |
-| `POST /internal/v1/session-score-changes` | session-service | moderation-service | `SESSION_INTERNAL_TOKEN` |
-| `POST /internal/v1/session-events/decision-recorded` | session-service | moderation-service | `SESSION_INTERNAL_TOKEN` |
-| `GET /internal/v1/applicants/{uuid}/deception` | applicant-service | moderation-service | `APPLICANT_INTERNAL_TOKEN` |
-| `GET /internal/v1/credentials` | credential-service | moderation-service | `CREDENTIAL_INTERNAL_TOKEN` |
-| `GET /internal/v1/credentials/{uuid}/validation` | credential-service | moderation-service | `CREDENTIAL_INTERNAL_TOKEN` |
-| `POST /internal/v1/rules/evaluations` | rules-service | moderation-service | `RULES_INTERNAL_TOKEN` |
-| `GET /internal/v1/moderation/applicants/{uuid}/decision-facts` | moderation-service | rules-service | `MODERATION_INTERNAL_TOKEN` |
-| `POST /internal/v1/chat/shift-started` | discord-dms-service | session-service | `DMS_INTERNAL_TOKEN` |
-| `POST /internal/v1/chat/decision-recorded` | discord-dms-service | moderation-service | `DMS_INTERNAL_TOKEN` |
-
-Callers' own secrets go in the broker's `BROKER_CALLER_TOKENS_JSON`; each target secret is
-shared only by the broker and that target. Every caller migrates its own base URL and
+Callers' own secrets go in the broker's `BROKER_CALLER_TOKENS_JSON`; each target's
+`<TARGET>_INTERNAL_TOKEN` is given to the broker and that target. (The Gateway also holds some
+targets' credentials for public routes, see `publicBackendCredentials`; separating those is an
+open review point.) Every caller migrates its own base URL and
 credential (`BROKER_URL`, `BROKER_SERVICE_TOKEN`): Moderation and Discord DMs have. The
 Gateway's service route (#48) and its public `/api/v1/internal/...` route to DMs are then
 unused and should be removed by the Gateway owner

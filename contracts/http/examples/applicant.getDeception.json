@@ -1,21 +1,21 @@
 {
   "operation": "applicant.getDeception",
-  "note": "Sent to the message broker by the caller. The broker forwards the same method and path to a balanced target instance with the target credential and X-Service-Name: moderation-service.",
+  "note": "Candidate request sent through the message broker. Only the receiving target receives its own target credential and authenticated X-Service-Name. No claim of live peer availability.",
   "request": {
     "method": "GET",
-    "path": "/internal/v1/applicants/a0000000-0000-0000-0000-000000000002/deception?sessionId=55555555-5555-5555-5555-555555555555",
+    "path": "/internal/v1/applicants/00000000-0000-0000-0000-000000007001/deception?sessionId=00000000-0000-0000-0000-000000009000",
     "headers": {
       "Authorization": "Bearer <moderation-service caller credential>",
-      "X-Trace-Id": "example-trace-1",
+      "X-Trace-Id": "owned-initialization-example",
       "Content-Type": "application/json"
     }
   },
   "response": {
     "status": 200,
     "body": {
-      "applicantId": "a0000000-0000-0000-0000-000000000002",
-      "type": "FORGED_DOCUMENT",
-      "impersonatedStudentId": null,
+      "applicantId": "00000000-0000-0000-0000-000000007001",
+      "type": "IMPERSONATION",
+      "impersonatedStudentId": "PAD-00000000000000000000000000007001",
       "inconsistentFields": []
     }
   }

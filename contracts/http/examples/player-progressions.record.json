@@ -1,0 +1,33 @@
+{
+  "operation": "player-progressions.record",
+  "note": "Synthetic contract example, not a reserved runtime ID or verified live exchange.",
+  "request": {
+    "method": "POST",
+    "path": "/internal/v1/player-progressions/record",
+    "headers": {
+      "Authorization": "Bearer <CALLER_SERVICE_CREDENTIAL>",
+      "X-Trace-Id": "example-player-session-trace"
+    },
+    "body": {
+      "eventId": "d0000000-0000-0000-0000-000000000001",
+      "type": "PlayerProgressed",
+      "occurredAt": "2026-11-11T18:00:00.000Z",
+      "producer": "player-service",
+      "version": 1,
+      "payload": {
+        "sessionId": "55555555-5555-5555-5555-555555555555",
+        "playerId": "22222222-2222-2222-2222-222222222222",
+        "level": 1,
+        "xp": 0,
+        "rank": "JUNIOR_MODERATOR"
+      }
+    }
+  },
+  "response": {
+    "status": 200,
+    "body": {
+      "eventId": "d0000000-0000-0000-0000-000000000001",
+      "status": "PROCESSED"
+    }
+  }
+}
