@@ -8,8 +8,19 @@
     "noGenericForwarding": "The Gateway routes only the paths listed here; any other /internal path is 404. No caller-chosen target URL.",
     "identity": "Public REST: the Gateway sets X-Player-Id from the verified access-JWT subject and discards any client value. Service operations carry no player identity header; player ids are body fields that the receiving owner authorizes.",
     "trace": "X-Trace-Id is preserved on every hop and echoed on every response.",
-    "budgetsMs": { "target": 500, "gateway": 750, "caller": 1000 },
-    "errorEnvelope": { "error": { "code": "STRING", "message": "string", "service": "string", "traceId": "string" } },
+    "budgetsMs": {
+      "target": 500,
+      "gateway": 750,
+      "caller": 1000
+    },
+    "errorEnvelope": {
+      "error": {
+        "code": "STRING",
+        "message": "string",
+        "service": "string",
+        "traceId": "string"
+      }
+    },
     "gatewayErrors": {
       "401 UNAUTHENTICATED": "missing or unknown caller credential",
       "403 CALLER_NOT_ALLOWED": "authenticated caller is not on the operation allowlist",
@@ -20,13 +31,34 @@
     }
   },
   "targets": {
-    "session-service": { "owner": "Vasiok11", "targetCredentialEnv": "SESSION_INTERNAL_TOKEN" },
-    "applicant-service": { "owner": "Andreiisthebest", "targetCredentialEnv": "APPLICANT_INTERNAL_TOKEN" },
-    "university-record-service": { "owner": "Andreiisthebest", "targetCredentialEnv": "RECORD_INTERNAL_TOKEN" },
-    "credential-service": { "owner": "CmMarin", "targetCredentialEnv": "CREDENTIAL_INTERNAL_TOKEN" },
-    "rules-service": { "owner": "CmMarin", "targetCredentialEnv": "RULES_INTERNAL_TOKEN" },
-    "moderation-service": { "owner": "m3ower", "targetCredentialEnv": "MODERATION_INTERNAL_TOKEN" },
-    "discord-dms-service": { "owner": "m3ower", "targetCredentialEnv": "DMS_INTERNAL_TOKEN" }
+    "session-service": {
+      "owner": "Vasiok11",
+      "targetCredentialEnv": "SESSION_INTERNAL_TOKEN"
+    },
+    "applicant-service": {
+      "owner": "Andreiisthebest",
+      "targetCredentialEnv": "APPLICANT_INTERNAL_TOKEN"
+    },
+    "university-record-service": {
+      "owner": "Andreiisthebest",
+      "targetCredentialEnv": "RECORD_INTERNAL_TOKEN"
+    },
+    "credential-service": {
+      "owner": "CmMarin",
+      "targetCredentialEnv": "CREDENTIAL_INTERNAL_TOKEN"
+    },
+    "rules-service": {
+      "owner": "CmMarin",
+      "targetCredentialEnv": "RULES_INTERNAL_TOKEN"
+    },
+    "moderation-service": {
+      "owner": "m3ower",
+      "targetCredentialEnv": "MODERATION_INTERNAL_TOKEN"
+    },
+    "discord-dms-service": {
+      "owner": "m3ower",
+      "targetCredentialEnv": "DMS_INTERNAL_TOKEN"
+    }
   },
   "statusLegend": {
     "candidate": "defined by the receiving owner in an open PR; not merged or released",
@@ -42,15 +74,21 @@
       "owner": "session-service",
       "method": "POST",
       "path": "/internal/v1/session-memberships/verify",
-      "callers": ["university-record-service", "discord-dms-service", "moderation-service"],
-      "callerNotes": { "moderation-service": "requested addition to the Gateway allowlist; Moderation checks the MODERATOR role before reading any answer key" },
+      "callers": [
+        "university-record-service",
+        "discord-dms-service",
+        "moderation-service"
+      ],
+      "callerNotes": {
+        "moderation-service": "requested addition to the Gateway allowlist; Moderation checks the MODERATOR role before reading any answer key"
+      },
       "idempotency": "read-only",
       "retry": "never retried by callers",
       "request": "membershipRequest",
       "response": "membershipResponse",
       "errors": {
-        "400 INVALID_REQUEST": "non-UUID ids",
-        "503": "database failure; never a permission denial"
+        "503": "database failure; never a permission denial",
+        "400 INVALID_REQUEST": "non-UUID ids"
       },
       "semantics": "200 with member=false and empty role/arrays for unknown sessions, non-members, unassigned players and completed sessions. Membership comes only from persisted Session assignments."
     },
@@ -60,17 +98,19 @@
       "owner": "session-service",
       "method": "POST",
       "path": "/internal/v1/session-score-changes",
-      "callers": ["moderation-service"],
+      "callers": [
+        "moderation-service"
+      ],
       "idempotency": "scoreChangeId: the same id with identical content applies at most once and returns applied=false with the current score; the same id with different content is 409 SCORE_CHANGE_CONFLICT",
       "retry": "the caller's outbox may resend the identical stored body after an outage, a deadline or a restart",
       "request": "scoreChangeRequest",
       "response": "scoreChangeResponse",
       "errors": {
+        "503": "temporarily unavailable (caller retries later)",
         "404 SESSION_NOT_FOUND": "unknown session (final)",
         "409 SCORE_CHANGE_CONFLICT": "id reused with different content (final)",
         "409 SESSION_NOT_ACTIVE": "session not accepting decisions (final)",
-        "422 INVALID_SCORE_CHANGE": "schema or business validation failed (final)",
-        "503": "temporarily unavailable (caller retries later)"
+        "422 INVALID_SCORE_CHANGE": "schema or business validation failed (final)"
       },
       "semantics": "The only score/penalty mutation. reason DECISION, APPEAL_REFUND or DECISION_VOID; a decision causes at most one change of each reason. Session must not score DecisionRecorded again."
     },
@@ -80,12 +120,18 @@
       "owner": "session-service",
       "method": "POST",
       "path": "/internal/v1/session-events/decision-recorded",
-      "callers": ["moderation-service"],
+      "callers": [
+        "moderation-service"
+      ],
       "idempotency": "eventId: identical repeat is 200 DUPLICATE with no effect; different content is 409 EVENT_CONFLICT",
       "retry": "outbox; delivered only after the decision's score change was applied",
       "request": "decisionRecordedEnvelope",
       "response": "eventAck",
-      "errors": { "409 EVENT_CONFLICT": "final", "422 INVALID_EVENT": "final", "503": "retry later" },
+      "errors": {
+        "503": "retry later",
+        "409 EVENT_CONFLICT": "final",
+        "422 INVALID_EVENT": "final"
+      },
       "semantics": "Advances the queue and counts the decision. It never applies a score (session.applyScoreChange already did) and is never republished."
     },
     {
@@ -94,55 +140,78 @@
       "owner": "applicant-service",
       "method": "GET",
       "path": "/internal/v1/applicants/{applicantId}/deception?sessionId={sessionId}",
-      "callers": ["moderation-service"],
+      "callers": [
+        "moderation-service"
+      ],
       "idempotency": "read-only",
       "retry": "never retried by the caller",
       "request": null,
       "response": "deceptionResponse",
-      "errors": { "404 APPLICANT_NOT_FOUND": "unknown applicant, or not in that session", "503": "unavailable" },
+      "errors": {
+        "503": "unavailable",
+        "404 APPLICANT_NOT_FOUND": "unknown applicant, or not in that session"
+      },
       "semantics": "The game's answer key. Service-only: it must never be reachable on a public /api/v1 route or by a player token."
     },
     {
       "name": "credential.listApplicantCredentials",
-      "status": "requested",
+      "status": "implemented-pending-review",
       "owner": "credential-service",
       "method": "GET",
       "path": "/internal/v1/credentials?applicantId={applicantId}&sessionId={sessionId}",
-      "callers": ["moderation-service"],
+      "callers": [
+        "moderation-service"
+      ],
       "idempotency": "read-only",
       "retry": "never retried by the caller",
       "request": null,
       "response": "credentialListResponse",
-      "errors": { "404 APPLICANT_NOT_FOUND": "unknown applicant", "503": "unavailable" },
-      "semantics": "The applicant's documents, at most 32."
+      "errors": {
+        "503": "unavailable",
+        "404 APPLICANT_NOT_FOUND": "unknown applicant"
+      },
+      "semantics": "The applicant's documents, at most 32. Receiver implementation accepted this catalog path. Validation fails closed without trusted provenance or authoritative Record facts.",
+      "statusEvidence": "Credential PR #33; CPR #127 (candidate, not released)"
     },
     {
       "name": "credential.validateCredential",
-      "status": "requested",
+      "status": "implemented-pending-review",
       "owner": "credential-service",
       "method": "GET",
       "path": "/internal/v1/credentials/{credentialId}/validation",
-      "callers": ["moderation-service"],
+      "callers": [
+        "moderation-service"
+      ],
       "idempotency": "read-only",
       "retry": "never retried by the caller",
       "request": null,
       "response": "credentialValidationResponse",
-      "errors": { "404 CREDENTIAL_NOT_FOUND": "unknown credential", "503": "unavailable" },
-      "semantics": "Credential's authoritative verdict on one document. Moderation fans these out in parallel inside its deadline."
+      "errors": {
+        "503": "unavailable",
+        "404 CREDENTIAL_NOT_FOUND": "unknown credential"
+      },
+      "semantics": "Credential's authoritative verdict on one document. Moderation fans these out in parallel inside its deadline. Receiver implementation accepted this catalog path. Validation fails closed without trusted provenance or authoritative Record facts.",
+      "statusEvidence": "Credential PR #33; CPR #127 (candidate, not released)"
     },
     {
       "name": "rules.evaluate",
-      "status": "requested",
+      "status": "implemented-pending-review",
       "owner": "rules-service",
       "method": "POST",
       "path": "/internal/v1/rules/evaluations",
-      "callers": ["moderation-service"],
+      "callers": [
+        "moderation-service"
+      ],
       "idempotency": "no side effects",
       "retry": "never retried by the caller",
       "request": "rulesEvaluationRequest",
       "response": "rulesEvaluationResponse",
-      "errors": { "404 APPLICANT_NOT_FOUND": "unknown applicant", "503": "unavailable" },
-      "semantics": "Authoritative violations for the session's ruleset. Rules obtains the facts it needs with its own service identity (record facts below, moderation.applicantDecisionFacts), never by impersonating a player."
+      "errors": {
+        "503": "unavailable",
+        "404 APPLICANT_NOT_FOUND": "unknown applicant"
+      },
+      "semantics": "Authoritative violations for the session's ruleset. Rules obtains the facts it needs with its own service identity (record facts below, moderation.applicantDecisionFacts), never by impersonating a player. Receiver implementation accepted this catalog path and enforces a 500 ms target budget. Session context and peer fact bindings remain pending.",
+      "statusEvidence": "Rules PR #29; CPR #127 (candidate, not released)"
     },
     {
       "name": "moderation.applicantDecisionFacts",
@@ -151,7 +220,9 @@
       "owner": "moderation-service",
       "method": "GET",
       "path": "/internal/v1/moderation/applicants/{applicantId}/decision-facts",
-      "callers": ["rules-service"],
+      "callers": [
+        "rules-service"
+      ],
       "idempotency": "read-only",
       "retry": "caller's choice; no side effects",
       "request": null,
@@ -171,7 +242,9 @@
       "owner": "discord-dms-service",
       "method": "POST",
       "path": "/internal/v1/chat/shift-started",
-      "callers": ["session-service"],
+      "callers": [
+        "session-service"
+      ],
       "idempotency": "eventId with a persisted content digest: identical repeat 200 DUPLICATE, different content 409 EVENT_CONFLICT; an interrupted delivery is re-processed with deterministic effects",
       "retry": "producer may resend the identical envelope",
       "request": "shiftStartedEnvelope",
@@ -195,7 +268,9 @@
       "owner": "discord-dms-service",
       "method": "POST",
       "path": "/internal/v1/chat/decision-recorded",
-      "callers": ["moderation-service"],
+      "callers": [
+        "moderation-service"
+      ],
       "idempotency": "as dms.shiftStarted",
       "retry": "producer outbox resends the identical envelope",
       "request": "decisionRecordedEnvelope",
@@ -218,7 +293,10 @@
       "owner": "university-record-service",
       "method": null,
       "path": null,
-      "callers": ["credential-service", "rules-service"],
+      "callers": [
+        "credential-service",
+        "rules-service"
+      ],
       "idempotency": "read-only",
       "retry": null,
       "request": null,
@@ -228,152 +306,1521 @@
     }
   ],
   "schemas": {
-    "uuid": { "type": "string", "format": "uuid" },
+    "uuid": {
+      "type": "string",
+      "format": "uuid"
+    },
     "membershipRequest": {
-      "type": "object", "additionalProperties": false, "required": ["sessionId", "playerId"],
-      "properties": { "sessionId": { "$ref": "uuid" }, "playerId": { "$ref": "uuid" } }
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sessionId",
+        "playerId"
+      ],
+      "properties": {
+        "sessionId": {
+          "$ref": "uuid"
+        },
+        "playerId": {
+          "$ref": "uuid"
+        }
+      }
     },
     "membershipResponse": {
-      "type": "object", "required": ["member", "role", "recordAccess", "channels"],
+      "type": "object",
+      "required": [
+        "member",
+        "role",
+        "recordAccess",
+        "channels"
+      ],
       "properties": {
-        "member": { "type": "boolean" },
-        "role": { "type": "string", "enum": ["", "MODERATOR", "JUNIOR_MODERATOR"] },
-        "recordAccess": { "type": "array", "items": { "type": "string", "enum": ["ENROLLMENT_LIST", "OUTLOOK_GROUPS", "COURSE_CATALOG", "FCIM_RECORD"] } },
-        "channels": { "type": "array", "items": { "type": "string", "enum": ["#enrollment-check", "#faculty-check", "#course-registration", "#general-mod-chat"] } },
-        "playerName": { "type": "string", "maxLength": 64 }
+        "member": {
+          "type": "boolean"
+        },
+        "role": {
+          "type": "string",
+          "enum": [
+            "",
+            "MODERATOR",
+            "JUNIOR_MODERATOR"
+          ]
+        },
+        "recordAccess": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "ENROLLMENT_LIST",
+              "OUTLOOK_GROUPS",
+              "COURSE_CATALOG",
+              "FCIM_RECORD"
+            ]
+          }
+        },
+        "channels": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "#enrollment-check",
+              "#faculty-check",
+              "#course-registration",
+              "#general-mod-chat"
+            ]
+          }
+        },
+        "playerName": {
+          "type": "string",
+          "maxLength": 64
+        }
       }
     },
     "scoreChangeRequest": {
-      "type": "object", "additionalProperties": false,
-      "required": ["scoreChangeId", "sessionId", "decisionId", "applicantId", "moderatorId", "reason", "delta", "penalties"],
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "scoreChangeId",
+        "sessionId",
+        "decisionId",
+        "applicantId",
+        "moderatorId",
+        "reason",
+        "delta",
+        "penalties"
+      ],
       "properties": {
-        "scoreChangeId": { "$ref": "uuid" }, "sessionId": { "$ref": "uuid" }, "decisionId": { "$ref": "uuid" },
-        "applicantId": { "$ref": "uuid" }, "moderatorId": { "$ref": "uuid" },
-        "reason": { "type": "string", "enum": ["DECISION", "APPEAL_REFUND", "DECISION_VOID"] },
-        "delta": { "type": "integer", "minimum": -10000, "maximum": 10000 },
-        "penalties": { "type": "integer", "minimum": -1, "maximum": 1 }
+        "scoreChangeId": {
+          "$ref": "uuid"
+        },
+        "sessionId": {
+          "$ref": "uuid"
+        },
+        "decisionId": {
+          "$ref": "uuid"
+        },
+        "applicantId": {
+          "$ref": "uuid"
+        },
+        "moderatorId": {
+          "$ref": "uuid"
+        },
+        "reason": {
+          "type": "string",
+          "enum": [
+            "DECISION",
+            "APPEAL_REFUND",
+            "DECISION_VOID"
+          ]
+        },
+        "delta": {
+          "type": "integer",
+          "minimum": -10000,
+          "maximum": 10000
+        },
+        "penalties": {
+          "type": "integer",
+          "minimum": -1,
+          "maximum": 1
+        }
       }
     },
     "scoreChangeResponse": {
-      "type": "object", "required": ["scoreChangeId", "applied", "score", "penalties"],
+      "type": "object",
+      "required": [
+        "scoreChangeId",
+        "applied",
+        "score",
+        "penalties"
+      ],
       "properties": {
-        "scoreChangeId": { "$ref": "uuid" }, "applied": { "type": "boolean" },
-        "score": { "type": "integer" }, "penalties": { "type": "integer" }
+        "scoreChangeId": {
+          "$ref": "uuid"
+        },
+        "applied": {
+          "type": "boolean"
+        },
+        "score": {
+          "type": "integer"
+        },
+        "penalties": {
+          "type": "integer"
+        }
       }
     },
     "deceptionResponse": {
-      "type": "object", "required": ["applicantId", "type"],
+      "type": "object",
+      "required": [
+        "applicantId",
+        "type"
+      ],
       "properties": {
-        "applicantId": { "$ref": "uuid" },
-        "type": { "type": "string", "enum": ["NONE", "IMPERSONATION", "FORGED_DOCUMENT", "EXPIRED_DOCUMENT", "INCONSISTENT_CLAIM", "NOT_ENROLLED", "PREVIOUSLY_BANNED"] },
-        "impersonatedStudentId": { "type": ["string", "null"] },
-        "inconsistentFields": { "type": "array", "maxItems": 32, "items": { "type": "string" } }
+        "applicantId": {
+          "$ref": "uuid"
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "NONE",
+            "IMPERSONATION",
+            "FORGED_DOCUMENT",
+            "EXPIRED_DOCUMENT",
+            "INCONSISTENT_CLAIM",
+            "NOT_ENROLLED",
+            "PREVIOUSLY_BANNED"
+          ]
+        },
+        "impersonatedStudentId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "inconsistentFields": {
+          "type": "array",
+          "maxItems": 32,
+          "items": {
+            "type": "string"
+          }
+        }
       }
     },
     "credentialListResponse": {
-      "type": "object", "required": ["applicantId", "credentials"],
+      "type": "object",
+      "required": [
+        "applicantId",
+        "credentials"
+      ],
       "properties": {
-        "applicantId": { "$ref": "uuid" },
+        "applicantId": {
+          "$ref": "uuid"
+        },
         "credentials": {
-          "type": "array", "maxItems": 32,
+          "type": "array",
+          "maxItems": 32,
           "items": {
-            "type": "object", "required": ["credentialId", "applicantId", "type"],
+            "type": "object",
+            "required": [
+              "credentialId",
+              "applicantId",
+              "type"
+            ],
             "properties": {
-              "credentialId": { "$ref": "uuid" }, "applicantId": { "$ref": "uuid" },
-              "type": { "type": "string", "enum": ["STUDENT_ID", "UNIVERSITY_EMAIL", "ENROLLMENT_CONFIRMATION", "COURSE_REGISTRATION"] }
+              "credentialId": {
+                "$ref": "uuid"
+              },
+              "applicantId": {
+                "$ref": "uuid"
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "STUDENT_ID",
+                  "UNIVERSITY_EMAIL",
+                  "ENROLLMENT_CONFIRMATION",
+                  "COURSE_REGISTRATION"
+                ]
+              }
             }
           }
         }
       }
     },
     "credentialValidationResponse": {
-      "type": "object", "required": ["credentialId", "type", "structurallyValid", "authentic", "issues"],
+      "type": "object",
+      "required": [
+        "credentialId",
+        "type",
+        "structurallyValid",
+        "authentic",
+        "issues"
+      ],
       "properties": {
-        "credentialId": { "$ref": "uuid" },
-        "type": { "type": "string", "enum": ["STUDENT_ID", "UNIVERSITY_EMAIL", "ENROLLMENT_CONFIRMATION", "COURSE_REGISTRATION"] },
-        "structurallyValid": { "type": "boolean" }, "authentic": { "type": "boolean" },
-        "issues": { "type": "array", "maxItems": 32, "items": { "type": "string" } }
+        "credentialId": {
+          "$ref": "uuid"
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "STUDENT_ID",
+            "UNIVERSITY_EMAIL",
+            "ENROLLMENT_CONFIRMATION",
+            "COURSE_REGISTRATION"
+          ]
+        },
+        "structurallyValid": {
+          "type": "boolean"
+        },
+        "authentic": {
+          "type": "boolean"
+        },
+        "issues": {
+          "type": "array",
+          "maxItems": 32,
+          "items": {
+            "type": "string"
+          }
+        }
       }
     },
     "rulesEvaluationRequest": {
-      "type": "object", "additionalProperties": false, "required": ["sessionId", "applicantId"],
-      "properties": { "sessionId": { "$ref": "uuid" }, "applicantId": { "$ref": "uuid" } }
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sessionId",
+        "applicantId"
+      ],
+      "properties": {
+        "sessionId": {
+          "$ref": "uuid"
+        },
+        "applicantId": {
+          "$ref": "uuid"
+        }
+      }
     },
     "rulesEvaluationResponse": {
-      "type": "object", "required": ["applicantId", "rulesetVersion", "violations", "recommendedAction"],
+      "type": "object",
+      "required": [
+        "applicantId",
+        "rulesetVersion",
+        "violations",
+        "recommendedAction"
+      ],
       "properties": {
-        "applicantId": { "$ref": "uuid" }, "rulesetVersion": { "type": "integer", "minimum": 1 },
+        "applicantId": {
+          "$ref": "uuid"
+        },
+        "rulesetVersion": {
+          "type": "integer",
+          "minimum": 1
+        },
         "violations": {
           "type": "array",
           "items": {
-            "type": "object", "required": ["code", "severity"],
-            "properties": { "code": { "type": "string", "minLength": 1, "maxLength": 128 }, "severity": { "type": "string", "enum": ["MINOR", "MAJOR", "CRITICAL"] } }
+            "type": "object",
+            "required": [
+              "code",
+              "severity"
+            ],
+            "properties": {
+              "code": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "severity": {
+                "type": "string",
+                "enum": [
+                  "MINOR",
+                  "MAJOR",
+                  "CRITICAL"
+                ]
+              }
+            }
           }
         },
-        "recommendedAction": { "type": "string", "enum": ["ACCEPT", "REJECT", "FLAG", "BAN"] }
+        "recommendedAction": {
+          "type": "string",
+          "enum": [
+            "ACCEPT",
+            "REJECT",
+            "FLAG",
+            "BAN"
+          ]
+        }
       }
     },
     "decisionFactsResponse": {
-      "type": "object", "additionalProperties": false, "required": ["applicantId", "previouslyBanned", "decisions"],
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "applicantId",
+        "previouslyBanned",
+        "decisions"
+      ],
       "properties": {
-        "applicantId": { "$ref": "uuid" }, "previouslyBanned": { "type": "boolean" },
+        "applicantId": {
+          "$ref": "uuid"
+        },
+        "previouslyBanned": {
+          "type": "boolean"
+        },
         "decisions": {
           "type": "array",
           "items": {
-            "type": "object", "additionalProperties": false, "required": ["decisionId", "sessionId", "action", "decidedAt"],
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "decisionId",
+              "sessionId",
+              "action",
+              "decidedAt"
+            ],
             "properties": {
-              "decisionId": { "$ref": "uuid" }, "sessionId": { "$ref": "uuid" },
-              "action": { "type": "string", "enum": ["ACCEPT", "REJECT", "FLAG", "BAN"] },
-              "decidedAt": { "type": "string", "format": "date-time" }
+              "decisionId": {
+                "$ref": "uuid"
+              },
+              "sessionId": {
+                "$ref": "uuid"
+              },
+              "action": {
+                "type": "string",
+                "enum": [
+                  "ACCEPT",
+                  "REJECT",
+                  "FLAG",
+                  "BAN"
+                ]
+              },
+              "decidedAt": {
+                "type": "string",
+                "format": "date-time"
+              }
             }
           }
         }
       }
     },
     "envelope": {
-      "type": "object", "additionalProperties": false,
-      "required": ["eventId", "type", "occurredAt", "producer", "version", "payload"],
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "eventId",
+        "type",
+        "occurredAt",
+        "producer",
+        "version",
+        "payload"
+      ],
       "properties": {
-        "eventId": { "$ref": "uuid" }, "type": { "type": "string" },
-        "occurredAt": { "type": "string", "format": "date-time" },
-        "producer": { "type": "string" }, "version": { "type": "integer", "enum": [1] },
-        "payload": { "type": "object" }
+        "eventId": {
+          "$ref": "uuid"
+        },
+        "type": {
+          "type": "string"
+        },
+        "occurredAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "producer": {
+          "type": "string"
+        },
+        "version": {
+          "type": "integer",
+          "enum": [
+            1
+          ]
+        },
+        "payload": {
+          "type": "object"
+        }
       }
     },
     "shiftStartedEnvelope": {
-      "allOf": [{ "$ref": "envelope" }],
+      "allOf": [
+        {
+          "$ref": "envelope"
+        }
+      ],
       "properties": {
-        "type": { "type": "string", "enum": ["ShiftStarted"] },
-        "producer": { "type": "string", "enum": ["session-service"] },
+        "type": {
+          "type": "string",
+          "enum": [
+            "ShiftStarted"
+          ]
+        },
+        "producer": {
+          "type": "string",
+          "enum": [
+            "session-service"
+          ]
+        },
         "payload": {
-          "type": "object", "required": ["sessionId", "players", "rulesetVersion"],
+          "type": "object",
+          "required": [
+            "sessionId",
+            "players",
+            "rulesetVersion"
+          ],
           "properties": {
-            "sessionId": { "$ref": "uuid" },
-            "players": { "type": "array", "minItems": 1, "maxItems": 16, "items": { "$ref": "uuid" } },
-            "rulesetVersion": { "type": "integer", "minimum": 1 }
+            "sessionId": {
+              "$ref": "uuid"
+            },
+            "players": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 16,
+              "items": {
+                "$ref": "uuid"
+              }
+            },
+            "rulesetVersion": {
+              "type": "integer",
+              "minimum": 1
+            }
           }
         }
       }
     },
     "decisionRecordedEnvelope": {
-      "allOf": [{ "$ref": "envelope" }],
+      "allOf": [
+        {
+          "$ref": "envelope"
+        }
+      ],
       "properties": {
-        "type": { "type": "string", "enum": ["DecisionRecorded"] },
-        "producer": { "type": "string", "enum": ["moderation-service"] },
+        "type": {
+          "type": "string",
+          "enum": [
+            "DecisionRecorded"
+          ]
+        },
+        "producer": {
+          "type": "string",
+          "enum": [
+            "moderation-service"
+          ]
+        },
         "payload": {
-          "type": "object", "required": ["decisionId", "sessionId", "applicantId", "moderatorId", "action", "correct", "scoreDelta"],
+          "type": "object",
+          "required": [
+            "decisionId",
+            "sessionId",
+            "applicantId",
+            "moderatorId",
+            "action",
+            "correct",
+            "scoreDelta"
+          ],
           "properties": {
-            "decisionId": { "$ref": "uuid" }, "sessionId": { "$ref": "uuid" }, "applicantId": { "$ref": "uuid" },
-            "moderatorId": { "$ref": "uuid" },
-            "action": { "type": "string", "enum": ["ACCEPT", "REJECT", "FLAG", "BAN"] },
-            "correct": { "type": "boolean" }, "scoreDelta": { "type": "integer" }
+            "decisionId": {
+              "$ref": "uuid"
+            },
+            "sessionId": {
+              "$ref": "uuid"
+            },
+            "applicantId": {
+              "$ref": "uuid"
+            },
+            "moderatorId": {
+              "$ref": "uuid"
+            },
+            "action": {
+              "type": "string",
+              "enum": [
+                "ACCEPT",
+                "REJECT",
+                "FLAG",
+                "BAN"
+              ]
+            },
+            "correct": {
+              "type": "boolean"
+            },
+            "scoreDelta": {
+              "type": "integer"
+            }
           }
         }
       }
     },
     "eventAck": {
-      "type": "object", "required": ["eventId", "status"],
-      "properties": { "eventId": { "$ref": "uuid" }, "status": { "type": "string", "enum": ["PROCESSED", "DUPLICATE"] } }
+      "type": "object",
+      "required": [
+        "eventId",
+        "status"
+      ],
+      "properties": {
+        "eventId": {
+          "$ref": "uuid"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "PROCESSED",
+            "DUPLICATE"
+          ]
+        }
+      }
+    },
+    "ownedDocuments": {
+      "type": "object",
+      "required": [
+        "applicantId",
+        "credentials"
+      ],
+      "properties": {
+        "applicantId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "credentials": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "credentialId",
+              "applicantId",
+              "type",
+              "fields"
+            ],
+            "properties": {
+              "credentialId": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "applicantId": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "type": {
+                "enum": [
+                  "STUDENT_ID",
+                  "UNIVERSITY_EMAIL",
+                  "ENROLLMENT_CONFIRMATION",
+                  "COURSE_REGISTRATION"
+                ]
+              },
+              "issuedAt": {
+                "type": "string",
+                "format": "date"
+              },
+              "expiresAt": {
+                "type": "string",
+                "format": "date"
+              },
+              "fields": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "ownedRuleset": {
+      "type": "object",
+      "required": [
+        "rulesetVersion",
+        "rules"
+      ],
+      "properties": {
+        "rulesetVersion": {
+          "type": "integer"
+        },
+        "rules": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "code",
+              "description",
+              "severity"
+            ],
+            "properties": {
+              "code": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              },
+              "severity": {
+                "enum": [
+                  "MINOR",
+                  "MAJOR",
+                  "CRITICAL"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "ownedCredentialChecks": {
+      "type": "object",
+      "required": [
+        "credentialId",
+        "applicantId",
+        "type",
+        "structurallyValid",
+        "expired",
+        "authenticity",
+        "issues"
+      ],
+      "properties": {
+        "credentialId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "applicantId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "STUDENT_ID",
+            "UNIVERSITY_EMAIL",
+            "ENROLLMENT_CONFIRMATION",
+            "COURSE_REGISTRATION"
+          ]
+        },
+        "structurallyValid": {
+          "type": "boolean"
+        },
+        "expired": {
+          "type": "boolean"
+        },
+        "authenticity": {
+          "enum": [
+            "UNVERIFIED"
+          ]
+        },
+        "issues": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "ownedShiftBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "eventId",
+        "sessionId",
+        "shiftId"
+      ],
+      "properties": {
+        "eventId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "sessionId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "shiftId": {
+          "type": "string",
+          "format": "uuid"
+        }
+      }
+    },
+    "ownedStoredRule": {
+      "type": "object",
+      "required": [
+        "ruleId",
+        "code",
+        "description",
+        "type",
+        "severity",
+        "active"
+      ],
+      "properties": {
+        "ruleId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "code": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "ONLY_FAF",
+            "MIN_ENROLLMENT_YEARS",
+            "NOT_PREVIOUSLY_BANNED",
+            "PROFESSOR_CHANNEL_ACCESS",
+            "AUTHENTIC_CREDENTIALS",
+            "CONSISTENT_CLAIMS",
+            "CURRENTLY_ENROLLED"
+          ]
+        },
+        "severity": {
+          "type": "string",
+          "enum": [
+            "MINOR",
+            "MAJOR",
+            "CRITICAL"
+          ]
+        },
+        "active": {
+          "type": "boolean"
+        },
+        "minimumYears": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "ownedShiftRuleset": {
+      "type": "object",
+      "required": [
+        "eventId",
+        "sessionId",
+        "shiftId",
+        "rulesetVersion",
+        "rules"
+      ],
+      "properties": {
+        "eventId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "sessionId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "shiftId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "rulesetVersion": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "rules": {
+          "type": "array",
+          "items": {
+            "$ref": "ownedStoredRule"
+          }
+        }
+      }
+    },
+    "ownedApplicantOnly": {
+      "type": "object",
+      "required": [
+        "applicantId"
+      ],
+      "properties": {
+        "applicantId": {
+          "type": "string",
+          "format": "uuid"
+        }
+      }
+    },
+    "ownedInitializationSeed": {
+      "type": "object",
+      "required": [
+        "applicantId",
+        "seed"
+      ],
+      "properties": {
+        "applicantId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "seed": {
+          "type": "integer",
+          "format": "int64"
+        }
+      },
+      "additionalProperties": false
+    },
+    "ownedInitialization": {
+      "type": "object",
+      "required": [
+        "eventId",
+        "type",
+        "occurredAt",
+        "producer",
+        "version",
+        "payload"
+      ],
+      "properties": {
+        "eventId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "type": {
+          "enum": [
+            "ApplicantInitialized"
+          ]
+        },
+        "occurredAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "producer": {
+          "enum": [
+            "applicant-service",
+            "credential-service",
+            "university-record-service"
+          ]
+        },
+        "version": {
+          "enum": [
+            1
+          ]
+        },
+        "payload": {
+          "$ref": "ownedInitializationSeed"
+        }
+      },
+      "additionalProperties": false
+    },
+    "ownedInitializationStatus": {
+      "type": "object",
+      "required": [
+        "eventId",
+        "applicantId",
+        "state",
+        "pendingDeliveries"
+      ],
+      "properties": {
+        "eventId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "applicantId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "state": {
+          "enum": [
+            "PENDING",
+            "DELIVERY_PENDING",
+            "READY"
+          ]
+        },
+        "pendingDeliveries": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "ownedAuthoritativeCheck": {
+      "type": "object",
+      "required": [
+        "credentialId",
+        "applicantId",
+        "type",
+        "structurallyValid",
+        "authentic",
+        "expired",
+        "recordRevision",
+        "issues"
+      ],
+      "properties": {
+        "credentialId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "applicantId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "type": {
+          "type": "string"
+        },
+        "structurallyValid": {
+          "type": "boolean"
+        },
+        "authentic": {
+          "type": "boolean"
+        },
+        "expired": {
+          "type": "boolean"
+        },
+        "recordRevision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "issues": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "ownedApplicantValidation": {
+      "type": "object",
+      "required": [
+        "applicantId",
+        "recordRevision",
+        "checks"
+      ],
+      "properties": {
+        "applicantId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "recordRevision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "checks": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "ownedAuthoritativeCheck"
+          }
+        }
+      }
+    },
+    "ownedBusinessEvaluationRequest": {
+      "type": "object",
+      "required": [
+        "sessionId",
+        "applicantId"
+      ],
+      "properties": {
+        "sessionId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "applicantId": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "additionalProperties": false
+    },
+    "ownedBusinessEvaluation": {
+      "type": "object",
+      "required": [
+        "applicantId",
+        "rulesetVersion",
+        "violations",
+        "recommendedAction",
+        "factRevisions"
+      ],
+      "properties": {
+        "applicantId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "rulesetVersion": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "violations": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "code",
+              "severity"
+            ],
+            "properties": {
+              "code": {
+                "type": "string"
+              },
+              "severity": {
+                "enum": [
+                  "MINOR",
+                  "MAJOR",
+                  "CRITICAL"
+                ]
+              }
+            }
+          }
+        },
+        "recommendedAction": {
+          "enum": [
+            "ACCEPT",
+            "REJECT",
+            "BAN"
+          ]
+        },
+        "factRevisions": {
+          "type": "object",
+          "required": [
+            "applicant",
+            "record"
+          ],
+          "properties": {
+            "applicant": {
+              "type": "string",
+              "minLength": 1
+            },
+            "record": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      }
+    },
+    "ownedApplicantContextPort": {
+      "type": "object",
+      "required": [
+        "applicantId",
+        "revision",
+        "seed",
+        "identity",
+        "deception"
+      ],
+      "properties": {
+        "applicantId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "seed": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "identity": {
+          "type": "object",
+          "required": [
+            "studentId",
+            "major"
+          ],
+          "properties": {
+            "studentId": {
+              "type": "string",
+              "minLength": 1
+            },
+            "major": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "deception": {
+          "type": "object",
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "type": {
+              "enum": [
+                "NONE",
+                "IMPERSONATION",
+                "FORGED_DOCUMENT",
+                "EXPIRED_DOCUMENT",
+                "INCONSISTENT_CLAIM",
+                "NOT_ENROLLED",
+                "PREVIOUSLY_BANNED"
+              ]
+            },
+            "impersonatedStudentId": {
+              "type": "string"
+            },
+            "inconsistentFields": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "ownedRecordFactsPort": {
+      "type": "object",
+      "required": [
+        "applicantId",
+        "revision",
+        "studentId",
+        "enrolled",
+        "major",
+        "role",
+        "enrollmentYears",
+        "email",
+        "photoUrl",
+        "confirmationNumber",
+        "courseCodes"
+      ],
+      "properties": {
+        "applicantId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "studentId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "enrolled": {
+          "type": "boolean"
+        },
+        "major": {
+          "type": "string"
+        },
+        "role": {
+          "type": "string"
+        },
+        "enrollmentYears": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "email": {
+          "type": "string",
+          "minLength": 1
+        },
+        "photoUrl": {
+          "type": "string",
+          "minLength": 1
+        },
+        "confirmationNumber": {
+          "type": "string"
+        },
+        "courseCodes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "ownedSessionContextPort": {
+      "type": "object",
+      "required": [
+        "sessionId",
+        "applicantId",
+        "shiftId",
+        "rulesetVersion",
+        "requestedChannel",
+        "ready"
+      ],
+      "properties": {
+        "sessionId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "applicantId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "shiftId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "rulesetVersion": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "requestedChannel": {
+          "type": "string"
+        },
+        "ready": {
+          "type": "boolean"
+        }
+      }
+    },
+    "ownedCredentialsReady": {
+      "type": "object",
+      "required": [
+        "eventId",
+        "type",
+        "occurredAt",
+        "producer",
+        "version",
+        "payload"
+      ],
+      "properties": {
+        "eventId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "type": {
+          "enum": [
+            "CredentialsReady"
+          ]
+        },
+        "occurredAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "producer": {
+          "enum": [
+            "credential-service"
+          ]
+        },
+        "version": {
+          "enum": [
+            1
+          ]
+        },
+        "payload": {
+          "type": "object",
+          "required": [
+            "applicantId",
+            "causationId",
+            "credentialIds"
+          ],
+          "properties": {
+            "applicantId": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "causationId": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "credentialIds": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              }
+            }
+          }
+        }
+      }
+    },
+    "ownedReadyAcknowledgement": {
+      "type": "object",
+      "required": [
+        "eventId",
+        "accepted"
+      ],
+      "properties": {
+        "eventId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "accepted": {
+          "enum": [
+            true
+          ]
+        }
+      }
     }
+  },
+  "ownedDrafts": {
+    "status": "implemented-candidates-not-accepted-shared-routes",
+    "coordinationIssue": "https://github.com/m3ower/faf-student-id-please/issues/123",
+    "privatePRs": [
+      "https://github.com/CmMarin/student-id-credential-service/pull/33",
+      "https://github.com/CmMarin/student-id-rules-service/pull/29"
+    ],
+    "operations": [
+      {
+        "operationId": "credential.documents.internalRead",
+        "owner": "credential-service",
+        "method": "GET",
+        "path": "/internal/v1/credentials/applicants/{applicantId}",
+        "allowedBackendCallers": [
+          "applicant-service",
+          "moderation-service",
+          "rules-service"
+        ],
+        "receiverCredentialSetting": "CREDENTIAL_INTERNAL_TOKEN",
+        "responseSchema": "#/components/schemas/ownedDocuments",
+        "status": "implemented-owned-candidate-requires-gateway-extension",
+        "automaticRetries": 0
+      },
+      {
+        "operationId": "credential.document.inspect",
+        "owner": "credential-service",
+        "method": "GET",
+        "path": "/internal/v1/credentials/{credentialId}/checks",
+        "allowedBackendCallers": [
+          "moderation-service",
+          "rules-service"
+        ],
+        "receiverCredentialSetting": "CREDENTIAL_INTERNAL_TOKEN",
+        "responseSchema": "#/components/schemas/ownedCredentialChecks",
+        "status": "implemented-owned-candidate-requires-gateway-extension",
+        "automaticRetries": 0
+      },
+      {
+        "operationId": "rules.shift.bind",
+        "owner": "rules-service",
+        "method": "POST",
+        "path": "/internal/v1/rulesets/bind",
+        "allowedBackendCallers": [
+          "session-service"
+        ],
+        "receiverCredentialSetting": "RULES_INTERNAL_TOKEN",
+        "requestSchema": "#/components/schemas/ownedShiftBinding",
+        "responseSchema": "#/components/schemas/ownedShiftRuleset",
+        "idempotency": "Persisted eventId plus unique sessionId/shiftId; identical semantic request returns original snapshot across replicas/restarts/rotation; conflict 409.",
+        "status": "implemented-owned-candidate-requires-gateway-extension",
+        "automaticRetries": 0
+      },
+      {
+        "operationId": "rules.shift.read",
+        "owner": "rules-service",
+        "method": "GET",
+        "path": "/internal/v1/rulesets/sessions/{sessionId}/shifts/{shiftId}",
+        "allowedBackendCallers": [
+          "session-service",
+          "moderation-service"
+        ],
+        "receiverCredentialSetting": "RULES_INTERNAL_TOKEN",
+        "responseSchema": "#/components/schemas/ownedShiftRuleset",
+        "status": "implemented-owned-candidate-requires-gateway-extension",
+        "automaticRetries": 0
+      },
+      {
+        "operationId": "credential.initialization.accept",
+        "owner": "credential-service",
+        "method": "POST",
+        "path": "/internal/v1/credentials/initialize",
+        "allowedBackendCallers": [
+          "applicant-service",
+          "university-record-service",
+          "credential-service"
+        ],
+        "receiverCredentialSetting": "CREDENTIAL_INTERNAL_TOKEN",
+        "status": "implemented-owned-candidate-requires-gateway-extension",
+        "automaticRetries": 0,
+        "requestSchema": "#/components/schemas/ownedInitialization",
+        "responseSchema": "#/components/schemas/ownedInitializationStatus"
+      },
+      {
+        "operationId": "credential.initialization.recover",
+        "owner": "credential-service",
+        "method": "POST",
+        "path": "/internal/v1/credentials/initializations/{eventId}/recover",
+        "allowedBackendCallers": [
+          "applicant-service",
+          "university-record-service",
+          "credential-service"
+        ],
+        "receiverCredentialSetting": "CREDENTIAL_INTERNAL_TOKEN",
+        "status": "implemented-owned-candidate-requires-gateway-extension",
+        "automaticRetries": 0,
+        "responseSchema": "#/components/schemas/ownedInitializationStatus"
+      },
+      {
+        "operationId": "credential.initialization.status",
+        "owner": "credential-service",
+        "method": "GET",
+        "path": "/internal/v1/credentials/initializations/{eventId}",
+        "allowedBackendCallers": [
+          "applicant-service",
+          "university-record-service",
+          "credential-service",
+          "session-service"
+        ],
+        "receiverCredentialSetting": "CREDENTIAL_INTERNAL_TOKEN",
+        "status": "implemented-owned-candidate-requires-gateway-extension",
+        "automaticRetries": 0,
+        "responseSchema": "#/components/schemas/ownedInitializationStatus"
+      },
+      {
+        "operationId": "credential.applicant.validate",
+        "owner": "credential-service",
+        "method": "POST",
+        "path": "/internal/v1/credentials/validate-applicant",
+        "allowedBackendCallers": [
+          "moderation-service",
+          "rules-service"
+        ],
+        "receiverCredentialSetting": "CREDENTIAL_INTERNAL_TOKEN",
+        "status": "implemented-owned-candidate-requires-gateway-extension",
+        "automaticRetries": 0,
+        "requestSchema": "#/components/schemas/ownedApplicantOnly",
+        "responseSchema": "#/components/schemas/ownedApplicantValidation"
+      },
+      {
+        "operationId": "credential.document.validate",
+        "owner": "credential-service",
+        "method": "POST",
+        "path": "/internal/v1/credentials/{credentialId}/validate",
+        "allowedBackendCallers": [
+          "moderation-service",
+          "rules-service"
+        ],
+        "receiverCredentialSetting": "CREDENTIAL_INTERNAL_TOKEN",
+        "status": "implemented-owned-candidate-requires-gateway-extension",
+        "automaticRetries": 0,
+        "responseSchema": "#/components/schemas/ownedAuthoritativeCheck"
+      },
+      {
+        "operationId": "rules.applicant.evaluate",
+        "owner": "rules-service",
+        "method": "POST",
+        "path": "/internal/v1/rules/evaluate",
+        "allowedBackendCallers": [
+          "moderation-service"
+        ],
+        "receiverCredentialSetting": "RULES_INTERNAL_TOKEN",
+        "status": "implemented-owned-candidate-requires-gateway-extension",
+        "automaticRetries": 0,
+        "requestSchema": "#/components/schemas/ownedBusinessEvaluationRequest",
+        "responseSchema": "#/components/schemas/ownedBusinessEvaluation"
+      }
+    ],
+    "consumerPorts": {
+      "status": "consumer-required-schema-proposal-receiver-review-required",
+      "transport": "POST through Gateway using caller-specific service credential. BUSINESS_HTTP_BINDINGS_JSON maps these logical names to receiver-reviewed internal paths; there are no default guessed peer paths.",
+      "operations": [
+        {
+          "name": "applicant.context",
+          "receiver": "applicant-service",
+          "request": {
+            "$ref": "#/components/schemas/ownedApplicantOnly"
+          },
+          "response": {
+            "$ref": "#/components/schemas/ownedApplicantContextPort"
+          }
+        },
+        {
+          "name": "record.facts",
+          "receiver": "university-record-service",
+          "request": {
+            "$ref": "#/components/schemas/ownedApplicantOnly"
+          },
+          "response": {
+            "$ref": "#/components/schemas/ownedRecordFactsPort"
+          }
+        },
+        {
+          "name": "session.context",
+          "receiver": "session-service",
+          "request": {
+            "$ref": "#/components/schemas/ownedBusinessEvaluationRequest"
+          },
+          "response": {
+            "$ref": "#/components/schemas/ownedSessionContextPort"
+          }
+        },
+        {
+          "name": "applicant.ready",
+          "receiver": "applicant-service",
+          "request": {
+            "$ref": "#/components/schemas/ownedCredentialsReady"
+          },
+          "response": {
+            "$ref": "#/components/schemas/ownedReadyAcknowledgement"
+          },
+          "semantics": "Durable idempotent receipt; identical eventId/content replays acknowledgement, conflict 409. No initialization republishing."
+        },
+        {
+          "name": "record.ready",
+          "receiver": "university-record-service",
+          "request": {
+            "$ref": "#/components/schemas/ownedCredentialsReady"
+          },
+          "response": {
+            "$ref": "#/components/schemas/ownedReadyAcknowledgement"
+          },
+          "semantics": "Durable idempotent receipt; identical eventId/content replays acknowledgement, conflict 409. No initialization republishing."
+        }
+      ]
+    },
+    "incompatibilities": [
+      "CPR #126 uses the full ApplicantInitialized payload, canonical length-prefixed hashing and matching INITIALIZED receipts. The earlier owned CredentialsReady/seed-only flow is NOT compatible and must not be wired to #126 receivers.",
+      "Applicant/Record #126 profile/claims/facts responses omit explicit schemas; receiver-owned exact JSON shapes are still needed to replace the earlier POST consumer-port proposals.",
+      "Gateway #48 only registers Record/DMs membership. The reviewed service registry must add the canonical Credential/Rules/Moderation paths and protected-read target credentials before deployment."
+    ],
+    "membershipCallerRequests": [
+      "credential-service",
+      "rules-service"
+    ],
+    "canonicalHistoryOperation": "moderation.applicantDecisionFacts"
   }
 }

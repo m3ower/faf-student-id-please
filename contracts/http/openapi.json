@@ -72,8 +72,8 @@
               }
             }
           },
-          "404": {
-            "description": "404 APPLICANT_NOT_FOUND: unknown applicant, or not in that session",
+          "503": {
+            "description": "503: unavailable",
             "content": {
               "application/json": {
                 "schema": {
@@ -82,8 +82,8 @@
               }
             }
           },
-          "503": {
-            "description": "503: unavailable",
+          "404": {
+            "description": "404 APPLICANT_NOT_FOUND: unknown applicant, or not in that session",
             "content": {
               "application/json": {
                 "schema": {
@@ -340,9 +340,9 @@
     "/internal/v1/credentials": {
       "get": {
         "operationId": "credential.listApplicantCredentials",
-        "summary": "The applicant's documents, at most 32.",
+        "summary": "The applicant's documents, at most 32. Receiver implementation accepted this catalog path. Validation fails closed without trusted provenance or authoritative Record facts.",
         "x-owner": "credential-service",
-        "x-status": "requested",
+        "x-status": "implemented-pending-review",
         "x-callers": [
           "moderation-service"
         ],
@@ -403,8 +403,8 @@
               }
             }
           },
-          "404": {
-            "description": "404 APPLICANT_NOT_FOUND: unknown applicant",
+          "503": {
+            "description": "503: unavailable",
             "content": {
               "application/json": {
                 "schema": {
@@ -413,8 +413,8 @@
               }
             }
           },
-          "503": {
-            "description": "503: unavailable",
+          "404": {
+            "description": "404 APPLICANT_NOT_FOUND: unknown applicant",
             "content": {
               "application/json": {
                 "schema": {
@@ -429,9 +429,9 @@
     "/internal/v1/credentials/{credentialId}/validation": {
       "get": {
         "operationId": "credential.validateCredential",
-        "summary": "Credential's authoritative verdict on one document. Moderation fans these out in parallel inside its deadline.",
+        "summary": "Credential's authoritative verdict on one document. Moderation fans these out in parallel inside its deadline. Receiver implementation accepted this catalog path. Validation fails closed without trusted provenance or authoritative Record facts.",
         "x-owner": "credential-service",
-        "x-status": "requested",
+        "x-status": "implemented-pending-review",
         "x-callers": [
           "moderation-service"
         ],
@@ -483,8 +483,8 @@
               }
             }
           },
-          "404": {
-            "description": "404 CREDENTIAL_NOT_FOUND: unknown credential",
+          "503": {
+            "description": "503: unavailable",
             "content": {
               "application/json": {
                 "schema": {
@@ -493,8 +493,8 @@
               }
             }
           },
-          "503": {
-            "description": "503: unavailable",
+          "404": {
+            "description": "404 CREDENTIAL_NOT_FOUND: unknown credential",
             "content": {
               "application/json": {
                 "schema": {
@@ -609,9 +609,9 @@
     "/internal/v1/rules/evaluations": {
       "post": {
         "operationId": "rules.evaluate",
-        "summary": "Authoritative violations for the session's ruleset. Rules obtains the facts it needs with its own service identity (record facts below, moderation.applicantDecisionFacts), never by impersonating a player.",
+        "summary": "Authoritative violations for the session's ruleset. Rules obtains the facts it needs with its own service identity (record facts below, moderation.applicantDecisionFacts), never by impersonating a player. Receiver implementation accepted this catalog path and enforces a 500 ms target budget. Session context and peer fact bindings remain pending.",
         "x-owner": "rules-service",
-        "x-status": "requested",
+        "x-status": "implemented-pending-review",
         "x-callers": [
           "moderation-service"
         ],
@@ -654,8 +654,8 @@
               }
             }
           },
-          "404": {
-            "description": "404 APPLICANT_NOT_FOUND: unknown applicant",
+          "503": {
+            "description": "503: unavailable",
             "content": {
               "application/json": {
                 "schema": {
@@ -664,8 +664,8 @@
               }
             }
           },
-          "503": {
-            "description": "503: unavailable",
+          "404": {
+            "description": "404 APPLICANT_NOT_FOUND: unknown applicant",
             "content": {
               "application/json": {
                 "schema": {
@@ -735,6 +735,16 @@
               }
             }
           },
+          "503": {
+            "description": "503: retry later",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
           "409": {
             "description": "409 EVENT_CONFLICT: final",
             "content": {
@@ -747,16 +757,6 @@
           },
           "422": {
             "description": "422 INVALID_EVENT: final",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/errorEnvelope"
-                }
-              }
-            }
-          },
-          "503": {
-            "description": "503: retry later",
             "content": {
               "application/json": {
                 "schema": {
@@ -830,8 +830,8 @@
               }
             }
           },
-          "400": {
-            "description": "400 INVALID_REQUEST: non-UUID ids",
+          "503": {
+            "description": "503: database failure; never a permission denial",
             "content": {
               "application/json": {
                 "schema": {
@@ -840,8 +840,8 @@
               }
             }
           },
-          "503": {
-            "description": "503: database failure; never a permission denial",
+          "400": {
+            "description": "400 INVALID_REQUEST: non-UUID ids",
             "content": {
               "application/json": {
                 "schema": {
@@ -911,6 +911,16 @@
               }
             }
           },
+          "503": {
+            "description": "503: temporarily unavailable (caller retries later)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
           "404": {
             "description": "404 SESSION_NOT_FOUND: unknown session (final)",
             "content": {
@@ -933,16 +943,6 @@
           },
           "422": {
             "description": "422 INVALID_SCORE_CHANGE: schema or business validation failed (final)",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/errorEnvelope"
-                }
-              }
-            }
-          },
-          "503": {
-            "description": "503: temporarily unavailable (caller retries later)",
             "content": {
               "application/json": {
                 "schema": {
@@ -1502,6 +1502,757 @@
             "enum": [
               "PROCESSED",
               "DUPLICATE"
+            ]
+          }
+        }
+      },
+      "ownedDocuments": {
+        "type": "object",
+        "required": [
+          "applicantId",
+          "credentials"
+        ],
+        "properties": {
+          "applicantId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "credentials": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "credentialId",
+                "applicantId",
+                "type",
+                "fields"
+              ],
+              "properties": {
+                "credentialId": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "applicantId": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": {
+                  "enum": [
+                    "STUDENT_ID",
+                    "UNIVERSITY_EMAIL",
+                    "ENROLLMENT_CONFIRMATION",
+                    "COURSE_REGISTRATION"
+                  ]
+                },
+                "issuedAt": {
+                  "type": "string",
+                  "format": "date"
+                },
+                "expiresAt": {
+                  "type": "string",
+                  "format": "date"
+                },
+                "fields": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "ownedRuleset": {
+        "type": "object",
+        "required": [
+          "rulesetVersion",
+          "rules"
+        ],
+        "properties": {
+          "rulesetVersion": {
+            "type": "integer"
+          },
+          "rules": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "code",
+                "description",
+                "severity"
+              ],
+              "properties": {
+                "code": {
+                  "type": "string"
+                },
+                "description": {
+                  "type": "string"
+                },
+                "severity": {
+                  "enum": [
+                    "MINOR",
+                    "MAJOR",
+                    "CRITICAL"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "ownedCredentialChecks": {
+        "type": "object",
+        "required": [
+          "credentialId",
+          "applicantId",
+          "type",
+          "structurallyValid",
+          "expired",
+          "authenticity",
+          "issues"
+        ],
+        "properties": {
+          "credentialId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "applicantId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "STUDENT_ID",
+              "UNIVERSITY_EMAIL",
+              "ENROLLMENT_CONFIRMATION",
+              "COURSE_REGISTRATION"
+            ]
+          },
+          "structurallyValid": {
+            "type": "boolean"
+          },
+          "expired": {
+            "type": "boolean"
+          },
+          "authenticity": {
+            "enum": [
+              "UNVERIFIED"
+            ]
+          },
+          "issues": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "ownedShiftBinding": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "eventId",
+          "sessionId",
+          "shiftId"
+        ],
+        "properties": {
+          "eventId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sessionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "shiftId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
+      "ownedStoredRule": {
+        "type": "object",
+        "required": [
+          "ruleId",
+          "code",
+          "description",
+          "type",
+          "severity",
+          "active"
+        ],
+        "properties": {
+          "ruleId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "code": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "ONLY_FAF",
+              "MIN_ENROLLMENT_YEARS",
+              "NOT_PREVIOUSLY_BANNED",
+              "PROFESSOR_CHANNEL_ACCESS",
+              "AUTHENTIC_CREDENTIALS",
+              "CONSISTENT_CLAIMS",
+              "CURRENTLY_ENROLLED"
+            ]
+          },
+          "severity": {
+            "type": "string",
+            "enum": [
+              "MINOR",
+              "MAJOR",
+              "CRITICAL"
+            ]
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "minimumYears": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      },
+      "ownedShiftRuleset": {
+        "type": "object",
+        "required": [
+          "eventId",
+          "sessionId",
+          "shiftId",
+          "rulesetVersion",
+          "rules"
+        ],
+        "properties": {
+          "eventId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sessionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "shiftId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "rulesetVersion": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "rules": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ownedStoredRule"
+            }
+          }
+        }
+      },
+      "ownedApplicantOnly": {
+        "type": "object",
+        "required": [
+          "applicantId"
+        ],
+        "properties": {
+          "applicantId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
+      "ownedInitializationSeed": {
+        "type": "object",
+        "required": [
+          "applicantId",
+          "seed"
+        ],
+        "properties": {
+          "applicantId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "seed": {
+            "type": "integer",
+            "format": "int64"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ownedInitialization": {
+        "type": "object",
+        "required": [
+          "eventId",
+          "type",
+          "occurredAt",
+          "producer",
+          "version",
+          "payload"
+        ],
+        "properties": {
+          "eventId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "type": {
+            "enum": [
+              "ApplicantInitialized"
+            ]
+          },
+          "occurredAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "producer": {
+            "enum": [
+              "applicant-service",
+              "credential-service",
+              "university-record-service"
+            ]
+          },
+          "version": {
+            "enum": [
+              1
+            ]
+          },
+          "payload": {
+            "$ref": "#/components/schemas/ownedInitializationSeed"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ownedInitializationStatus": {
+        "type": "object",
+        "required": [
+          "eventId",
+          "applicantId",
+          "state",
+          "pendingDeliveries"
+        ],
+        "properties": {
+          "eventId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "applicantId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "state": {
+            "enum": [
+              "PENDING",
+              "DELIVERY_PENDING",
+              "READY"
+            ]
+          },
+          "pendingDeliveries": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      },
+      "ownedAuthoritativeCheck": {
+        "type": "object",
+        "required": [
+          "credentialId",
+          "applicantId",
+          "type",
+          "structurallyValid",
+          "authentic",
+          "expired",
+          "recordRevision",
+          "issues"
+        ],
+        "properties": {
+          "credentialId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "applicantId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "type": {
+            "type": "string"
+          },
+          "structurallyValid": {
+            "type": "boolean"
+          },
+          "authentic": {
+            "type": "boolean"
+          },
+          "expired": {
+            "type": "boolean"
+          },
+          "recordRevision": {
+            "type": "string",
+            "minLength": 1
+          },
+          "issues": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "ownedApplicantValidation": {
+        "type": "object",
+        "required": [
+          "applicantId",
+          "recordRevision",
+          "checks"
+        ],
+        "properties": {
+          "applicantId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "recordRevision": {
+            "type": "string",
+            "minLength": 1
+          },
+          "checks": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "$ref": "#/components/schemas/ownedAuthoritativeCheck"
+            }
+          }
+        }
+      },
+      "ownedBusinessEvaluationRequest": {
+        "type": "object",
+        "required": [
+          "sessionId",
+          "applicantId"
+        ],
+        "properties": {
+          "sessionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "applicantId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ownedBusinessEvaluation": {
+        "type": "object",
+        "required": [
+          "applicantId",
+          "rulesetVersion",
+          "violations",
+          "recommendedAction",
+          "factRevisions"
+        ],
+        "properties": {
+          "applicantId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "rulesetVersion": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "violations": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "code",
+                "severity"
+              ],
+              "properties": {
+                "code": {
+                  "type": "string"
+                },
+                "severity": {
+                  "enum": [
+                    "MINOR",
+                    "MAJOR",
+                    "CRITICAL"
+                  ]
+                }
+              }
+            }
+          },
+          "recommendedAction": {
+            "enum": [
+              "ACCEPT",
+              "REJECT",
+              "BAN"
+            ]
+          },
+          "factRevisions": {
+            "type": "object",
+            "required": [
+              "applicant",
+              "record"
+            ],
+            "properties": {
+              "applicant": {
+                "type": "string",
+                "minLength": 1
+              },
+              "record": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        }
+      },
+      "ownedApplicantContextPort": {
+        "type": "object",
+        "required": [
+          "applicantId",
+          "revision",
+          "seed",
+          "identity",
+          "deception"
+        ],
+        "properties": {
+          "applicantId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "revision": {
+            "type": "string",
+            "minLength": 1
+          },
+          "seed": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "identity": {
+            "type": "object",
+            "required": [
+              "studentId",
+              "major"
+            ],
+            "properties": {
+              "studentId": {
+                "type": "string",
+                "minLength": 1
+              },
+              "major": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          },
+          "deception": {
+            "type": "object",
+            "required": [
+              "type"
+            ],
+            "properties": {
+              "type": {
+                "enum": [
+                  "NONE",
+                  "IMPERSONATION",
+                  "FORGED_DOCUMENT",
+                  "EXPIRED_DOCUMENT",
+                  "INCONSISTENT_CLAIM",
+                  "NOT_ENROLLED",
+                  "PREVIOUSLY_BANNED"
+                ]
+              },
+              "impersonatedStudentId": {
+                "type": "string"
+              },
+              "inconsistentFields": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      },
+      "ownedRecordFactsPort": {
+        "type": "object",
+        "required": [
+          "applicantId",
+          "revision",
+          "studentId",
+          "enrolled",
+          "major",
+          "role",
+          "enrollmentYears",
+          "email",
+          "photoUrl",
+          "confirmationNumber",
+          "courseCodes"
+        ],
+        "properties": {
+          "applicantId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "revision": {
+            "type": "string",
+            "minLength": 1
+          },
+          "studentId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "enrolled": {
+            "type": "boolean"
+          },
+          "major": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string"
+          },
+          "enrollmentYears": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "email": {
+            "type": "string",
+            "minLength": 1
+          },
+          "photoUrl": {
+            "type": "string",
+            "minLength": 1
+          },
+          "confirmationNumber": {
+            "type": "string"
+          },
+          "courseCodes": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      },
+      "ownedSessionContextPort": {
+        "type": "object",
+        "required": [
+          "sessionId",
+          "applicantId",
+          "shiftId",
+          "rulesetVersion",
+          "requestedChannel",
+          "ready"
+        ],
+        "properties": {
+          "sessionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "applicantId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "shiftId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "rulesetVersion": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "requestedChannel": {
+            "type": "string"
+          },
+          "ready": {
+            "type": "boolean"
+          }
+        }
+      },
+      "ownedCredentialsReady": {
+        "type": "object",
+        "required": [
+          "eventId",
+          "type",
+          "occurredAt",
+          "producer",
+          "version",
+          "payload"
+        ],
+        "properties": {
+          "eventId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "type": {
+            "enum": [
+              "CredentialsReady"
+            ]
+          },
+          "occurredAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "producer": {
+            "enum": [
+              "credential-service"
+            ]
+          },
+          "version": {
+            "enum": [
+              1
+            ]
+          },
+          "payload": {
+            "type": "object",
+            "required": [
+              "applicantId",
+              "causationId",
+              "credentialIds"
+            ],
+            "properties": {
+              "applicantId": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "causationId": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "credentialIds": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
+          }
+        }
+      },
+      "ownedReadyAcknowledgement": {
+        "type": "object",
+        "required": [
+          "eventId",
+          "accepted"
+        ],
+        "properties": {
+          "eventId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "accepted": {
+            "enum": [
+              true
             ]
           }
         }

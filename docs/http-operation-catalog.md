@@ -56,9 +56,9 @@ tests with the 70% coverage gate.
 | `session.applyScoreChange` `POST /internal/v1/session-score-changes` | Session | Moderation | requested |
 | `session.decisionRecorded` `POST /internal/v1/session-events/decision-recorded` | Session | Moderation | requested |
 | `applicant.getDeception` `GET /internal/v1/applicants/{id}/deception?sessionId=` | Applicant | Moderation | requested |
-| `credential.listApplicantCredentials` `GET /internal/v1/credentials?applicantId=&sessionId=` | Credential | Moderation | requested |
-| `credential.validateCredential` `GET /internal/v1/credentials/{id}/validation` | Credential | Moderation | requested |
-| `rules.evaluate` `POST /internal/v1/rules/evaluations` | Rules | Moderation | requested |
+| `credential.listApplicantCredentials` `GET /internal/v1/credentials?applicantId=&sessionId=` | Credential | Moderation | implemented candidate, Credential #33 / CPR #127 |
+| `credential.validateCredential` `GET /internal/v1/credentials/{id}/validation` | Credential | Moderation | implemented candidate, Credential #33 / CPR #127 |
+| `rules.evaluate` `POST /internal/v1/rules/evaluations` | Rules | Moderation | implemented candidate, Rules #29 / CPR #127 |
 | `moderation.applicantDecisionFacts` `GET /internal/v1/moderation/applicants/{id}/decision-facts` | Moderation | Rules | implemented, pending review |
 | `dms.shiftStarted` `POST /internal/v1/chat/shift-started` | DMs | Session | implemented, pending review |
 | `dms.decisionRecorded` `POST /internal/v1/chat/decision-recorded` | DMs | Moderation | implemented, pending review |

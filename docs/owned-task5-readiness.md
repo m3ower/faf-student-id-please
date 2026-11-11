@@ -5,6 +5,14 @@ This is **not** a complete Task 5 / full-stack READY claim: peer schema agreemen
 Gateway registration and real multi-service acceptance remain outstanding.
 This supersedes the earlier membership-only handoff and its immutable ZIP snapshot.
 
+**Publication update:** teammates have now merged CPR #129's canonical HTTP
+catalog and published Applicant/Record draft #126. The shared list/validation/
+evaluation receivers and history client have been reconciled. The initialization
+protocol has a real mismatch, not just missing paths; follow
+[the latest reconciliation](owned-contract-reconciliation.md) before integration.
+All authoritative schemas now live in `contracts/http/service-operations.json`;
+the earlier duplicate `contracts/business-http/` catalog has been removed.
+
 ## Credential: implemented
 
 - Service-only initialization, persisted document retrieval, structural inspection,
@@ -28,7 +36,7 @@ This supersedes the earlier membership-only handoff and its immutable ZIP snapsh
 
 ## Rules: implemented
 
-- Moderation-only POST /internal/v1/rules/evaluate accepts sessionId/applicantId,
+- Moderation-only POST /internal/v1/rules/evaluations accepts sessionId/applicantId,
   not supplied facts. Session supplies readiness/shift/version/requested channel.
 - Reads the persisted immutable shift ruleset; rejects version mismatches.
   Applicant, privileged Record and actual Credential validation are queried through
@@ -58,10 +66,10 @@ features were added. Broker migration is outside this baseline implementation.
 ## Contracts and required wiring
 
 Canonical owned receivers and schemas:
-[operation catalog](../contracts/business-http/operations.json),
-[OpenAPI](../contracts/business-http/openapi.json).
+[operation catalog](../contracts/http/service-operations.json),
+[OpenAPI](../contracts/http/openapi.json).
 
-OpenAPI `x-consumer-ports` specifies exact consumer-required request/response
+catalog `ownedDrafts.consumerPorts` specifies exact consumer-required request/response
 schemas. These are proposals requiring receiving-owner agreement, not claims that
 a guessed peer URL exists. No default peer paths or arbitrary forwarding URLs exist.
 
@@ -73,7 +81,7 @@ these logical ports to receiver-reviewed POST /internal/v1/... paths on Gateway:
 | Service | Required consumer-port names |
 | --- | --- |
 | Credential | applicant.context, record.facts, applicant.ready, record.ready |
-| Rules | session.context, applicant.context, record.facts, moderation.history |
+| Rules | session.context, applicant.context, record.facts |
 
 Rules' Credential batch operation already has our canonical path:
 POST /internal/v1/credentials/validate-applicant.
@@ -113,6 +121,12 @@ That final correlated-trace test remains necessary after shared wiring/review.
 
 ## Reproduce without touching the running team stack
 
+After reconciliation with #129: Credential `mvn verify` passed all **70 tests**;
+Rules' complete normal Go suite with disposable PostgreSQL passed with **83.2%**
+total coverage (**88.7%** for its rules package). The race result above predates
+this reconciliation; the updated Linux race check must pass in the private PR.
+These checks use network test peers, not the other owners' private applications.
+
 Use an explicitly disposable PostgreSQL database only. Never target the existing
 Compose database/volumes.
 
@@ -133,7 +147,7 @@ Disabling Spring debug in this command avoids a global DEBUG environment setting
 normal INFO request logging and sensitive-data assertions remain enabled.
 Windows race builds require supported CGO tooling; the verified race run used Linux.
 
-These are working-tree candidates, not reviewed immutable releases. No stable
-image or image pin has changed, no teammate private source or Gateway was edited,
-and no push/merge/publication occurred in this continuation. Keep candidate PRs
-draft until contract review and live integration are complete.
+These are unreleased candidates published through the linked draft PRs, not
+reviewed stable releases. No stable image or release pin is changed, and no
+teammate private source or Gateway implementation is edited. Keep the PRs draft
+until contract reconciliation and live integration are complete.

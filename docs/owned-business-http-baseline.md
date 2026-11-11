@@ -1,5 +1,12 @@
 # Owned business HTTP baseline — candidate, not integration-ready
 
+Latest status: [team contract reconciliation](owned-contract-reconciliation.md).
+CPR #129 is now merged and supplies the canonical list, validation, evaluation
+and Moderation history contracts. Applicant/Record #126 remains draft; its full
+initialization protocol is incompatible with the earlier owned workflow below.
+Treat this page's earlier consumer proposals as historical candidates, not agreed
+peer contracts or proof of Task 5 completion.
+
 Tracks [CPR #123](https://github.com/m3ower/faf-student-id-please/issues/123),
 [Credential #31](https://github.com/CmMarin/student-id-credential-service/issues/31)
 and [Rules #27](https://github.com/CmMarin/student-id-rules-service/issues/27).
@@ -65,10 +72,10 @@ The released stack/image pins are unchanged by this work. Do not deploy candidat
 callers alone: they intentionally refuse unsecured reads, or fail startup without
 required configuration.
 
-Catalog: [operations.json](../contracts/business-http/operations.json).
-OpenAPI: [openapi.json](../contracts/business-http/openapi.json).
-These are the initial shared candidate catalog, not an alternative peer catalog.
-Other receiving owners must extend/review it with their canonical operations.
+Catalog: [service-operations.json](../contracts/http/service-operations.json).
+OpenAPI: [openapi.json](../contracts/http/openapi.json).
+This is the team's single canonical catalog. Earlier owned extensions remain
+explicitly unapproved metadata under `ownedDrafts`, not Gateway routing entries.
 Existing GET reads have no durable write effects and no retry; none of this
 implements initialization idempotency or callbacks.
 
@@ -99,7 +106,7 @@ It stores no applicant/Record truth and sends no remote callbacks.
 Generation, authoritative validation consumers, initialization/outbox recovery
 and ID-based evaluation are now implemented too; see
 [the current handoff](owned-task5-readiness.md). Their real HTTP adapters use the
-shared OpenAPI `x-consumer-ports`. No peer path is guessed: deployment bindings
+shared catalog `ownedDrafts.consumerPorts`. No peer path is guessed: deployment bindings
 must map those ports to receiver-reviewed internal POST operations on Gateway.
 Session must adopt bind/read and readiness, and peers must agree the port schemas.
 
