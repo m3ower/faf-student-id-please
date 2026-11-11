@@ -1,0 +1,29 @@
+name: log download checks
+
+on:
+  pull_request:
+    branches: [dev, main]
+  push:
+    branches: [dev, main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  log-download-tests:
+    name: log-download-tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install coverage into an isolated environment
+        run: |
+          python3 -m venv docs-local/log-test-venv
+          docs-local/log-test-venv/bin/python -m pip install --disable-pip-version-check coverage==7.10.6
+      - name: Test the endpoint, collectors and subprocess limits
+        run: |
+          docs-local/log-test-venv/bin/python -m coverage run --data-file=docs-local/log-download.coverage --source=scripts.log_download -m unittest discover -s tests -v
+          docs-local/log-test-venv/bin/python -m coverage report --data-file=docs-local/log-download.coverage --fail-under=70 --show-missing

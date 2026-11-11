@@ -31,6 +31,7 @@ traumatize Mr. Pumpkin with the emojis.
    - [Task limits](#task-limits)
    - [Error envelope and status mapping](#error-envelope-and-status-mapping)
    - [Status endpoint and request tracing](#status-endpoint-and-request-tracing)
+   - [Downloading system logs](#downloading-system-logs)
    - [Docker Hub images](#docker-hub-images)
    - [Running the system](#running-the-system)
    - [Testing with Postman](#testing-with-postman)
@@ -1374,6 +1375,84 @@ message's content is logged as `contentLength` and a decision's `reason` is not 
 all. A player id **is** logged: it is an identifier, not a credential, and it is what makes
 a log line answerable about who did something. `LOG_LEVEL` defaults to `INFO`; `DEBUG` adds
 one line per data-store call.
+
+### Downloading system logs
+
+Lab 4 Task 4 adds a local operations endpoint in
+[`scripts/log_download.py`](scripts/log_download.py):
+
+```text
+GET http://127.0.0.1:8092/internal/v1/logs
+Authorization: Bearer <operations-token>
+```
+
+It returns a `text/plain; charset=utf-8` attachment named
+`student-id-logs-<UTC timestamp>.log`, with `Cache-Control: no-store`. The file
+contains a snapshot header and the selected Compose project's stdout/stderr logs,
+including Docker timestamps and container prefixes. With no `service` filter it
+includes all services declared by the selected Compose files, including infrastructure
+and replicas. It exports logs still retained by Docker; it does not recover rotated
+or deleted logs. An empty time window produces a header-only attachment.
+
+| Query | Default | Accepted values |
+| --- | --- | --- |
+| `service` | All declared services | An exact declared Compose service; its declared numeric replicas are included too |
+| `since` | `15m` | `5m`, `15m`, `1h`, `24h` |
+| `tail` | `200` | `1` to `1000` lines per container |
+
+Unknown/duplicate query parameters, invalid windows or tail counts return
+`400 INVALID_LOG_QUERY`; an undeclared service returns `400 UNKNOWN_LOG_SERVICE`.
+Each snapshot has a 15-second collection deadline, a 5 MiB total output limit and
+at most two concurrent downloads. Refusals are `429 TASK_LIMIT_REACHED` with
+`Retry-After: 1`, `504 LOG_EXPORT_TIMEOUT`, or `413 LOG_EXPORT_TOO_LARGE`.
+Unavailable Docker/Compose or invalid project configuration returns sanitized
+`503 LOG_SOURCE_UNAVAILABLE`; unexpected failures return `500 INTERNAL_ERROR`.
+No partial download is returned on failure. Errors use the existing envelope with
+`service=log-download-service` and matching `error.traceId`/`X-Trace-Id`.
+
+This is an operator-only HTTP server on the Docker host, bound to `127.0.0.1`.
+It does not add a public Gateway route, change business services, or initialize
+the custom broker. It uses a separate `LOG_DOWNLOAD_TOKEN` (32-256 URL-safe
+characters); Player JWTs and Discovery credentials do not authorize downloads.
+Missing, malformed or wrong authorization returns `401 UNAUTHORIZED` before
+running Docker. Tokens are accepted only in the Authorization header and must
+remain in a private local environment. Access logs omit query strings, credentials,
+exported contents and raw Docker diagnostics. The operations token is not passed
+to the Docker child process. Exported files contain the retained source logs and
+should remain private; the endpoint does not rewrite their contents.
+
+Run with Python 3.12+ and Docker Compose v2 on the machine that runs the stack.
+Select the exact project shown by `docker compose ls` (replace the example
+`pad-lab2` below), the same ignored `.env`, and the same Compose files/overrides
+used for that deployment. No additional Python runtime package is required.
+
+```powershell
+docker compose ls
+$env:LOG_DOWNLOAD_TOKEN = python -c "import secrets; print(secrets.token_urlsafe(32))"
+Set-Clipboard $env:LOG_DOWNLOAD_TOKEN
+# Paste into the private Postman logDownloadToken variable before starting.
+python scripts/log_download.py --project-name pad-lab2 --env-file .env
+```
+
+Repeat `--compose-file` for the base file and each deployment override when
+needed. The selected Docker context and Compose project determine the log source;
+no HTTP parameter can switch project, context, environment file or filesystem path.
+`GET http://127.0.0.1:8092/health` checks the exporter process only. Only GET is
+supported; other methods return `405 METHOD_NOT_ALLOWED` with `Allow: GET`.
+
+The dedicated Applicant and University Record collections each append a **Lab 4
+Task 4 - Operational logs** folder. Set `logDownloadUrl` to the local operations
+origin (default `http://127.0.0.1:8092`) and keep `logDownloadToken` empty in tracked
+files, supplying it privately. The folders check exporter health, download only
+their owned service's logs, and verify missing-token and invalid-query refusals.
+Their business requests still use the existing Gateway `baseUrl` and Player
+`accessToken`. The whole-system download is the same endpoint without `service`.
+Use Postman's save/download response option to retain the `.log` attachment in
+the ignored `docs-local/` directory or outside the repository.
+
+The `log-download-tests` workflow runs the endpoint and collector tests and fails
+below 70% line coverage for the new module. Controlled HTTP/subprocess tests are
+separate from verification against the actual running Docker project.
 
 ## Docker Hub images
 

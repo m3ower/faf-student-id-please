@@ -48,6 +48,17 @@
     {
       "key": "playerId",
       "value": "postman-player"
+    },
+    {
+      "key": "logDownloadUrl",
+      "value": "http://127.0.0.1:8092",
+      "description": "Local operational log endpoint; independent of Gateway baseUrl."
+    },
+    {
+      "key": "logDownloadToken",
+      "value": "",
+      "type": "string",
+      "description": "Separate operations secret. Set only in a private local environment; never commit it."
     }
   ],
   "item": [
@@ -560,6 +571,116 @@
               "pm.test('Sanitized UNIVERSITY_RECORD_NOT_FOUND error', () => { const error = pm.response.json().error; pm.expect(error.code).to.eql('UNIVERSITY_RECORD_NOT_FOUND'); pm.expect(error.service).to.eql('university-record-service'); pm.expect(pm.response.text()).not.to.include(pm.collectionVariables.get('recordStudentId')); pm.expect(pm.response.text()).not.to.include('Detail: Key'); });"
             ]
           }
+        }
+      ]
+    },
+    {
+      "name": "Lab 4 Task 4 - Operational logs",
+      "description": "Start the local log-download endpoint for the exact running Compose project. Set logDownloadUrl and a private logDownloadToken; this is a separate operations credential, not the collection's Player JWT. The download is limited to this owned service and its declared numeric replicas. To download the whole system, omit the service query on the same endpoint.",
+      "item": [
+        {
+          "name": "Log exporter health",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "noauth"
+            },
+            "url": "{{logDownloadUrl}}/health"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Log exporter health: HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Exporter is UP', () => { const body = pm.response.json(); pm.expect(body.service).to.eql('log-download-service'); pm.expect(body.status).to.eql('UP'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Download university-record-service logs",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{logDownloadToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{logDownloadUrl}}/internal/v1/logs?service=university-record-service&since=15m&tail=200",
+            "description": "A finite text attachment from the selected Compose project. A 503 means the local Docker/configuration source is unavailable; it is not a successful empty log export."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Log download: HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Private text attachment', () => { pm.expect(pm.response.headers.get('Content-Type')).to.eql('text/plain; charset=utf-8'); pm.expect(pm.response.headers.get('Content-Disposition')).to.match(/^attachment; filename=\"student-id-logs-\\d{8}T\\d{6}Z\\.log\"$/); pm.expect(pm.response.headers.get('Cache-Control')).to.eql('no-store'); });",
+                  "pm.test('Owned service snapshot includes the requested bounds', () => { const text = pm.response.text(); pm.expect(text).to.include('services=university-record-service'); pm.expect(text).to.include('since=15m; tail=200 per container'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Missing operations token is rejected",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "noauth"
+            },
+            "url": "{{logDownloadUrl}}/internal/v1/logs?service=university-record-service"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Missing operations token: HTTP 401', () => pm.response.to.have.status(401));",
+                  "pm.test('Operations authentication error is traceable', () => { const error = pm.response.json().error; pm.expect(error.code).to.eql('UNAUTHORIZED'); pm.expect(error.service).to.eql('log-download-service'); pm.expect(error.traceId).to.eql(pm.response.headers.get('X-Trace-Id')); pm.expect(pm.response.headers.get('WWW-Authenticate')).to.eql('Bearer'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Unbounded tail is rejected",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{logDownloadToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{logDownloadUrl}}/internal/v1/logs?service=university-record-service&tail=0"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Invalid tail: HTTP 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Invalid query uses the operations contract', () => { const error = pm.response.json().error; pm.expect(error.code).to.eql('INVALID_LOG_QUERY'); pm.expect(error.service).to.eql('log-download-service'); pm.expect(error.traceId).to.eql(pm.response.headers.get('X-Trace-Id')); });"
+                ]
+              }
+            }
+          ]
         }
       ]
     }
