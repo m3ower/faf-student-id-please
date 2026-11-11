@@ -21,3 +21,6 @@
 /services/rules-service/             @CmMarin
 /services/moderation-service/        @m3ower
 /services/discord-dms-service/       @m3ower
+
+# Shared Message Broker.
+/services/message-broker             @vasiok11 @Andreiisthebest @CmMarin @m3ower
