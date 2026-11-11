@@ -1,0 +1,28 @@
+{
+  "operation": "moderation.applicantDecisionFacts",
+  "note": "Sent to the Gateway by the caller. The Gateway forwards the same method and path with the target credential and X-Service-Name: rules-service.",
+  "request": {
+    "method": "GET",
+    "path": "/internal/v1/moderation/applicants/a0000000-0000-0000-0000-000000000003/decision-facts",
+    "headers": {
+      "Authorization": "Bearer <rules-service caller credential>",
+      "X-Trace-Id": "example-trace-1",
+      "Content-Type": "application/json"
+    }
+  },
+  "response": {
+    "status": 200,
+    "body": {
+      "applicantId": "a0000000-0000-0000-0000-000000000003",
+      "previouslyBanned": true,
+      "decisions": [
+        {
+          "decisionId": "d0000000-0000-0000-0000-000000000003",
+          "sessionId": "55555555-5555-5555-5555-555555555555",
+          "action": "BAN",
+          "decidedAt": "2026-11-11T18:21:40.551Z"
+        }
+      ]
+    }
+  }
+}

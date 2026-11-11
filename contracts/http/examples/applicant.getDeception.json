@@ -1,0 +1,22 @@
+{
+  "operation": "applicant.getDeception",
+  "note": "Sent to the Gateway by the caller. The Gateway forwards the same method and path with the target credential and X-Service-Name: moderation-service.",
+  "request": {
+    "method": "GET",
+    "path": "/internal/v1/applicants/a0000000-0000-0000-0000-000000000002/deception?sessionId=55555555-5555-5555-5555-555555555555",
+    "headers": {
+      "Authorization": "Bearer <moderation-service caller credential>",
+      "X-Trace-Id": "example-trace-1",
+      "Content-Type": "application/json"
+    }
+  },
+  "response": {
+    "status": 200,
+    "body": {
+      "applicantId": "a0000000-0000-0000-0000-000000000002",
+      "type": "FORGED_DOCUMENT",
+      "impersonatedStudentId": null,
+      "inconsistentFields": []
+    }
+  }
+}
