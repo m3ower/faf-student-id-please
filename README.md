@@ -307,12 +307,19 @@ Credential and Rules are its initial callers. The
 describes Lab 3 Grade 5, controlled instance removal and cross-instance streams.
 It updates the shared `docker-compose.yml`; public business routes remain unchanged.
 
-**Lab 4 Gateway service-call baseline.** Business calls between services use HTTP/JSON
-through the Gateway's authenticated service route, as listed in the shared
+**Lab 4 service calls through the message broker.** Business calls between services use
+HTTP/JSON through the message broker (Grade 5 moved them, with round-robin load balancing and
+the circuit breaker, from the Gateway's service route), as listed in the shared
 [HTTP operation catalog](docs/http-operation-catalog.md)
 ([`contracts/http/`](contracts/http/service-operations.json)). The receiving owner defines
 each operation; operations still marked `requested` there are not working end to end. The
 protobuf and RabbitMQ descriptions below are design context, not implemented transport.
+
+**Player/Session review candidate:** the [real business baseline](docs/player-session-http-baseline.md)
+documents real login/teams, persisted membership/access, score/decision receipts and
+completion/progression delivery through Gateway. It extends the same executable catalog.
+Source awaiting review is separate from the pinned Lab 3 images; unresolved Credential initialization and cross-owner context semantics prevent
+a full-game readiness claim.
 
 Lab 4 Task 3 documents the new custom Message Broker repository only. It adds no
 broker endpoint, subscription, discovery field or protobuf definition and changes
@@ -433,10 +440,18 @@ contract.
 | `/api/v1/channels` | Discord DMs | yes |
 | `/api/v1/messages` | Discord DMs | yes |
 
-Credential and Server Rules currently have no outbound REST business-service
-calls to reroute: those dependencies remain in-process mocks. Their internal
-Discovery startup registration uses the direct control-plane contract, while
-client-facing CRUD requests use the Gateway.
+The released Credential and Rules images have no outbound REST business-service
+calls: their integration dependencies remain fixtures/plans. Their direct Discovery
+registration is control-plane traffic; client CRUD uses Gateway. The unmerged
+[owned business HTTP candidate](docs/owned-business-http-baseline.md) removes
+fixtures from production artifacts and implements protected-read membership calls
+through Gateway, plus persisted generation/provenance, recoverable initialization
+and ID-based Rules evaluation consumers. It is not deployed or integration-ready:
+peer consumer-port agreement, exact Gateway bindings and real multi-service
+acceptance remain outstanding. Discovery's current dev needs no domain calls.
+For the latest merged catalog and the incompatible Applicant/Record initialization
+draft, read the [owned contract reconciliation](docs/owned-contract-reconciliation.md)
+before connecting these candidates. The private service PRs remain draft.
 
 A prefix matches only on a segment boundary. The method, path, query string, body and
 headers reach the service with the credential/identity handling described below,
@@ -451,17 +466,17 @@ forwarded to the service and returned on every response, so one id spans both ho
 
 | Traffic | Reason |
 | --- | --- |
-| Planned gRPC and RabbitMQ service integrations | Never implemented; business calls use the Gateway service route in the [HTTP operation catalog](docs/http-operation-catalog.md). |
-| `/api/v1/internal/...` on Discord DMs | Removed from DMs; its internal operations are reached only through the Gateway's service route (see the catalog). |
+| Service-to-service business calls | Routed by the message broker, see the [HTTP operation catalog](docs/http-operation-catalog.md). |
+| `/api/v1/internal/...` on Discord DMs | Removed from DMs; its internal operations are reached only through the message broker (see the catalog). |
 | `WS /ws/v1/sessions/{sessionId}` | The Gateway returns a direct DMs URL through the negotiation endpoint below; the socket itself stays direct. |
 
 The gRPC/event game integrations remain planned or in-process fixtures in the
 current releases; their contracts do not establish live transport. The additive
 [Lab 4 Gateway membership baseline](docs/gateway-membership-baseline.md) prepares
 real Record and Discord DMs calls through Gateway to persisted Session permissions.
-The [owned integration candidate](docs/owned-real-integrations.md) adds persisted Applicant/Record
-initialization and private facts; its [test evidence and remaining gates](docs/owned-http-evidence.md)
-distinguish the tested owned sources from the shared deployment.
+The [Applicant/Record integration guide](docs/owned-real-integrations.md) and
+[owned evidence](docs/owned-http-evidence.md) distinguish the requested pre-migration
+Gateway baseline from the later broker transport and remaining peer acceptance.
 Its service-only `POST /internal/v1/session-memberships/verify` operation uses
 dedicated caller and target credentials. Gateway binds public `X-Player-Id` to the
 verified player JWT subject. Session adds host-only
@@ -471,8 +486,9 @@ shared image pins and Compose deployment still select the previous releases.
 Discovery registration stays direct. Broker routing, queues, load-balancer and
 circuit-breaker migration require subsequent implementation and confirmation.
 
-The [HTTP operation catalog](docs/http-operation-catalog.md) extends this to every business
-call: Moderation calls Session, Applicant, Credential and Rules and delivers
+Lab 4 Grade 5 then moved every service operation, together with load balancing and circuit
+breaking, from the Gateway to the message broker; the [HTTP operation catalog](docs/http-operation-catalog.md)
+lists every business call: Moderation calls Session, Applicant, Credential and Rules and delivers
 `DecisionRecorded` to Session and DMs as authenticated HTTP callbacks; Session delivers
 `ShiftStarted` to DMs; Rules may read Moderation's decision facts. Each operation's status
 there says whether its owner has implemented it; `requested` operations do not work end to
@@ -1620,10 +1636,11 @@ Expired/invalid tokens return `401 UNAUTHENTICATED`. Gateway removes
 `Authorization` before forwarding requests, including public requests.
 
 Health endpoints, `OPTIONS`, and Player registration/login/refresh paths are
-public. **Player login, refresh and token issuance are not implemented yet**;
-local testing needs an explicitly labelled disposable test JWT and matching
-public key, not an invented login flow. Postman authentication setup and final
-full-stack verification remain separate work.
+public. The pinned Lab 3 Player image predates real token issuance. The
+[Player/Session baseline candidate](docs/player-session-http-baseline.md) implements
+login/refresh and updates the owned collections to obtain real tokens; use a matching
+reviewed Player/Gateway build and private key configuration. This documentation
+does not silently upgrade the pinned deployment or establish full-stack readiness.
 
 After updating local settings, adopt the release without clearing data:
 
@@ -1633,10 +1650,10 @@ docker compose up -d --no-deps gateway-service
 ```
 
 Use the same project name and overrides as the existing stack. Local Gateway
-health is `GET http://localhost:8090/health`. Protected Session SSE requests also
-retain the temporary `X-Player-Id` header; Gateway does not bind it to the JWT
-subject or implement ownership/role checks. Direct published service ports
-bypass Gateway, so this local lab deployment is not a production security boundary.
+health is `GET http://localhost:8090/health`. The membership/business baseline binds
+Session's player identity to the verified JWT subject and adds backend target
+credentials; do not supply a spoofed identity header. Direct published service ports
+in the old lab deployment require a separate private-network deployment update.
 
 ### Moderation and Discord DMs: what they need
 
@@ -1742,8 +1759,8 @@ test records in one run.
 |`discord-dms-service.postman_collection.json`|`http://localhost:8090`|
 |`credential-service.postman_collection.json`|`http://localhost:8090`|
 |`server-rules-service.postman_collection.json`|`http://localhost:8090`|
-|`player-service.postman_collection.json`|`http://localhost:8082`|
-|`session-service.postman_collection.json`|`http://localhost:8083`|
+|`player-service.postman_collection.json`|`http://localhost:8090`|
+|`session-service.postman_collection.json`|`http://localhost:8090`|
 |`applicant-service.postman_collection.json`|`http://localhost:8090`|
 |`university-record-service.postman_collection.json`|`http://localhost:8090`|
 
@@ -1751,7 +1768,7 @@ test records in one run.
 
 **Lab 4 note.** The Moderation and Discord DMs services no longer contain runtime mocks:
 their fixtures below survive only as synthetic test data, and production calls the real
-owners through the Gateway (see the [HTTP operation catalog](docs/http-operation-catalog.md)).
+owners through the message broker (see the [HTTP operation catalog](docs/http-operation-catalog.md)).
 
 Until the services are connected in Lab 2, every service replaces its dependencies with
 mocks that use the contract's data types. The Moderation and Discord DMs services share
@@ -1941,6 +1958,11 @@ created. To recreate development databases, intentionally remove the named
 volume and start Compose again.
 
 ### Credential and Server Rules mock contract
+
+The following describes released Lab 3 behavior and test fixture expectations,
+not the unreleased production-baseline implementation. In the candidate branches
+the legacy fixture code is test-only, and protected reads use the real candidate
+membership boundary; see [candidate status and missing work](docs/owned-business-http-baseline.md).
 
 The Grade 9 code in these two private services prepares the existing internal
 contract without changing their Lab 1 HTTP endpoints. Credential models

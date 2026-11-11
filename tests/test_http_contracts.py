@@ -22,6 +22,18 @@ class CatalogTest(unittest.TestCase):
         op = next(o for o in self.catalog["operations"] if o["name"] == "session.verifyMembership")
         self.assertEqual((op["method"], op["path"]), ("POST", "/internal/v1/session-memberships/verify"))
 
+    def test_transport_is_the_message_broker(self):
+        transport = self.catalog["transport"]
+        self.assertIn("<BROKER_URL>", transport["callerSends"])
+        budgets = transport["budgetsMs"]
+        self.assertEqual((budgets["target"], budgets["broker"], budgets["caller"]), (500, 750, 1000))
+        self.assertEqual(budgets["gateway"], budgets["broker"])  # read by the Gateway's bundled snapshot
+        for op in self.catalog["operations"]:
+            if "budgetsMs" in op:
+                self.assertEqual(op["budgetsMs"]["broker"], op["budgetsMs"]["gateway"], op["name"])
+        self.assertIn("503 SERVICE_AUTH_NOT_CONFIGURED | DISCOVERY_NOT_CONFIGURED | DISCOVERY_UNAVAILABLE | "
+                      "NO_SERVICE_INSTANCES | CIRCUIT_OPEN | UPSTREAM_UNAVAILABLE", transport["brokerErrors"])
+
     def test_every_target_has_its_own_credential(self):
         envs = [t["targetCredentialEnv"] for t in self.catalog["targets"].values()]
         self.assertEqual(len(envs), len(set(envs)))
@@ -86,10 +98,26 @@ class CatalogTest(unittest.TestCase):
             self.assertEqual(v.main(["--check", "dms.decisionRecorded", "response", str(good)]), 0)
             good.write_text(json.dumps({"eventId": "59f5ed3b-e286-3554-98bb-a02ce878769e", "status": "MAYBE"}))
             self.assertEqual(v.main(["--check", "dms.decisionRecorded", "response", str(good)]), 1)
-            self.assertEqual(v.main(["--check", "record.enrollmentFacts", "response", str(good)]), 1)
-            record = json.loads((v.EXAMPLES / "record.enrollmentFacts.json").read_text())
-            good.write_text(json.dumps(record["response"]["body"]))
-            self.assertEqual(v.main(["--check", "record.enrollmentFacts", "response", str(good)]), 0)
+            self.assertEqual(v.main(["--check", "missing.operation", "response", str(good)]), 2)
+
+    def test_imported_owner_constraints_are_not_silently_ignored(self):
+        self.assertTrue(v.validate("wrong", {"const": "INITIALIZED"}, {}))
+        self.assertTrue(v.validate("not-a-digest", {"type": "string", "pattern": "^[a-f0-9]{64}$"}, {}))
+        self.assertTrue(v.validate(["x", "x"], {"type": "array", "uniqueItems": True}, {}))
+        self.assertTrue(v.validate(float("nan"), {"type": "number", "minimum": 0, "maximum": 1}, {}))
+        self.assertTrue(v.validate('2026-02-30',{'type':'string','format':'date'},{}))
+        self.assertTrue(v.validate('2026-11-11 12:00:00Z',{'type':'string','format':'date-time'},{}))
+
+    def test_pending_success_responses_are_executable_and_documented(self):
+        operation=next(o for o in self.catalog['operations'] if o['name']=='applicant.warmup')
+        self.assertEqual(operation['successResponses']['202'],'ownedWarmupResponse')
+        self.assertIn('202',v.openapi(self.catalog)['paths'][operation['path']]['post']['responses'])
+        with tempfile.TemporaryDirectory() as tmp:
+            folder=Path(tmp)
+            example=json.loads((v.EXAMPLES/'applicant.warmup.json').read_text())
+            example['response']['body']={'status':'READY','applicantIds':[]}
+            (folder/'bad.json').write_text(json.dumps(example))
+            self.assertTrue(any('bad.json: response' in error for error in v.check_examples(self.catalog,folder)))
 
 
 if __name__ == "__main__":

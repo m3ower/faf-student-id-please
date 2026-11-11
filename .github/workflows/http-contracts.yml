@@ -27,5 +27,5 @@ jobs:
         run: python3 scripts/validate_http_contracts.py
       - name: Test the validator
         run: |
-          docs-local/contract-test-venv/bin/python -m coverage run --data-file=docs-local/http-contracts.coverage --source=scripts.validate_http_contracts -m unittest discover -s tests -p 'test_*contracts.py' -v
+          docs-local/contract-test-venv/bin/python -m coverage run --data-file=docs-local/http-contracts.coverage --source=scripts.validate_http_contracts -m unittest tests.test_http_contracts tests.test_owned_contracts -v
           docs-local/contract-test-venv/bin/python -m coverage report --data-file=docs-local/http-contracts.coverage --fail-under=70 --show-missing

@@ -1,6 +1,6 @@
 {
   "operation": "record.initialize",
-  "note": "Candidate request sent through Gateway. Only the receiving target receives its own target credential and authenticated X-Service-Name. No claim of live peer availability.",
+  "note": "Candidate request sent through the message broker. Only the receiving target receives its own target credential and authenticated X-Service-Name. No claim of live peer availability.",
   "request": {
     "method": "POST",
     "path": "/internal/v1/records/events/applicant-initialized",

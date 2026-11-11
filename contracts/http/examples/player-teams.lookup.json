@@ -1,0 +1,26 @@
+{
+  "operation": "player-teams.lookup",
+  "note": "Synthetic contract example, not a reserved runtime ID or verified live exchange.",
+  "request": {
+    "method": "POST",
+    "path": "/internal/v1/player-teams/lookup",
+    "headers": {
+      "Authorization": "Bearer <CALLER_SERVICE_CREDENTIAL>",
+      "X-Trace-Id": "example-player-session-trace"
+    },
+    "body": {
+      "teamId": "66666666-6666-6666-6666-666666666666"
+    }
+  },
+  "response": {
+    "status": 200,
+    "body": {
+      "teamId": "66666666-6666-6666-6666-666666666666",
+      "name": "<EXAMPLE>",
+      "ownerId": "11111111-1111-1111-1111-111111111111",
+      "members": [
+        "11111111-1111-1111-1111-111111111111"
+      ]
+    }
+  }
+}
