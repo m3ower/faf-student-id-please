@@ -213,10 +213,21 @@ This table describes the planned full system. In Lab 1, Credential runs on
 Spring Boot and exposes REST endpoints; Server Rules also exposes REST endpoints.
 Their gRPC contracts below remain integration targets for later labs.
 
-Message broker: **RabbitMQ**. API gateway: a **Python 3.12 / FastAPI** service of our own
+Message broker for the existing event contract: **RabbitMQ**. API gateway: a **Python 3.12 / FastAPI** service of our own
 (see [Gateway routing](#gateway-routing)) rather than Traefik, so the route map, the error
 envelope it returns and the identity it forwards are our code and are tested like any other
 service. Everything runs under `docker compose`.
+
+**Lab 4 custom Message Broker:** the new private
+[`Andreiisthebest/student-id-message-broker`](https://github.com/Andreiisthebest/student-id-message-broker)
+repository uses **Python 3.12+**, the team's banned language already used by
+Gateway and Service Discovery. Its repository/workflow scaffold exists; it has
+no running application, HTTP/gRPC endpoint, queue implementation, Docker image,
+Compose service or CPR submodule yet. Gateway remains the HTTP entry point and
+keeps its existing routing, load balancing and circuit breakers. Moving internal
+communication and those policies to the custom broker belongs to later Lab 4
+tasks. The RabbitMQ event definitions below remain the existing contract until
+that integration is implemented and reviewed.
 
 ### Why these choices
 
@@ -294,6 +305,12 @@ Credential and Rules are its initial callers. The
 [scaled deployment and instance-routing guide](docs/service-discovery-scaled.md)
 describes Lab 3 Grade 5, controlled instance removal and cross-instance streams.
 It updates the shared `docker-compose.yml`; public business routes remain unchanged.
+
+Lab 4 Task 3 documents the new custom Message Broker repository only. It adds no
+broker endpoint, subscription, discovery field or protobuf definition and changes
+no existing REST path or event payload. The broker's transport and queue contract
+must be agreed alongside its later implementation; no new broker URL is required
+by the Applicant or University Record collections at this stage.
 
 ### Surface map
 
@@ -1594,6 +1611,14 @@ mock header inputs, not proof of live Session authorization. The combined
 collection contains only these same two owned folders. These public collections
 do not call internal `/status`, inject database failures or prove concurrent races,
 image provenance, real membership authorization or full Grade 10 acceptance.
+
+For Lab 4 Task 3, the two dedicated Applicant and University Record collections
+also start with a **Gateway boundary** folder: the owned service's public health
+relay, a missing-token `401`, and a malformed Bearer-header `401`, including the
+Gateway error code and trace ID. Those checks override inherited authorization;
+the existing business requests still inherit `Bearer {{accessToken}}`. Keep
+`baseUrl` at Gateway (`http://localhost:8090`). The combined collection and other
+owners' collections are unchanged; no request targets the repository-only broker.
 
 Collection verification against local `0.4.0` builds of the exact owned gitlinks
 passed 68 requests and 120 assertions across the two dedicated collections and
