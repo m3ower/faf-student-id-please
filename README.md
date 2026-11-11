@@ -1962,7 +1962,8 @@ exercise their fixture contracts; that is not proof of live gRPC/event transport
 │   ├── university-record-service/   (submodule, private, Go)
 │   ├── rules-service/               (submodule, private, Go)
 │   ├── moderation-service/          (submodule, private, Java)
-│   └── discord-dms-service/         (submodule, private, Go)
+│   ├── discord-dms-service/         (submodule, private, Go)
+│   └── message-broker/              (submodule, private, Python)
 ├── .github/
 │   ├── pull_request_template.md
 │   └── CODEOWNERS
@@ -1979,6 +1980,20 @@ git clone --recurse-submodules https://github.com/<org>/<cpr>.git
 # already cloned:
 git submodule update --init --recursive
 ```
+
+The Lab 4 custom Message Broker is linked at `services/message-broker`, alongside
+Gateway and Service Discovery. To initialize only this new private submodule in
+an existing checkout after updating the CPR:
+
+```bash
+git submodule sync -- services/message-broker
+git submodule update --init --recursive -- services/message-broker
+```
+
+See [Message Broker setup](docs/message-broker-setup.md) for private-repository
+access, the pinned reviewed runtime revision and the development workflow. The
+broker is currently a standalone operational foundation; its source link does
+not enable message delivery or change the shared Compose deployment.
 
 Submodule contents are not readable by anyone outside the team and the professor.
 Visitors see the commit pointer but cannot fetch the objects, which is the
