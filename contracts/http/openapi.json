@@ -2,16 +2,601 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Student ID, please: service operations through the Gateway",
-    "version": "0.1.0",
+    "version": "0.2.0-candidate",
     "description": "Generated from contracts/http/service-operations.json. Do not edit by hand."
   },
   "paths": {
+    "/internal/v1/applicants/events/applicant-initialized": {
+      "post": {
+        "operationId": "applicant.initialize",
+        "summary": "Owned persisted HTTP baseline. Initialization consumers commit only their component and receipt, without republishing. Never exposes deception through claims/profile or public management projections.",
+        "x-owner": "applicant-service",
+        "x-status": "implemented-pending-review",
+        "x-callers": [
+          "credential-service",
+          "university-record-service"
+        ],
+        "x-idempotency": "requestId/eventId and full immutable content digest are persisted atomically; conflicting reuse is 409",
+        "security": [
+          {
+            "gatewayServiceCredential": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Trace-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Service-Name",
+            "in": "header",
+            "required": true,
+            "description": "set by the Gateway to the authenticated caller",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "credential-service",
+                "university-record-service"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ownedReceipt"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "400 INVALID_REQUEST | INVALID_EVENT: Invalid or malformed input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "401 UNAUTHENTICATED: Invalid receiving-service credential",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "403 SERVICE_CALL_FORBIDDEN | EVENT_PRODUCER_MISMATCH: Caller or producer is not authorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "404 INITIALIZATION_NOT_FOUND: No local initialization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "409 INITIALIZATION_CONFLICT | NOT_INITIALIZATION_OWNER: Immutable input conflict or unauthorized delivery ownership",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "429 CONCURRENT_TASK_LIMIT: Service task capacity reached",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "503 DATABASE_UNAVAILABLE: Storage unavailable; never a fabricated success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "504 TASK_TIMEOUT: 500 ms target operation deadline exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ownedApplicantInitialized"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/applicants/generate": {
+      "post": {
+        "operationId": "applicant.generate",
+        "summary": "Owned persisted HTTP baseline. Initialization consumers commit only their component and receipt, without republishing. Readiness checks both peer local receipts in parallel; missing, denied, malformed or unavailable peers keep the item pending.",
+        "x-owner": "applicant-service",
+        "x-status": "implemented-pending-review",
+        "x-callers": [
+          "session-service",
+          "credential-service",
+          "university-record-service"
+        ],
+        "x-idempotency": "requestId/eventId and full immutable content digest are persisted atomically; conflicting reuse is 409",
+        "security": [
+          {
+            "gatewayServiceCredential": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Trace-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Service-Name",
+            "in": "header",
+            "required": true,
+            "description": "set by the Gateway to the authenticated caller",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "session-service",
+                "credential-service",
+                "university-record-service"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Initialization pending",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ownedReadiness"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "400 INVALID_REQUEST | INVALID_EVENT: Invalid or malformed input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "401 UNAUTHENTICATED: Invalid receiving-service credential",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "403 SERVICE_CALL_FORBIDDEN | EVENT_PRODUCER_MISMATCH: Caller or producer is not authorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "404 INITIALIZATION_NOT_FOUND: No local initialization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "409 INITIALIZATION_CONFLICT | NOT_INITIALIZATION_OWNER: Immutable input conflict or unauthorized delivery ownership",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "429 CONCURRENT_TASK_LIMIT: Service task capacity reached",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "503 DATABASE_UNAVAILABLE: Storage unavailable; never a fabricated success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "504 TASK_TIMEOUT: 500 ms target operation deadline exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ownedGeneration"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/applicants/warmup": {
+      "post": {
+        "operationId": "applicant.warmup",
+        "summary": "Owned persisted HTTP baseline. Initialization consumers commit only their component and receipt, without republishing. Never exposes deception through claims/profile or public management projections.",
+        "x-owner": "applicant-service",
+        "x-status": "implemented-pending-review",
+        "x-callers": [
+          "session-service"
+        ],
+        "x-idempotency": "requestId/eventId and full immutable content digest are persisted atomically; conflicting reuse is 409",
+        "security": [
+          {
+            "gatewayServiceCredential": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Trace-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Service-Name",
+            "in": "header",
+            "required": true,
+            "description": "set by the Gateway to the authenticated caller",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "session-service"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Initialization pending",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ownedWarmupResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "400 INVALID_REQUEST | INVALID_EVENT: Invalid or malformed input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "401 UNAUTHENTICATED: Invalid receiving-service credential",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "403 SERVICE_CALL_FORBIDDEN | EVENT_PRODUCER_MISMATCH: Caller or producer is not authorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "404 INITIALIZATION_NOT_FOUND: No local initialization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "409 INITIALIZATION_CONFLICT | NOT_INITIALIZATION_OWNER: Immutable input conflict or unauthorized delivery ownership",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "429 CONCURRENT_TASK_LIMIT: Service task capacity reached",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "503 DATABASE_UNAVAILABLE: Storage unavailable; never a fabricated success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "504 TASK_TIMEOUT: 500 ms target operation deadline exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ownedWarmup"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/applicants/{applicantId}/claims": {
+      "get": {
+        "operationId": "applicant.getClaims",
+        "summary": "Owned persisted HTTP baseline. Initialization consumers commit only their component and receipt, without republishing. Never exposes deception through claims/profile or public management projections. Session receives 202 with no profile/claims until all three owners have matching receipts; authorized peer fact reads may inspect their own initialization dependencies.",
+        "x-owner": "applicant-service",
+        "x-status": "implemented-pending-review",
+        "x-callers": [
+          "session-service",
+          "credential-service",
+          "rules-service",
+          "moderation-service"
+        ],
+        "x-idempotency": "read-only",
+        "security": [
+          {
+            "gatewayServiceCredential": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "applicantId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "X-Trace-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Service-Name",
+            "in": "header",
+            "required": true,
+            "description": "set by the Gateway to the authenticated caller",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "session-service",
+                "credential-service",
+                "rules-service",
+                "moderation-service"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ownedClaims"
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "Initialization pending",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ownedReadiness"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "400 INVALID_REQUEST | INVALID_EVENT: Invalid or malformed input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "401 UNAUTHENTICATED: Invalid receiving-service credential",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "403 SERVICE_CALL_FORBIDDEN | EVENT_PRODUCER_MISMATCH: Caller or producer is not authorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "404 INITIALIZATION_NOT_FOUND: No local initialization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "409 INITIALIZATION_CONFLICT | NOT_INITIALIZATION_OWNER: Immutable input conflict or unauthorized delivery ownership",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "429 CONCURRENT_TASK_LIMIT: Service task capacity reached",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "503 DATABASE_UNAVAILABLE: Storage unavailable; never a fabricated success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "504 TASK_TIMEOUT: 500 ms target operation deadline exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/internal/v1/applicants/{applicantId}/deception": {
       "get": {
         "operationId": "applicant.getDeception",
-        "summary": "The game's answer key. Service-only: it must never be reachable on a public /api/v1 route or by a player token.",
+        "summary": "Private answer key for Moderation only. Requires sessionId matching immutable initialization; missing/invalid session is 400, wrong/unknown session is 404. No public route or player JWT access.",
         "x-owner": "applicant-service",
-        "x-status": "requested",
+        "x-status": "implemented-pending-review",
         "x-callers": [
           "moderation-service"
         ],
@@ -72,8 +657,28 @@
               }
             }
           },
-          "503": {
-            "description": "503: unavailable",
+          "400": {
+            "description": "400 INVALID_REQUEST | INVALID_EVENT: Invalid or malformed input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "401 UNAUTHENTICATED: Invalid receiving-service credential",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "403 SERVICE_CALL_FORBIDDEN | EVENT_PRODUCER_MISMATCH: Caller or producer is not authorized",
             "content": {
               "application/json": {
                 "schema": {
@@ -83,7 +688,647 @@
             }
           },
           "404": {
-            "description": "404 APPLICANT_NOT_FOUND: unknown applicant, or not in that session",
+            "description": "404 APPLICANT_NOT_FOUND: Unknown applicant or different persisted session; no answer key returned",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "409 INITIALIZATION_CONFLICT | NOT_INITIALIZATION_OWNER: Immutable input conflict or unauthorized delivery ownership",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "429 CONCURRENT_TASK_LIMIT: Service task capacity reached",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "503 DATABASE_UNAVAILABLE: Storage unavailable; never a fabricated success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "504 TASK_TIMEOUT: 500 ms target operation deadline exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/applicants/{applicantId}/initialization": {
+      "get": {
+        "operationId": "applicant.getInitialization",
+        "summary": "Owned persisted HTTP baseline. Initialization consumers commit only their component and receipt, without republishing. Never exposes deception through claims/profile or public management projections.",
+        "x-owner": "applicant-service",
+        "x-status": "implemented-pending-review",
+        "x-callers": [
+          "session-service",
+          "credential-service",
+          "university-record-service",
+          "rules-service"
+        ],
+        "x-idempotency": "read-only",
+        "security": [
+          {
+            "gatewayServiceCredential": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "applicantId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "X-Trace-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Service-Name",
+            "in": "header",
+            "required": true,
+            "description": "set by the Gateway to the authenticated caller",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "session-service",
+                "credential-service",
+                "university-record-service",
+                "rules-service"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ownedReceipt"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "400 INVALID_REQUEST | INVALID_EVENT: Invalid or malformed input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "401 UNAUTHENTICATED: Invalid receiving-service credential",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "403 SERVICE_CALL_FORBIDDEN | EVENT_PRODUCER_MISMATCH: Caller or producer is not authorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "404 INITIALIZATION_NOT_FOUND: No local initialization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "409 INITIALIZATION_CONFLICT | NOT_INITIALIZATION_OWNER: Immutable input conflict or unauthorized delivery ownership",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "429 CONCURRENT_TASK_LIMIT: Service task capacity reached",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "503 DATABASE_UNAVAILABLE: Storage unavailable; never a fabricated success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "504 TASK_TIMEOUT: 500 ms target operation deadline exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/applicants/{applicantId}/profile": {
+      "get": {
+        "operationId": "applicant.getProfile",
+        "summary": "Owned persisted HTTP baseline. Initialization consumers commit only their component and receipt, without republishing. Never exposes deception through claims/profile or public management projections. Session receives 202 with no profile/claims until all three owners have matching receipts; authorized peer fact reads may inspect their own initialization dependencies.",
+        "x-owner": "applicant-service",
+        "x-status": "implemented-pending-review",
+        "x-callers": [
+          "session-service",
+          "credential-service",
+          "rules-service",
+          "moderation-service"
+        ],
+        "x-idempotency": "read-only",
+        "security": [
+          {
+            "gatewayServiceCredential": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "applicantId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "X-Trace-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Service-Name",
+            "in": "header",
+            "required": true,
+            "description": "set by the Gateway to the authenticated caller",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "session-service",
+                "credential-service",
+                "rules-service",
+                "moderation-service"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ownedProfileResponse"
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "Initialization pending",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ownedReadiness"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "400 INVALID_REQUEST | INVALID_EVENT: Invalid or malformed input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "401 UNAUTHENTICATED: Invalid receiving-service credential",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "403 SERVICE_CALL_FORBIDDEN | EVENT_PRODUCER_MISMATCH: Caller or producer is not authorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "404 INITIALIZATION_NOT_FOUND: No local initialization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "409 INITIALIZATION_CONFLICT | NOT_INITIALIZATION_OWNER: Immutable input conflict or unauthorized delivery ownership",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "429 CONCURRENT_TASK_LIMIT: Service task capacity reached",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "503 DATABASE_UNAVAILABLE: Storage unavailable; never a fabricated success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "504 TASK_TIMEOUT: 500 ms target operation deadline exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/applicants/{applicantId}/readiness": {
+      "get": {
+        "operationId": "applicant.getReadiness",
+        "summary": "Owned persisted HTTP baseline. Initialization consumers commit only their component and receipt, without republishing. Readiness checks both peer local receipts in parallel; missing, denied, malformed or unavailable peers keep the item pending.",
+        "x-owner": "applicant-service",
+        "x-status": "implemented-pending-review",
+        "x-callers": [
+          "session-service",
+          "credential-service",
+          "university-record-service"
+        ],
+        "x-idempotency": "read-only",
+        "security": [
+          {
+            "gatewayServiceCredential": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "applicantId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "X-Trace-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Service-Name",
+            "in": "header",
+            "required": true,
+            "description": "set by the Gateway to the authenticated caller",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "session-service",
+                "credential-service",
+                "university-record-service"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ownedReadiness"
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "Initialization pending",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ownedReadiness"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "400 INVALID_REQUEST | INVALID_EVENT: Invalid or malformed input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "401 UNAUTHENTICATED: Invalid receiving-service credential",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "403 SERVICE_CALL_FORBIDDEN | EVENT_PRODUCER_MISMATCH: Caller or producer is not authorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "404 INITIALIZATION_NOT_FOUND: No local initialization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "409 INITIALIZATION_CONFLICT | NOT_INITIALIZATION_OWNER: Immutable input conflict or unauthorized delivery ownership",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "429 CONCURRENT_TASK_LIMIT: Service task capacity reached",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "503 DATABASE_UNAVAILABLE: Storage unavailable; never a fabricated success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "504 TASK_TIMEOUT: 500 ms target operation deadline exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/applicants/{applicantId}/resume": {
+      "post": {
+        "operationId": "applicant.resumeInitialization",
+        "summary": "Owned persisted HTTP baseline. Initialization consumers commit only their component and receipt, without republishing. Readiness checks both peer local receipts in parallel; missing, denied, malformed or unavailable peers keep the item pending.",
+        "x-owner": "applicant-service",
+        "x-status": "implemented-pending-review",
+        "x-callers": [
+          "session-service",
+          "credential-service",
+          "university-record-service"
+        ],
+        "x-idempotency": "Explicitly resets nondelivered retry state only; never repeats a committed domain initialization. Only the original producer may resume.",
+        "security": [
+          {
+            "gatewayServiceCredential": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "applicantId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "X-Trace-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Service-Name",
+            "in": "header",
+            "required": true,
+            "description": "set by the Gateway to the authenticated caller",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "session-service",
+                "credential-service",
+                "university-record-service"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Initialization pending",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ownedReadiness"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "400 INVALID_REQUEST | INVALID_EVENT: Invalid or malformed input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "401 UNAUTHENTICATED: Invalid receiving-service credential",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "403 SERVICE_CALL_FORBIDDEN | EVENT_PRODUCER_MISMATCH: Caller or producer is not authorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "404 INITIALIZATION_NOT_FOUND: No local initialization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "409 INITIALIZATION_CONFLICT | NOT_INITIALIZATION_OWNER: Immutable input conflict or unauthorized delivery ownership",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "429 CONCURRENT_TASK_LIMIT: Service task capacity reached",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "503 DATABASE_UNAVAILABLE: Storage unavailable; never a fabricated success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "504 TASK_TIMEOUT: 500 ms target operation deadline exceeded",
             "content": {
               "application/json": {
                 "schema": {
@@ -606,6 +1851,1273 @@
         }
       }
     },
+    "/internal/v1/player-progressions/record": {
+      "post": {
+        "operationId": "player-progressions.record",
+        "summary": "Persist a receipt for a completed session player, notify SSE, do not become the XP owner or republish.",
+        "x-owner": "session-service",
+        "x-status": "candidate",
+        "x-callers": [
+          "player-service"
+        ],
+        "x-idempotency": "Persisted eventId and content conflict detection; completion also deduplicates by session/player.",
+        "security": [
+          {
+            "gatewayServiceCredential": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Trace-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Service-Name",
+            "in": "header",
+            "required": true,
+            "description": "set by the Gateway to the authenticated caller",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "player-service"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/eventAck"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "404: entity not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "503: dependency/database unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "400 INVALID_REQUEST: invalid schema",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "401 UNAUTHENTICATED: missing/wrong target credential",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "403 SERVICE_FORBIDDEN: caller not allowed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "409 EVENT_CONFLICT: identifier reused with conflicting content",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "504 TASK_TIMEOUT: receiver deadline",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/playerProgressedEnvelope"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/player-teams/lookup": {
+      "post": {
+        "operationId": "player-teams.lookup",
+        "summary": "Read persisted team ownership and membership. Unknown team is 404 TEAM_NOT_FOUND.",
+        "x-owner": "player-service",
+        "x-status": "candidate",
+        "x-callers": [
+          "session-service"
+        ],
+        "x-idempotency": "Read-only",
+        "security": [
+          {
+            "gatewayServiceCredential": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Trace-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Service-Name",
+            "in": "header",
+            "required": true,
+            "description": "set by the Gateway to the authenticated caller",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "session-service"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/teamResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "404: entity not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "503: dependency/database unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "400 INVALID_REQUEST: invalid schema",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "401 UNAUTHENTICATED: missing/wrong target credential",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "403 SERVICE_FORBIDDEN: caller not allowed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "409 EVENT_CONFLICT: identifier reused with conflicting content",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "504 TASK_TIMEOUT: receiver deadline",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/teamRef"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/players/verify": {
+      "post": {
+        "operationId": "players.verify",
+        "summary": "Read real Player existence; never return a fixture profile.",
+        "x-owner": "player-service",
+        "x-status": "candidate",
+        "x-callers": [
+          "session-service"
+        ],
+        "x-idempotency": "Read-only",
+        "security": [
+          {
+            "gatewayServiceCredential": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Trace-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Service-Name",
+            "in": "header",
+            "required": true,
+            "description": "set by the Gateway to the authenticated caller",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "session-service"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/playerExists"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "404: entity not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "503: dependency/database unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "400 INVALID_REQUEST: invalid schema",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "401 UNAUTHENTICATED: missing/wrong target credential",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "403 SERVICE_FORBIDDEN: caller not allowed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "409 EVENT_CONFLICT: identifier reused with conflicting content",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "504 TASK_TIMEOUT: receiver deadline",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/playerRef"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/records/events/applicant-initialized": {
+      "post": {
+        "operationId": "record.initialize",
+        "summary": "Owned persisted HTTP baseline. Initialization consumers commit only their component and receipt, without republishing. Never exposes deception through claims/profile or public management projections.",
+        "x-owner": "university-record-service",
+        "x-status": "implemented-pending-review",
+        "x-callers": [
+          "applicant-service",
+          "credential-service"
+        ],
+        "x-idempotency": "requestId/eventId and full immutable content digest are persisted atomically; conflicting reuse is 409",
+        "security": [
+          {
+            "gatewayServiceCredential": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Trace-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Service-Name",
+            "in": "header",
+            "required": true,
+            "description": "set by the Gateway to the authenticated caller",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "applicant-service",
+                "credential-service"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ownedReceipt"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "400 INVALID_REQUEST | INVALID_EVENT: Invalid or malformed input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "401 UNAUTHENTICATED: Invalid receiving-service credential",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "403 SERVICE_CALL_FORBIDDEN | EVENT_PRODUCER_MISMATCH: Caller or producer is not authorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "404 INITIALIZATION_NOT_FOUND: No local initialization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "409 INITIALIZATION_CONFLICT | NOT_INITIALIZATION_OWNER: Immutable input conflict or unauthorized delivery ownership",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "429 CONCURRENT_TASK_LIMIT: Service task capacity reached",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "503 DATABASE_UNAVAILABLE: Storage unavailable; never a fabricated success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "504 TASK_TIMEOUT: 500 ms target operation deadline exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ownedApplicantInitialized"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/records/generate": {
+      "post": {
+        "operationId": "record.generate",
+        "summary": "Owned persisted HTTP baseline. Initialization consumers commit only their component and receipt, without republishing. Readiness checks both peer local receipts in parallel; missing, denied, malformed or unavailable peers keep the item pending.",
+        "x-owner": "university-record-service",
+        "x-status": "implemented-pending-review",
+        "x-callers": [
+          "session-service",
+          "applicant-service",
+          "credential-service"
+        ],
+        "x-idempotency": "requestId/eventId and full immutable content digest are persisted atomically; conflicting reuse is 409",
+        "security": [
+          {
+            "gatewayServiceCredential": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Trace-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Service-Name",
+            "in": "header",
+            "required": true,
+            "description": "set by the Gateway to the authenticated caller",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "session-service",
+                "applicant-service",
+                "credential-service"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Initialization pending",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ownedReadiness"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "400 INVALID_REQUEST | INVALID_EVENT: Invalid or malformed input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "401 UNAUTHENTICATED: Invalid receiving-service credential",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "403 SERVICE_CALL_FORBIDDEN | EVENT_PRODUCER_MISMATCH: Caller or producer is not authorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "404 INITIALIZATION_NOT_FOUND: No local initialization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "409 INITIALIZATION_CONFLICT | NOT_INITIALIZATION_OWNER: Immutable input conflict or unauthorized delivery ownership",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "429 CONCURRENT_TASK_LIMIT: Service task capacity reached",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "503 DATABASE_UNAVAILABLE: Storage unavailable; never a fabricated success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "504 TASK_TIMEOUT: 500 ms target operation deadline exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ownedGeneration"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/records/{applicantId}/facts": {
+      "get": {
+        "operationId": "record.enrollmentFacts",
+        "summary": "Authoritative persisted Record truth, accessible only to Credential and Rules using service identity. NOT_ENROLLED is enrolled=false and record=null; claimed identity is never rewritten to match truth.",
+        "x-owner": "university-record-service",
+        "x-status": "implemented-pending-review",
+        "x-callers": [
+          "credential-service",
+          "rules-service"
+        ],
+        "x-idempotency": "read-only",
+        "security": [
+          {
+            "gatewayServiceCredential": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "applicantId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "X-Trace-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Service-Name",
+            "in": "header",
+            "required": true,
+            "description": "set by the Gateway to the authenticated caller",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "credential-service",
+                "rules-service"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ownedRecordFacts"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "400 INVALID_REQUEST | INVALID_EVENT: Invalid or malformed input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "401 UNAUTHENTICATED: Invalid receiving-service credential",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "403 SERVICE_CALL_FORBIDDEN | EVENT_PRODUCER_MISMATCH: Caller or producer is not authorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "404 INITIALIZATION_NOT_FOUND: No local initialization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "409 INITIALIZATION_CONFLICT | NOT_INITIALIZATION_OWNER: Immutable input conflict or unauthorized delivery ownership",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "429 CONCURRENT_TASK_LIMIT: Service task capacity reached",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "503 DATABASE_UNAVAILABLE: Storage unavailable; never a fabricated success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "504 TASK_TIMEOUT: 500 ms target operation deadline exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/records/{applicantId}/initialization": {
+      "get": {
+        "operationId": "record.getInitialization",
+        "summary": "Owned persisted HTTP baseline. Initialization consumers commit only their component and receipt, without republishing. Never exposes deception through claims/profile or public management projections.",
+        "x-owner": "university-record-service",
+        "x-status": "implemented-pending-review",
+        "x-callers": [
+          "session-service",
+          "applicant-service",
+          "credential-service",
+          "rules-service"
+        ],
+        "x-idempotency": "read-only",
+        "security": [
+          {
+            "gatewayServiceCredential": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "applicantId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "X-Trace-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Service-Name",
+            "in": "header",
+            "required": true,
+            "description": "set by the Gateway to the authenticated caller",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "session-service",
+                "applicant-service",
+                "credential-service",
+                "rules-service"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ownedReceipt"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "400 INVALID_REQUEST | INVALID_EVENT: Invalid or malformed input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "401 UNAUTHENTICATED: Invalid receiving-service credential",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "403 SERVICE_CALL_FORBIDDEN | EVENT_PRODUCER_MISMATCH: Caller or producer is not authorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "404 INITIALIZATION_NOT_FOUND: No local initialization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "409 INITIALIZATION_CONFLICT | NOT_INITIALIZATION_OWNER: Immutable input conflict or unauthorized delivery ownership",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "429 CONCURRENT_TASK_LIMIT: Service task capacity reached",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "503 DATABASE_UNAVAILABLE: Storage unavailable; never a fabricated success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "504 TASK_TIMEOUT: 500 ms target operation deadline exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/records/{applicantId}/readiness": {
+      "get": {
+        "operationId": "record.getReadiness",
+        "summary": "Owned persisted HTTP baseline. Initialization consumers commit only their component and receipt, without republishing. Readiness checks both peer local receipts in parallel; missing, denied, malformed or unavailable peers keep the item pending.",
+        "x-owner": "university-record-service",
+        "x-status": "implemented-pending-review",
+        "x-callers": [
+          "session-service",
+          "applicant-service",
+          "credential-service"
+        ],
+        "x-idempotency": "read-only",
+        "security": [
+          {
+            "gatewayServiceCredential": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "applicantId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "X-Trace-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Service-Name",
+            "in": "header",
+            "required": true,
+            "description": "set by the Gateway to the authenticated caller",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "session-service",
+                "applicant-service",
+                "credential-service"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ownedReadiness"
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "Initialization pending",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ownedReadiness"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "400 INVALID_REQUEST | INVALID_EVENT: Invalid or malformed input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "401 UNAUTHENTICATED: Invalid receiving-service credential",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "403 SERVICE_CALL_FORBIDDEN | EVENT_PRODUCER_MISMATCH: Caller or producer is not authorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "404 INITIALIZATION_NOT_FOUND: No local initialization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "409 INITIALIZATION_CONFLICT | NOT_INITIALIZATION_OWNER: Immutable input conflict or unauthorized delivery ownership",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "429 CONCURRENT_TASK_LIMIT: Service task capacity reached",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "503 DATABASE_UNAVAILABLE: Storage unavailable; never a fabricated success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "504 TASK_TIMEOUT: 500 ms target operation deadline exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/records/{applicantId}/resume": {
+      "post": {
+        "operationId": "record.resumeInitialization",
+        "summary": "Owned persisted HTTP baseline. Initialization consumers commit only their component and receipt, without republishing. Readiness checks both peer local receipts in parallel; missing, denied, malformed or unavailable peers keep the item pending.",
+        "x-owner": "university-record-service",
+        "x-status": "implemented-pending-review",
+        "x-callers": [
+          "session-service",
+          "applicant-service",
+          "credential-service"
+        ],
+        "x-idempotency": "Explicitly resets nondelivered retry state only; never repeats a committed domain initialization. Only the original producer may resume.",
+        "security": [
+          {
+            "gatewayServiceCredential": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "applicantId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "X-Trace-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Service-Name",
+            "in": "header",
+            "required": true,
+            "description": "set by the Gateway to the authenticated caller",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "session-service",
+                "applicant-service",
+                "credential-service"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Initialization pending",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ownedReadiness"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "400 INVALID_REQUEST | INVALID_EVENT: Invalid or malformed input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "401 UNAUTHENTICATED: Invalid receiving-service credential",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "403 SERVICE_CALL_FORBIDDEN | EVENT_PRODUCER_MISMATCH: Caller or producer is not authorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "404 INITIALIZATION_NOT_FOUND: No local initialization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "409 INITIALIZATION_CONFLICT | NOT_INITIALIZATION_OWNER: Immutable input conflict or unauthorized delivery ownership",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "429 CONCURRENT_TASK_LIMIT: Service task capacity reached",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "503 DATABASE_UNAVAILABLE: Storage unavailable; never a fabricated success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "504 TASK_TIMEOUT: 500 ms target operation deadline exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/internal/v1/rules/evaluations": {
       "post": {
         "operationId": "rules.evaluate",
@@ -687,12 +3199,395 @@
         }
       }
     },
+    "/internal/v1/rulesets/bind": {
+      "post": {
+        "operationId": "rules.shift.bind",
+        "summary": "Receiver-owned immutable rules snapshot. One Session is one shift, so Session supplies shiftId=sessionId and persists binding eventId before delivery.",
+        "x-owner": "rules-service",
+        "x-status": "candidate",
+        "x-callers": [
+          "session-service"
+        ],
+        "x-idempotency": "Persisted eventId plus unique sessionId/shiftId; identical semantic request returns original snapshot across replicas/restarts/rotation; conflict 409.",
+        "security": [
+          {
+            "gatewayServiceCredential": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Trace-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Service-Name",
+            "in": "header",
+            "required": true,
+            "description": "set by the Gateway to the authenticated caller",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "session-service"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ownedShiftRuleset"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "404: unknown binding on read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "409: conflicting binding/event",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "503: database or required dependency unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "400 INVALID_REQUEST: invalid identifiers",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "401 UNAUTHENTICATED: invalid receiver credential",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "403 SERVICE_FORBIDDEN: caller not allowed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ownedShiftBinding"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/rulesets/sessions/{sessionId}/shifts/{shiftId}": {
+      "get": {
+        "operationId": "rules.shift.read",
+        "summary": "Receiver-owned immutable rules snapshot. One Session is one shift, so Session supplies shiftId=sessionId and persists binding eventId before delivery.",
+        "x-owner": "rules-service",
+        "x-status": "candidate",
+        "x-callers": [
+          "session-service",
+          "moderation-service"
+        ],
+        "x-idempotency": "Read the immutable shift snapshot.",
+        "security": [
+          {
+            "gatewayServiceCredential": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "sessionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "shiftId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "X-Trace-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Service-Name",
+            "in": "header",
+            "required": true,
+            "description": "set by the Gateway to the authenticated caller",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "session-service",
+                "moderation-service"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ownedShiftRuleset"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "404: unknown binding on read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "409: conflicting binding/event",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "503: database or required dependency unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "400 INVALID_REQUEST: invalid identifiers",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "401 UNAUTHENTICATED: invalid receiver credential",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "403 SERVICE_FORBIDDEN: caller not allowed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/session-completions/record": {
+      "post": {
+        "operationId": "session-completions.record",
+        "summary": "Update each real player once per session. PASSED +100 XP, FAILED +0; level 1+floor(totalXP/500), senior at level5. Accuracy is average completed-shift accuracy. Commit PlayerProgressed outbox in the same transaction; XP is new total.",
+        "x-owner": "player-service",
+        "x-status": "candidate",
+        "x-callers": [
+          "session-service"
+        ],
+        "x-idempotency": "Persisted eventId and content conflict detection; completion also deduplicates by session/player.",
+        "security": [
+          {
+            "gatewayServiceCredential": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Trace-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Service-Name",
+            "in": "header",
+            "required": true,
+            "description": "set by the Gateway to the authenticated caller",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "session-service"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/completionResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "404: entity not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "503: dependency/database unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "400 INVALID_REQUEST: invalid schema",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "401 UNAUTHENTICATED: missing/wrong target credential",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "403 SERVICE_FORBIDDEN: caller not allowed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "409 EVENT_CONFLICT: identifier reused with conflicting content",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "504 TASK_TIMEOUT: receiver deadline",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/sessionCompletedEnvelope"
+              }
+            }
+          }
+        }
+      }
+    },
     "/internal/v1/session-events/decision-recorded": {
       "post": {
         "operationId": "session.decisionRecorded",
         "summary": "Advances the queue and counts the decision. It never applies a score (session.applyScoreChange already did) and is never republished.",
         "x-owner": "session-service",
-        "x-status": "requested",
+        "x-status": "candidate",
         "x-callers": [
           "moderation-service"
         ],
@@ -785,9 +3680,11 @@
         "x-owner": "session-service",
         "x-status": "candidate",
         "x-callers": [
-          "university-record-service",
+          "credential-service",
           "discord-dms-service",
-          "moderation-service"
+          "moderation-service",
+          "rules-service",
+          "university-record-service"
         ],
         "x-idempotency": "read-only",
         "security": [
@@ -812,9 +3709,11 @@
             "schema": {
               "type": "string",
               "enum": [
-                "university-record-service",
+                "credential-service",
                 "discord-dms-service",
-                "moderation-service"
+                "moderation-service",
+                "rules-service",
+                "university-record-service"
               ]
             }
           }
@@ -866,9 +3765,9 @@
     "/internal/v1/session-score-changes": {
       "post": {
         "operationId": "session.applyScoreChange",
-        "summary": "The only score/penalty mutation. reason DECISION, APPEAL_REFUND or DECISION_VOID; a decision causes at most one change of each reason. Session must not score DecisionRecorded again.",
+        "summary": "The only score/penalty mutation. reason DECISION, APPEAL_REFUND or DECISION_VOID; a decision causes at most one change of each reason. Session must not score DecisionRecorded again. New changes require ACTIVE state and the stored MODERATOR. Retries are recognized after completion. Adjustment reasons change score/penalties only; recorded correctness is historical and is not inferred from a refund/void. Post-completion result changes are forbidden.",
         "x-owner": "session-service",
-        "x-status": "requested",
+        "x-status": "candidate",
         "x-callers": [
           "moderation-service"
         ],
@@ -958,6 +3857,143 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/scoreChangeRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/session-state/get": {
+      "post": {
+        "operationId": "session-state.get",
+        "summary": "Read stored shift context only; rulesetVersion=0 means not selected. Never calls Rules or initializes applicants, preventing recursive fact lookups.",
+        "x-owner": "session-service",
+        "x-status": "candidate",
+        "x-callers": [
+          "moderation-service",
+          "rules-service",
+          "credential-service",
+          "applicant-service"
+        ],
+        "x-idempotency": "Read-only",
+        "security": [
+          {
+            "gatewayServiceCredential": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Trace-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Service-Name",
+            "in": "header",
+            "required": true,
+            "description": "set by the Gateway to the authenticated caller",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "moderation-service",
+                "rules-service",
+                "credential-service",
+                "applicant-service"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/sessionStateResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "404: entity not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "503: dependency/database unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "400 INVALID_REQUEST: invalid schema",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "401 UNAUTHENTICATED: missing/wrong target credential",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "403 SERVICE_FORBIDDEN: caller not allowed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "409 EVENT_CONFLICT: identifier reused with conflicting content",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "504 TASK_TIMEOUT: receiver deadline",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/sessionRef"
               }
             }
           }
@@ -1506,6 +4542,882 @@
           }
         }
       },
+      "playerRef": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "playerId"
+        ],
+        "properties": {
+          "playerId": {
+            "$ref": "#/components/schemas/uuid"
+          }
+        }
+      },
+      "playerExists": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "playerId",
+          "exists"
+        ],
+        "properties": {
+          "playerId": {
+            "$ref": "#/components/schemas/uuid"
+          },
+          "exists": {
+            "type": "boolean"
+          }
+        }
+      },
+      "teamRef": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "teamId"
+        ],
+        "properties": {
+          "teamId": {
+            "$ref": "#/components/schemas/uuid"
+          }
+        }
+      },
+      "teamResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "teamId",
+          "name",
+          "ownerId",
+          "members"
+        ],
+        "properties": {
+          "teamId": {
+            "$ref": "#/components/schemas/uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "ownerId": {
+            "$ref": "#/components/schemas/uuid"
+          },
+          "members": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 4,
+            "uniqueItems": true,
+            "items": {
+              "$ref": "#/components/schemas/uuid"
+            }
+          }
+        }
+      },
+      "sessionRef": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "sessionId"
+        ],
+        "properties": {
+          "sessionId": {
+            "$ref": "#/components/schemas/uuid"
+          }
+        }
+      },
+      "sessionStateResponse": {
+        "type": "object",
+        "required": [
+          "sessionId",
+          "state",
+          "difficulty",
+          "rulesetVersion",
+          "currentApplicantId",
+          "players",
+          "applicationsProcessed",
+          "score",
+          "penalties",
+          "shiftId"
+        ],
+        "properties": {
+          "sessionId": {
+            "$ref": "#/components/schemas/uuid"
+          },
+          "state": {
+            "enum": [
+              "LOBBY",
+              "ACTIVE",
+              "COMPLETED"
+            ]
+          },
+          "difficulty": {
+            "enum": [
+              "EASY",
+              "NORMAL",
+              "HARD"
+            ]
+          },
+          "rulesetVersion": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "currentApplicantId": {
+            "type": "string"
+          },
+          "players": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "playerId",
+                "role"
+              ],
+              "properties": {
+                "playerId": {
+                  "$ref": "#/components/schemas/uuid"
+                },
+                "role": {
+                  "enum": [
+                    "UNASSIGNED",
+                    "MODERATOR",
+                    "JUNIOR_MODERATOR"
+                  ]
+                },
+                "recordAccess": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "enum": [
+                      "ENROLLMENT_LIST",
+                      "OUTLOOK_GROUPS",
+                      "COURSE_CATALOG",
+                      "FCIM_RECORD"
+                    ]
+                  }
+                },
+                "channels": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "enum": [
+                      "#enrollment-check",
+                      "#faculty-check",
+                      "#course-registration",
+                      "#general-mod-chat"
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "applicationsProcessed": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "score": {
+            "type": "integer"
+          },
+          "penalties": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "initializationStatus": {
+            "enum": [
+              "NONE",
+              "WAITING_RULES",
+              "WAITING_APPLICANTS",
+              "WAITING_CHAT",
+              "READY",
+              "BLOCKED"
+            ]
+          },
+          "shiftId": {
+            "$ref": "#/components/schemas/uuid"
+          }
+        }
+      },
+      "completionPayload": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "sessionId",
+          "players",
+          "score",
+          "outcome",
+          "accuracy",
+          "penalties"
+        ],
+        "properties": {
+          "sessionId": {
+            "$ref": "#/components/schemas/uuid"
+          },
+          "players": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 4,
+            "uniqueItems": true,
+            "items": {
+              "$ref": "#/components/schemas/uuid"
+            }
+          },
+          "score": {
+            "type": "integer"
+          },
+          "outcome": {
+            "enum": [
+              "PASSED",
+              "FAILED"
+            ]
+          },
+          "accuracy": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "penalties": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      },
+      "progressPayload": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "sessionId",
+          "playerId",
+          "level",
+          "xp",
+          "rank"
+        ],
+        "properties": {
+          "sessionId": {
+            "$ref": "#/components/schemas/uuid"
+          },
+          "playerId": {
+            "$ref": "#/components/schemas/uuid"
+          },
+          "level": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "xp": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "rank": {
+            "enum": [
+              "JUNIOR_MODERATOR",
+              "SENIOR_MODERATOR"
+            ]
+          }
+        }
+      },
+      "sessionCompletedEnvelope": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/envelope"
+          }
+        ],
+        "properties": {
+          "type": {
+            "enum": [
+              "SessionCompleted"
+            ]
+          },
+          "producer": {
+            "enum": [
+              "session-service"
+            ]
+          },
+          "payload": {
+            "$ref": "#/components/schemas/completionPayload"
+          }
+        }
+      },
+      "playerProgressedEnvelope": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/envelope"
+          }
+        ],
+        "properties": {
+          "type": {
+            "enum": [
+              "PlayerProgressed"
+            ]
+          },
+          "producer": {
+            "enum": [
+              "player-service"
+            ]
+          },
+          "payload": {
+            "$ref": "#/components/schemas/progressPayload"
+          }
+        }
+      },
+      "completionResponse": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/eventAck"
+          }
+        ],
+        "properties": {
+          "sessionId": {
+            "$ref": "#/components/schemas/uuid"
+          },
+          "duplicate": {
+            "type": "boolean"
+          },
+          "players": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "playerId",
+                "level",
+                "xp",
+                "rank"
+              ],
+              "properties": {
+                "playerId": {
+                  "$ref": "#/components/schemas/uuid"
+                },
+                "level": {
+                  "type": "integer"
+                },
+                "xp": {
+                  "type": "integer"
+                },
+                "rank": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      },
+      "ownedRecordFacts": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "applicantId",
+          "studentId",
+          "enrolled",
+          "record"
+        ],
+        "properties": {
+          "applicantId": {
+            "$ref": "#/components/schemas/uuid"
+          },
+          "studentId": {
+            "type": "string"
+          },
+          "enrolled": {
+            "type": "boolean"
+          },
+          "record": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "additionalProperties": false,
+            "required": [
+              "name",
+              "major",
+              "status",
+              "enrolledSince",
+              "outlookGroups",
+              "courses"
+            ],
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "major": {
+                "type": "string"
+              },
+              "status": {
+                "type": "string"
+              },
+              "enrolledSince": {
+                "type": "string"
+              },
+              "outlookGroups": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "courses": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      },
+      "ownedGeneration": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "requestId",
+          "applicantId",
+          "sessionId",
+          "seed",
+          "difficulty"
+        ],
+        "properties": {
+          "requestId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "applicantId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sessionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "seed": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "difficulty": {
+            "enum": [
+              "EASY",
+              "NORMAL",
+              "HARD"
+            ]
+          }
+        }
+      },
+      "ownedReadiness": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "applicantId",
+          "ready",
+          "pendingServices"
+        ],
+        "properties": {
+          "applicantId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "ready": {
+            "type": "boolean"
+          },
+          "pendingServices": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "ownedApplicantInitialized": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "eventId",
+          "type",
+          "occurredAt",
+          "producer",
+          "version",
+          "payload"
+        ],
+        "properties": {
+          "eventId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "type": {
+            "enum": [
+              "ApplicantInitialized"
+            ]
+          },
+          "occurredAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "producer": {
+            "enum": [
+              "applicant-service",
+              "credential-service",
+              "university-record-service"
+            ]
+          },
+          "version": {
+            "enum": [
+              1
+            ]
+          },
+          "payload": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "applicantId",
+              "seed",
+              "initiator",
+              "identity",
+              "deception",
+              "sessionId"
+            ],
+            "properties": {
+              "applicantId": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "seed": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "initiator": {
+                "enum": [
+                  "applicant-service",
+                  "credential-service",
+                  "university-record-service"
+                ]
+              },
+              "identity": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "name",
+                  "studentId",
+                  "year"
+                ],
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 120
+                  },
+                  "studentId": {
+                    "type": "string",
+                    "pattern": "^[A-Za-z0-9-]{1,64}$"
+                  },
+                  "year": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 6
+                  }
+                }
+              },
+              "deception": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "type",
+                  "impersonatedStudentId",
+                  "inconsistentFields"
+                ],
+                "properties": {
+                  "type": {
+                    "enum": [
+                      "NONE",
+                      "IMPERSONATION",
+                      "FORGED_DOCUMENT",
+                      "EXPIRED_DOCUMENT",
+                      "INCONSISTENT_CLAIM",
+                      "NOT_ENROLLED",
+                      "PREVIOUSLY_BANNED"
+                    ]
+                  },
+                  "impersonatedStudentId": {
+                    "type": "string",
+                    "maxLength": 64
+                  },
+                  "inconsistentFields": {
+                    "type": "array",
+                    "uniqueItems": true,
+                    "maxItems": 1,
+                    "items": {
+                      "enum": [
+                        "major"
+                      ]
+                    }
+                  }
+                }
+              },
+              "sessionId": {
+                "$ref": "#/components/schemas/uuid"
+              }
+            }
+          }
+        }
+      },
+      "ownedReceipt": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "applicantId",
+          "eventId",
+          "eventHash",
+          "status"
+        ],
+        "properties": {
+          "applicantId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "eventId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "eventHash": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "status": {
+            "enum": [
+              "INITIALIZED"
+            ]
+          }
+        }
+      },
+      "ownedProfileResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "applicant"
+        ],
+        "properties": {
+          "applicant": {
+            "$ref": "#/components/schemas/ownedProfile"
+          }
+        }
+      },
+      "ownedProfile": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "applicantId",
+          "name",
+          "studentId",
+          "major",
+          "year",
+          "universityStatus",
+          "role",
+          "courses"
+        ],
+        "properties": {
+          "applicantId": {
+            "$ref": "#/components/schemas/uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "studentId": {
+            "type": "string"
+          },
+          "major": {
+            "type": "string"
+          },
+          "year": {
+            "type": "integer"
+          },
+          "universityStatus": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string"
+          },
+          "courses": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "ownedClaims": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "applicantId",
+          "claims"
+        ],
+        "properties": {
+          "applicantId": {
+            "$ref": "#/components/schemas/uuid"
+          },
+          "claims": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "field",
+                "value"
+              ],
+              "properties": {
+                "field": {
+                  "type": "string"
+                },
+                "value": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      },
+      "ownedWarmup": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "requests"
+        ],
+        "properties": {
+          "requests": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 3,
+            "items": {
+              "$ref": "#/components/schemas/ownedGeneration"
+            }
+          }
+        }
+      },
+      "ownedWarmupResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "status",
+          "applicantIds"
+        ],
+        "properties": {
+          "status": {
+            "enum": [
+              "PENDING"
+            ]
+          },
+          "applicantIds": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/uuid"
+            },
+            "minItems": 1,
+            "maxItems": 3
+          }
+        }
+      },
+      "ownedShiftBinding": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "eventId",
+          "sessionId",
+          "shiftId"
+        ],
+        "properties": {
+          "eventId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sessionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "shiftId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
+      "ownedShiftRuleset": {
+        "type": "object",
+        "required": [
+          "eventId",
+          "sessionId",
+          "shiftId",
+          "rulesetVersion",
+          "rules"
+        ],
+        "properties": {
+          "eventId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sessionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "shiftId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "rulesetVersion": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "rules": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ownedStoredRule"
+            }
+          }
+        }
+      },
+      "ownedStoredRule": {
+        "type": "object",
+        "required": [
+          "ruleId",
+          "code",
+          "description",
+          "type",
+          "severity",
+          "active"
+        ],
+        "properties": {
+          "ruleId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "code": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "ONLY_FAF",
+              "MIN_ENROLLMENT_YEARS",
+              "NOT_PREVIOUSLY_BANNED",
+              "PROFESSOR_CHANNEL_ACCESS",
+              "AUTHENTIC_CREDENTIALS",
+              "CONSISTENT_CLAIMS",
+              "CURRENTLY_ENROLLED"
+            ]
+          },
+          "severity": {
+            "type": "string",
+            "enum": [
+              "MINOR",
+              "MAJOR",
+              "CRITICAL"
+            ]
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "minimumYears": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      },
       "ownedDocuments": {
         "type": "object",
         "required": [
@@ -1645,113 +5557,6 @@
             "type": "array",
             "items": {
               "type": "string"
-            }
-          }
-        }
-      },
-      "ownedShiftBinding": {
-        "type": "object",
-        "additionalProperties": false,
-        "required": [
-          "eventId",
-          "sessionId",
-          "shiftId"
-        ],
-        "properties": {
-          "eventId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "sessionId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "shiftId": {
-            "type": "string",
-            "format": "uuid"
-          }
-        }
-      },
-      "ownedStoredRule": {
-        "type": "object",
-        "required": [
-          "ruleId",
-          "code",
-          "description",
-          "type",
-          "severity",
-          "active"
-        ],
-        "properties": {
-          "ruleId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "code": {
-            "type": "string"
-          },
-          "description": {
-            "type": "string"
-          },
-          "type": {
-            "type": "string",
-            "enum": [
-              "ONLY_FAF",
-              "MIN_ENROLLMENT_YEARS",
-              "NOT_PREVIOUSLY_BANNED",
-              "PROFESSOR_CHANNEL_ACCESS",
-              "AUTHENTIC_CREDENTIALS",
-              "CONSISTENT_CLAIMS",
-              "CURRENTLY_ENROLLED"
-            ]
-          },
-          "severity": {
-            "type": "string",
-            "enum": [
-              "MINOR",
-              "MAJOR",
-              "CRITICAL"
-            ]
-          },
-          "active": {
-            "type": "boolean"
-          },
-          "minimumYears": {
-            "type": "integer",
-            "minimum": 0
-          }
-        }
-      },
-      "ownedShiftRuleset": {
-        "type": "object",
-        "required": [
-          "eventId",
-          "sessionId",
-          "shiftId",
-          "rulesetVersion",
-          "rules"
-        ],
-        "properties": {
-          "eventId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "sessionId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "shiftId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "rulesetVersion": {
-            "type": "integer",
-            "minimum": 1
-          },
-          "rules": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/ownedStoredRule"
             }
           }
         }

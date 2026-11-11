@@ -314,6 +314,12 @@ through the Gateway's authenticated service route, as listed in the shared
 each operation; operations still marked `requested` there are not working end to end. The
 protobuf and RabbitMQ descriptions below are design context, not implemented transport.
 
+**Player/Session review candidate:** the [real business baseline](docs/player-session-http-baseline.md)
+documents real login/teams, persisted membership/access, score/decision receipts and
+completion/progression delivery through Gateway. It extends the same executable catalog.
+Source awaiting review is separate from the pinned Lab 3 images; unresolved Credential initialization and cross-owner context semantics prevent
+a full-game readiness claim.
+
 Lab 4 Task 3 documents the new custom Message Broker repository only. It adds no
 broker endpoint, subscription, discovery field or protobuf definition and changes
 no existing REST path or event payload. The broker's transport and queue contract
@@ -1625,10 +1631,11 @@ Expired/invalid tokens return `401 UNAUTHENTICATED`. Gateway removes
 `Authorization` before forwarding requests, including public requests.
 
 Health endpoints, `OPTIONS`, and Player registration/login/refresh paths are
-public. **Player login, refresh and token issuance are not implemented yet**;
-local testing needs an explicitly labelled disposable test JWT and matching
-public key, not an invented login flow. Postman authentication setup and final
-full-stack verification remain separate work.
+public. The pinned Lab 3 Player image predates real token issuance. The
+[Player/Session baseline candidate](docs/player-session-http-baseline.md) implements
+login/refresh and updates the owned collections to obtain real tokens; use a matching
+reviewed Player/Gateway build and private key configuration. This documentation
+does not silently upgrade the pinned deployment or establish full-stack readiness.
 
 After updating local settings, adopt the release without clearing data:
 
@@ -1638,10 +1645,10 @@ docker compose up -d --no-deps gateway-service
 ```
 
 Use the same project name and overrides as the existing stack. Local Gateway
-health is `GET http://localhost:8090/health`. Protected Session SSE requests also
-retain the temporary `X-Player-Id` header; Gateway does not bind it to the JWT
-subject or implement ownership/role checks. Direct published service ports
-bypass Gateway, so this local lab deployment is not a production security boundary.
+health is `GET http://localhost:8090/health`. The membership/business baseline binds
+Session's player identity to the verified JWT subject and adds backend target
+credentials; do not supply a spoofed identity header. Direct published service ports
+in the old lab deployment require a separate private-network deployment update.
 
 ### Moderation and Discord DMs: what they need
 
@@ -1747,8 +1754,8 @@ test records in one run.
 |`discord-dms-service.postman_collection.json`|`http://localhost:8090`|
 |`credential-service.postman_collection.json`|`http://localhost:8090`|
 |`server-rules-service.postman_collection.json`|`http://localhost:8090`|
-|`player-service.postman_collection.json`|`http://localhost:8082`|
-|`session-service.postman_collection.json`|`http://localhost:8083`|
+|`player-service.postman_collection.json`|`http://localhost:8090`|
+|`session-service.postman_collection.json`|`http://localhost:8090`|
 |`applicant-service.postman_collection.json`|`http://localhost:8090`|
 |`university-record-service.postman_collection.json`|`http://localhost:8090`|
 

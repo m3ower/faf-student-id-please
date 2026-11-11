@@ -1,0 +1,31 @@
+{
+  "operation": "record.generate",
+  "note": "Candidate request sent through Gateway. Only the receiving target receives its own target credential and authenticated X-Service-Name. No claim of live peer availability.",
+  "request": {
+    "method": "POST",
+    "path": "/internal/v1/records/generate",
+    "headers": {
+      "Authorization": "Bearer <session-service caller credential>",
+      "X-Trace-Id": "owned-initialization-example",
+      "Content-Type": "application/json"
+    },
+    "body": {
+      "requestId": "00000000-0000-0000-0000-000000008001",
+      "applicantId": "00000000-0000-0000-0000-000000007001",
+      "sessionId": "00000000-0000-0000-0000-000000009000",
+      "seed": 1,
+      "difficulty": "HARD"
+    }
+  },
+  "response": {
+    "status": 202,
+    "body": {
+      "applicantId": "00000000-0000-0000-0000-000000007001",
+      "ready": false,
+      "pendingServices": [
+        "applicant-service",
+        "credential-service"
+      ]
+    }
+  }
+}

@@ -5,7 +5,9 @@ CPR #129 is now merged and supplies the canonical list, validation, evaluation
 and Moderation history contracts. Applicant/Record #126 remains draft; its full
 initialization protocol is incompatible with the earlier owned workflow below.
 Treat this page's earlier consumer proposals as historical candidates, not agreed
-peer contracts or proof of Task 5 completion.
+peer contracts or proof of Task 5 completion. Latest dev #132 now imports exact
+Applicant/Record schemas and Session state/Rules binding contracts; the remaining
+work is owned implementation alignment, not waiting for those schemas to exist.
 
 Tracks [CPR #123](https://github.com/m3ower/faf-student-id-please/issues/123),
 [Credential #31](https://github.com/CmMarin/student-id-credential-service/issues/31)

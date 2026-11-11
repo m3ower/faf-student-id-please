@@ -1,0 +1,22 @@
+{
+  "operation": "players.verify",
+  "note": "Synthetic contract example, not a reserved runtime ID or verified live exchange.",
+  "request": {
+    "method": "POST",
+    "path": "/internal/v1/players/verify",
+    "headers": {
+      "Authorization": "Bearer <CALLER_SERVICE_CREDENTIAL>",
+      "X-Trace-Id": "example-player-session-trace"
+    },
+    "body": {
+      "playerId": "22222222-2222-2222-2222-222222222222"
+    }
+  },
+  "response": {
+    "status": 200,
+    "body": {
+      "playerId": "22222222-2222-2222-2222-222222222222",
+      "exists": false
+    }
+  }
+}

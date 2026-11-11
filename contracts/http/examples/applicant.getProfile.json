@@ -1,0 +1,30 @@
+{
+  "operation": "applicant.getProfile",
+  "note": "Candidate request sent through Gateway. Only the receiving target receives its own target credential and authenticated X-Service-Name. No claim of live peer availability.",
+  "request": {
+    "method": "GET",
+    "path": "/internal/v1/applicants/00000000-0000-0000-0000-000000007001/profile",
+    "headers": {
+      "Authorization": "Bearer <session-service caller credential>",
+      "X-Trace-Id": "owned-initialization-example",
+      "Content-Type": "application/json"
+    }
+  },
+  "response": {
+    "status": 200,
+    "body": {
+      "applicant": {
+        "applicantId": "00000000-0000-0000-0000-000000007001",
+        "name": "Applicant 000000000000",
+        "studentId": "PAD-00000000000000000000000000007001",
+        "major": "FAF",
+        "year": 2,
+        "universityStatus": "ENROLLED",
+        "role": "STUDENT",
+        "courses": [
+          "PAD"
+        ]
+      }
+    }
+  }
+}

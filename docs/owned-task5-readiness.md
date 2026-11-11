@@ -13,6 +13,12 @@ protocol has a real mismatch, not just missing paths; follow
 All authoritative schemas now live in `contracts/http/service-operations.json`;
 the earlier duplicate `contracts/business-http/` catalog has been removed.
 
+**Latest dev reconciliation (#132):** exact Applicant/Record response schemas,
+Session state and membership callers, and Rules shift bind/read are now published
+in that catalog. The earlier missing-schema notes below are historical; owned
+adapters and initialization protocol reconciliation still require implementation.
+No private application changes or live-integration claim accompany this CPR merge.
+
 ## Credential: implemented
 
 - Service-only initialization, persisted document retrieval, structural inspection,
