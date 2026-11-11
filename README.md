@@ -426,10 +426,13 @@ contract.
 | `/api/v1/channels` | Discord DMs | yes |
 | `/api/v1/messages` | Discord DMs | yes |
 
-Credential and Server Rules currently have no outbound REST business-service
-calls to reroute: those dependencies remain in-process mocks. Their internal
-Discovery startup registration uses the direct control-plane contract, while
-client-facing CRUD requests use the Gateway.
+The released Credential and Rules images have no outbound REST business-service
+calls: their integration dependencies remain fixtures/plans. Their direct Discovery
+registration is control-plane traffic; client CRUD uses Gateway. The unmerged
+[owned business HTTP candidate](docs/owned-business-http-baseline.md) removes
+fixtures from production artifacts and implements protected-read membership calls
+through Gateway. It is not deployed or integration-ready; generation, authoritative
+facts, initialization and Gateway/peer contracts remain incomplete.
 
 A prefix matches only on a segment boundary. The method, path, query string, body and
 headers reach the service unchanged, and its status, body and headers are relayed back
@@ -1907,6 +1910,11 @@ created. To recreate development databases, intentionally remove the named
 volume and start Compose again.
 
 ### Credential and Server Rules mock contract
+
+The following describes released Lab 3 behavior and test fixture expectations,
+not the unreleased production-baseline implementation. In the candidate branches
+the legacy fixture code is test-only, and protected reads use the real candidate
+membership boundary; see [candidate status and missing work](docs/owned-business-http-baseline.md).
 
 The Grade 9 code in these two private services prepares the existing internal
 contract without changing their Lab 1 HTTP endpoints. Credential models

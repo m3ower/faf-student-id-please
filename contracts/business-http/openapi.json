@@ -1,0 +1,579 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Owned business HTTP candidate catalog",
+    "version": "0.1.0-candidate",
+    "description": "Unapproved candidate tracked by CPR #123. Not integration-ready. Backend target credentials for reads are for Gateway only; public clients use JWTs at Gateway. No peer facts routes are invented."
+  },
+  "paths": {
+    "/internal/v1/session-memberships/verify": {
+      "post": {
+        "operationId": "session.membership.verify",
+        "description": "Exact upstream candidate from CPR #122; Credential and Rules are not yet allowed by Gateway #48.",
+        "servers": [
+          {
+            "url": "http://localhost:8090"
+          }
+        ],
+        "security": [
+          {
+            "serviceCaller": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Trace-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MembershipRequest"
+              },
+              "example": {
+                "sessionId": "55555555-5555-4555-8555-555555555555",
+                "playerId": "22222222-2222-4222-8222-222222222222"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Membership read from persisted Session assignments",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MembershipResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Sanitized failure; never grant permission on dependency failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sanitized failure; never grant permission on dependency failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Sanitized failure; never grant permission on dependency failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Sanitized failure; never grant permission on dependency failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/credentials/applicant/{applicantId}": {
+      "get": {
+        "operationId": "credential.applicantDocuments.read",
+        "description": "Backend hop only. Gateway must supply its receiver-specific credential and bind X-Player-Id to a verified JWT. Requires Gateway extensions not currently in #48.",
+        "servers": [
+          {
+            "url": "http://credential-service:8080"
+          }
+        ],
+        "security": [
+          {
+            "credentialReceiver": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Trace-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "X-Player-Id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "X-Service-Name",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "const": "gateway-service"
+            }
+          },
+          {
+            "name": "applicantId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "X-Session-Id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Authorized documents",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Documents"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Sanitized failure; never grant permission on dependency failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sanitized failure; never grant permission on dependency failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Sanitized failure; never grant permission on dependency failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Applicant has no documents",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Sanitized failure; never grant permission on dependency failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/rules/current": {
+      "get": {
+        "operationId": "rules.current.read",
+        "description": "Backend hop only. Reads active global database rules after real membership. Does NOT yet implement session-bound ruleset selection.",
+        "servers": [
+          {
+            "url": "http://rules-service:8081"
+          }
+        ],
+        "security": [
+          {
+            "rulesReceiver": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Trace-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "X-Player-Id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "X-Service-Name",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "const": "gateway-service"
+            }
+          },
+          {
+            "name": "sessionId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Active rules after membership authorization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Ruleset"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Sanitized failure; never grant permission on dependency failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sanitized failure; never grant permission on dependency failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Sanitized failure; never grant permission on dependency failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Sanitized failure; never grant permission on dependency failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "serviceCaller": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "Distinct calling-service credential supplied to Gateway"
+      },
+      "credentialReceiver": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "Credential target credential held only by Gateway and Credential"
+      },
+      "rulesReceiver": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "Rules target credential held only by Gateway and Rules"
+      }
+    },
+    "schemas": {
+      "MembershipRequest": {
+        "type": "object",
+        "required": [
+          "sessionId",
+          "playerId"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "sessionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "playerId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
+      "MembershipResponse": {
+        "type": "object",
+        "required": [
+          "member",
+          "role",
+          "recordAccess",
+          "channels"
+        ],
+        "properties": {
+          "member": {
+            "type": "boolean"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "",
+              "MODERATOR",
+              "JUNIOR_MODERATOR"
+            ]
+          },
+          "recordAccess": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "channels": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "member": {
+                  "const": false
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "role": {
+                  "const": ""
+                },
+                "recordAccess": {
+                  "maxItems": 0
+                },
+                "channels": {
+                  "maxItems": 0
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "member": {
+                  "const": true
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "role": {
+                  "enum": [
+                    "MODERATOR",
+                    "JUNIOR_MODERATOR"
+                  ]
+                }
+              }
+            }
+          }
+        ]
+      },
+      "Error": {
+        "type": "object",
+        "required": [
+          "error"
+        ],
+        "properties": {
+          "error": {
+            "type": "object",
+            "required": [
+              "code",
+              "message",
+              "service",
+              "traceId",
+              "details"
+            ],
+            "properties": {
+              "code": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              },
+              "service": {
+                "type": "string"
+              },
+              "traceId": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "details": {
+                "type": "object"
+              }
+            }
+          }
+        }
+      },
+      "Documents": {
+        "type": "object",
+        "required": [
+          "applicantId",
+          "credentials"
+        ],
+        "properties": {
+          "applicantId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "credentials": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "credentialId",
+                "applicantId",
+                "type",
+                "fields"
+              ],
+              "properties": {
+                "credentialId": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "applicantId": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": {
+                  "enum": [
+                    "STUDENT_ID",
+                    "UNIVERSITY_EMAIL",
+                    "ENROLLMENT_CONFIRMATION",
+                    "COURSE_REGISTRATION"
+                  ]
+                },
+                "issuedAt": {
+                  "type": "string",
+                  "format": "date"
+                },
+                "expiresAt": {
+                  "type": "string",
+                  "format": "date"
+                },
+                "fields": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "Ruleset": {
+        "type": "object",
+        "required": [
+          "rulesetVersion",
+          "rules"
+        ],
+        "properties": {
+          "rulesetVersion": {
+            "type": "integer"
+          },
+          "rules": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "code",
+                "description",
+                "severity"
+              ],
+              "properties": {
+                "code": {
+                  "type": "string"
+                },
+                "description": {
+                  "type": "string"
+                },
+                "severity": {
+                  "enum": [
+                    "MINOR",
+                    "MAJOR",
+                    "CRITICAL"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
