@@ -77,7 +77,7 @@ print(json.dumps({"public":base64.b64encode(public).decode(),"tokens":tokens}))
     signed = subprocess.run(["docker", "run", "--rm", "pad-gateway-membership-tests:local", "python", "-c", signer],
                             capture_output=True, text=True, timeout=60, check=True)
     identity = json.loads(signed.stdout)
-    record_token, dms_token, target_token = (secrets.token_urlsafe(40) for _ in range(3))
+    record_token, dms_token, target_token, dms_target_token = (secrets.token_urlsafe(40) for _ in range(4))
     password = secrets.token_hex(24)
     environment = {
         "PG_PASSWORD": password,
@@ -88,6 +88,10 @@ print(json.dumps({"public":base64.b64encode(public).decode(),"tokens":tokens}))
         "SESSION_INTERNAL_TOKEN": target_token,
         "RECORD_GATEWAY_TOKEN": record_token,
         "DMS_GATEWAY_TOKEN": dms_token,
+        # DMs has no fixture or memory mode any more: it needs its own target credential,
+        # the Player public key for WebSocket handshakes, and Redis.
+        "DMS_INTERNAL_TOKEN": dms_target_token,
+        "DMS_REDIS_PASSWORD": secrets.token_hex(24),
     }
     # These are ignored, disposable local credentials; never write them into result/log files.
     env_path = output / "candidate.env"
@@ -109,7 +113,14 @@ print(json.dumps({"public":base64.b64encode(public).decode(),"tokens":tokens}))
         "session": built("session", "session-net", session_env),
         "session-2": {"image": f"{project}-session:candidate", "networks": ["session-net"], "environment": session_env},
         "record": built("record", "record-net", {"DB_URL": "${RECORD_DB_URL}", "SESSION_CLIENT": "gateway", "GATEWAY_URL": "http://gateway:8080", "GATEWAY_SERVICE_TOKEN": "${RECORD_GATEWAY_TOKEN}", "DISCOVERY_URL": ""}),
-        "dms": built("dms", "dms-net", {"STORE": "memory", "SESSION_CLIENT": "gateway", "GATEWAY_URL": "http://gateway:8080", "GATEWAY_SERVICE_TOKEN": "${DMS_GATEWAY_TOKEN}", "DISCOVERY_URL": ""}),
+        "dms-redis": {"image": "redis:7.4-alpine", "networks": ["dms-net"],
+                      "command": ["redis-server", "--requirepass", "${DMS_REDIS_PASSWORD}"],
+                      "environment": {"REDISCLI_AUTH": "${DMS_REDIS_PASSWORD}"},
+                      "healthcheck": {"test": ["CMD", "redis-cli", "ping"], "interval": "2s", "timeout": "2s", "retries": 30}},
+        "dms": {**built("dms", "dms-net", {"SESSION_CLIENT": "gateway", "GATEWAY_URL": "http://gateway:8080", "GATEWAY_SERVICE_TOKEN": "${DMS_GATEWAY_TOKEN}",
+                                          "DMS_INTERNAL_TOKEN": "${DMS_INTERNAL_TOKEN}", "PLAYER_JWT_PUBLIC_KEY_B64": "${GATEWAY_JWT_PUBLIC_KEY_B64}",
+                                          "REDIS_ADDR": "dms-redis:6379", "REDIS_PASSWORD": "${DMS_REDIS_PASSWORD}", "DISCOVERY_URL": ""}),
+                "depends_on": {"dms-redis": {"condition": "service_healthy"}}},
         "gateway": {**built("gateway", "session-net", {
             "SESSION_SERVICE_URL": "http://session:8080", "RECORD_SERVICE_URL": "http://record:8081", "DMS_SERVICE_URL": "http://dms:8080",
             "GATEWAY_JWT_PUBLIC_KEY_B64": "${GATEWAY_JWT_PUBLIC_KEY_B64}", "GATEWAY_SERVICE_TOKENS_JSON": "${GATEWAY_SERVICE_TOKENS_JSON}", "SESSION_INTERNAL_TOKEN": "${SESSION_INTERNAL_TOKEN}", "GATEWAY_MAX_CONCURRENT_TASKS": "1", "DISCOVERY_URL": "",
@@ -157,7 +168,7 @@ print(json.dumps({"public":base64.b64encode(public).decode(),"tokens":tokens}))
         print(f"Building isolated project {project}", flush=True)
         run(compose + ["build", "gateway", "record", "session", "dms"], timeout=900, name="build")
         run(compose + ["up", "-d", "--wait", "session-db", "record-db"], name="databases")
-        run(compose + ["up", "-d", "session", "record", "dms", "gateway"], name="services")
+        run(compose + ["up", "-d", "session", "record", "dms-redis", "dms", "gateway"], name="services")
         base = "http://" + run(compose + ["port", "gateway", "8080"], name="gateway-port")
         for path in ("/health", "/api/v1/health/session-service", "/api/v1/health/university-record-service", "/api/v1/health/discord-dms-service"):
             ready(path)
@@ -208,7 +219,7 @@ print(json.dumps({"public":base64.b64encode(public).decode(),"tokens":tokens}))
         check("end session", http("POST", f"/api/v1/sessions/{sid}/end", HOST)[0] == 200)
         check("completed session revokes enrollment access", http("GET", enrollment, JUNIOR, extra=session_header)[0] == 403)
         logs = run(compose + ["logs", "--no-color", "gateway", "record", "session", "dms"], name="candidate-service-logs")
-        if any(secret in logs for secret in [record_token, dms_token, target_token, password, *identity["tokens"].values()]):
+        if any(secret in logs for secret in [record_token, dms_token, target_token, dms_target_token, password, environment["DMS_REDIS_PASSWORD"], *identity["tokens"].values()]):
             raise AssertionError("Credentials found in candidate logs")
         trace_lines = [line for line in logs.splitlines() if "baseline-record-allowed" in line or "baseline-dms-allowed" in line]
         (output / "correlated-traces.log").write_text("\n".join(trace_lines) + "\n", encoding="utf-8")
