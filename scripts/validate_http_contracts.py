@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import re
 import sys
 from datetime import datetime
@@ -65,21 +66,31 @@ def validate(value, schema: dict, schemas: dict, where: str = "$") -> list[str]:
             return errors + [f"{where}: expected {'/'.join(allowed)}"]
     if "enum" in schema and value not in schema["enum"]:
         errors.append(f"{where}: {value!r} is not one of {schema['enum']}")
+    if "const" in schema and (value != schema["const"] or isinstance(value, bool) != isinstance(schema["const"], bool)):
+        errors.append(f"{where}: does not equal the required constant")
     if isinstance(value, str):
         fmt = schema.get("format")
         if fmt == "uuid" and not UUID_RE.match(value):
             errors.append(f"{where}: not a UUID")
         if fmt == "date-time":
             try:
-                datetime.fromisoformat(value.replace("Z", "+00:00"))
+                parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+                if parsed.tzinfo is None or parsed.utcoffset() is None:
+                    raise ValueError("Offset is required")
             except ValueError:
                 errors.append(f"{where}: not an RFC 3339 date-time")
         if len(value) < schema.get("minLength", 0) or len(value) > schema.get("maxLength", 10**9):
             errors.append(f"{where}: length out of range")
+        if "pattern" in schema and re.search(schema["pattern"], value) is None:
+            errors.append(f"{where}: does not match the required pattern")
     if _is_type(value, "number"):
+        if isinstance(value, float) and not math.isfinite(value):
+            errors.append(f"{where}: number must be finite")
         if value < schema.get("minimum", float("-inf")) or value > schema.get("maximum", float("inf")):
             errors.append(f"{where}: {value} out of range")
     if isinstance(value, list):
+        if schema.get("uniqueItems") and len({json.dumps(item, sort_keys=True) for item in value}) != len(value):
+            errors.append(f"{where}: duplicate items")
         if len(value) < schema.get("minItems", 0) or len(value) > schema.get("maxItems", 10**9):
             errors.append(f"{where}: {len(value)} items out of range")
         if "items" in schema:

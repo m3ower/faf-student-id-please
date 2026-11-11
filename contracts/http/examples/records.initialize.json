@@ -1,0 +1,43 @@
+{
+  "operation": "records.initialize",
+  "note": "Synthetic contract example, not a reserved runtime ID or verified live exchange.",
+  "request": {
+    "method": "POST",
+    "path": "/internal/v1/records/events/applicant-initialized",
+    "headers": {
+      "Authorization": "Bearer <CALLER_SERVICE_CREDENTIAL>",
+      "X-Trace-Id": "example-player-session-trace"
+    },
+    "body": {
+      "eventId": "d0000000-0000-0000-0000-000000000001",
+      "type": "ApplicantInitialized",
+      "occurredAt": "2026-11-11T18:00:00.000Z",
+      "producer": "applicant-service",
+      "version": 1,
+      "payload": {
+        "applicantId": "a0000000-0000-0000-0000-000000000001",
+        "seed": 0,
+        "initiator": "applicant-service",
+        "identity": {
+          "name": "<EXAMPLE>",
+          "studentId": "PAD-A0000000000000000000000000000001",
+          "year": 1
+        },
+        "deception": {
+          "type": "NONE",
+          "impersonatedStudentId": "<EXAMPLE>",
+          "inconsistentFields": []
+        }
+      }
+    }
+  },
+  "response": {
+    "status": 200,
+    "body": {
+      "applicantId": "a0000000-0000-0000-0000-000000000001",
+      "eventId": "d0000000-0000-0000-0000-000000000001",
+      "eventHash": "0000000000000000000000000000000000000000000000000000000000000000",
+      "status": "INITIALIZED"
+    }
+  }
+}

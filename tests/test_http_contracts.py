@@ -88,6 +88,12 @@ class CatalogTest(unittest.TestCase):
             self.assertEqual(v.main(["--check", "dms.decisionRecorded", "response", str(good)]), 1)
             self.assertEqual(v.main(["--check", "record.enrollmentFacts", "response", str(good)]), 2)
 
+    def test_imported_owner_constraints_are_not_silently_ignored(self):
+        self.assertTrue(v.validate("wrong", {"const": "INITIALIZED"}, {}))
+        self.assertTrue(v.validate("not-a-digest", {"type": "string", "pattern": "^[a-f0-9]{64}$"}, {}))
+        self.assertTrue(v.validate(["x", "x"], {"type": "array", "uniqueItems": True}, {}))
+        self.assertTrue(v.validate(float("nan"), {"type": "number", "minimum": 0, "maximum": 1}, {}))
+
 
 if __name__ == "__main__":
     unittest.main()

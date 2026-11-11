@@ -1,0 +1,29 @@
+{
+  "operation": "session-state.get",
+  "note": "Synthetic contract example, not a reserved runtime ID or verified live exchange.",
+  "request": {
+    "method": "POST",
+    "path": "/internal/v1/session-state/get",
+    "headers": {
+      "Authorization": "Bearer <CALLER_SERVICE_CREDENTIAL>",
+      "X-Trace-Id": "example-player-session-trace"
+    },
+    "body": {
+      "sessionId": "55555555-5555-5555-5555-555555555555"
+    }
+  },
+  "response": {
+    "status": 200,
+    "body": {
+      "sessionId": "55555555-5555-5555-5555-555555555555",
+      "state": "LOBBY",
+      "difficulty": "EASY",
+      "rulesetVersion": 0,
+      "currentApplicantId": "<EXAMPLE>",
+      "players": [],
+      "applicationsProcessed": 0,
+      "score": 1,
+      "penalties": 0
+    }
+  }
+}

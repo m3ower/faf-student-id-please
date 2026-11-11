@@ -1,0 +1,20 @@
+{
+  "operation": "applicants.resume",
+  "note": "Synthetic contract example, not a reserved runtime ID or verified live exchange.",
+  "request": {
+    "method": "POST",
+    "path": "/internal/v1/applicants/a0000000-0000-0000-0000-000000000001/resume",
+    "headers": {
+      "Authorization": "Bearer <CALLER_SERVICE_CREDENTIAL>",
+      "X-Trace-Id": "example-player-session-trace"
+    }
+  },
+  "response": {
+    "status": 200,
+    "body": {
+      "applicantId": "a0000000-0000-0000-0000-000000000001",
+      "ready": false,
+      "pendingServices": []
+    }
+  }
+}
