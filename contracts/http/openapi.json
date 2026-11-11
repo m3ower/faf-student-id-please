@@ -1,8 +1,8 @@
 {
   "openapi": "3.1.0",
   "info": {
-    "title": "Student ID, please: service operations through the Gateway",
-    "version": "0.2.0-candidate",
+    "title": "Student ID, please: service operations through the message broker",
+    "version": "0.3.0-candidate",
     "description": "Generated from contracts/http/service-operations.json. Do not edit by hand."
   },
   "paths": {
@@ -19,7 +19,7 @@
         "x-idempotency": "requestId/eventId and full immutable content digest are persisted atomically; conflicting reuse is 409",
         "security": [
           {
-            "gatewayServiceCredential": []
+            "brokerServiceCredential": []
           }
         ],
         "parameters": [
@@ -35,7 +35,7 @@
             "name": "X-Service-Name",
             "in": "header",
             "required": true,
-            "description": "set by the Gateway to the authenticated caller",
+            "description": "set by the message broker to the authenticated caller",
             "schema": {
               "type": "string",
               "enum": [
@@ -163,7 +163,7 @@
         "x-idempotency": "requestId/eventId and full immutable content digest are persisted atomically; conflicting reuse is 409",
         "security": [
           {
-            "gatewayServiceCredential": []
+            "brokerServiceCredential": []
           }
         ],
         "parameters": [
@@ -179,7 +179,7 @@
             "name": "X-Service-Name",
             "in": "header",
             "required": true,
-            "description": "set by the Gateway to the authenticated caller",
+            "description": "set by the message broker to the authenticated caller",
             "schema": {
               "type": "string",
               "enum": [
@@ -306,7 +306,7 @@
         "x-idempotency": "requestId/eventId and full immutable content digest are persisted atomically; conflicting reuse is 409",
         "security": [
           {
-            "gatewayServiceCredential": []
+            "brokerServiceCredential": []
           }
         ],
         "parameters": [
@@ -322,7 +322,7 @@
             "name": "X-Service-Name",
             "in": "header",
             "required": true,
-            "description": "set by the Gateway to the authenticated caller",
+            "description": "set by the message broker to the authenticated caller",
             "schema": {
               "type": "string",
               "enum": [
@@ -450,7 +450,7 @@
         "x-idempotency": "read-only",
         "security": [
           {
-            "gatewayServiceCredential": []
+            "brokerServiceCredential": []
           }
         ],
         "parameters": [
@@ -475,7 +475,7 @@
             "name": "X-Service-Name",
             "in": "header",
             "required": true,
-            "description": "set by the Gateway to the authenticated caller",
+            "description": "set by the message broker to the authenticated caller",
             "schema": {
               "type": "string",
               "enum": [
@@ -603,7 +603,7 @@
         "x-idempotency": "read-only",
         "security": [
           {
-            "gatewayServiceCredential": []
+            "brokerServiceCredential": []
           }
         ],
         "parameters": [
@@ -637,7 +637,7 @@
             "name": "X-Service-Name",
             "in": "header",
             "required": true,
-            "description": "set by the Gateway to the authenticated caller",
+            "description": "set by the message broker to the authenticated caller",
             "schema": {
               "type": "string",
               "enum": [
@@ -755,7 +755,7 @@
         "x-idempotency": "read-only",
         "security": [
           {
-            "gatewayServiceCredential": []
+            "brokerServiceCredential": []
           }
         ],
         "parameters": [
@@ -780,7 +780,7 @@
             "name": "X-Service-Name",
             "in": "header",
             "required": true,
-            "description": "set by the Gateway to the authenticated caller",
+            "description": "set by the message broker to the authenticated caller",
             "schema": {
               "type": "string",
               "enum": [
@@ -901,7 +901,7 @@
         "x-idempotency": "read-only",
         "security": [
           {
-            "gatewayServiceCredential": []
+            "brokerServiceCredential": []
           }
         ],
         "parameters": [
@@ -926,7 +926,7 @@
             "name": "X-Service-Name",
             "in": "header",
             "required": true,
-            "description": "set by the Gateway to the authenticated caller",
+            "description": "set by the message broker to the authenticated caller",
             "schema": {
               "type": "string",
               "enum": [
@@ -1056,7 +1056,7 @@
         "x-idempotency": "read-only",
         "security": [
           {
-            "gatewayServiceCredential": []
+            "brokerServiceCredential": []
           }
         ],
         "parameters": [
@@ -1081,7 +1081,7 @@
             "name": "X-Service-Name",
             "in": "header",
             "required": true,
-            "description": "set by the Gateway to the authenticated caller",
+            "description": "set by the message broker to the authenticated caller",
             "schema": {
               "type": "string",
               "enum": [
@@ -1210,7 +1210,7 @@
         "x-idempotency": "Explicitly resets nondelivered retry state only; never repeats a committed domain initialization. Only the original producer may resume.",
         "security": [
           {
-            "gatewayServiceCredential": []
+            "brokerServiceCredential": []
           }
         ],
         "parameters": [
@@ -1235,7 +1235,7 @@
             "name": "X-Service-Name",
             "in": "header",
             "required": true,
-            "description": "set by the Gateway to the authenticated caller",
+            "description": "set by the message broker to the authenticated caller",
             "schema": {
               "type": "string",
               "enum": [
@@ -1352,7 +1352,7 @@
         "x-idempotency": "as dms.shiftStarted",
         "security": [
           {
-            "gatewayServiceCredential": []
+            "brokerServiceCredential": []
           }
         ],
         "parameters": [
@@ -1368,7 +1368,7 @@
             "name": "X-Service-Name",
             "in": "header",
             "required": true,
-            "description": "set by the Gateway to the authenticated caller",
+            "description": "set by the message broker to the authenticated caller",
             "schema": {
               "type": "string",
               "enum": [
@@ -1473,7 +1473,7 @@
         "x-idempotency": "eventId with a persisted content digest: identical repeat 200 DUPLICATE, different content 409 EVENT_CONFLICT; an interrupted delivery is re-processed with deterministic effects",
         "security": [
           {
-            "gatewayServiceCredential": []
+            "brokerServiceCredential": []
           }
         ],
         "parameters": [
@@ -1489,7 +1489,7 @@
             "name": "X-Service-Name",
             "in": "header",
             "required": true,
-            "description": "set by the Gateway to the authenticated caller",
+            "description": "set by the message broker to the authenticated caller",
             "schema": {
               "type": "string",
               "enum": [
@@ -1594,7 +1594,7 @@
         "x-idempotency": "read-only",
         "security": [
           {
-            "gatewayServiceCredential": []
+            "brokerServiceCredential": []
           }
         ],
         "parameters": [
@@ -1628,7 +1628,7 @@
             "name": "X-Service-Name",
             "in": "header",
             "required": true,
-            "description": "set by the Gateway to the authenticated caller",
+            "description": "set by the message broker to the authenticated caller",
             "schema": {
               "type": "string",
               "enum": [
@@ -1683,7 +1683,7 @@
         "x-idempotency": "read-only",
         "security": [
           {
-            "gatewayServiceCredential": []
+            "brokerServiceCredential": []
           }
         ],
         "parameters": [
@@ -1708,7 +1708,7 @@
             "name": "X-Service-Name",
             "in": "header",
             "required": true,
-            "description": "set by the Gateway to the authenticated caller",
+            "description": "set by the message broker to the authenticated caller",
             "schema": {
               "type": "string",
               "enum": [
@@ -1763,7 +1763,7 @@
         "x-idempotency": "read-only",
         "security": [
           {
-            "gatewayServiceCredential": []
+            "brokerServiceCredential": []
           }
         ],
         "parameters": [
@@ -1788,7 +1788,7 @@
             "name": "X-Service-Name",
             "in": "header",
             "required": true,
-            "description": "set by the Gateway to the authenticated caller",
+            "description": "set by the message broker to the authenticated caller",
             "schema": {
               "type": "string",
               "enum": [
@@ -1863,7 +1863,7 @@
         "x-idempotency": "Persisted eventId and content conflict detection; completion also deduplicates by session/player.",
         "security": [
           {
-            "gatewayServiceCredential": []
+            "brokerServiceCredential": []
           }
         ],
         "parameters": [
@@ -1879,7 +1879,7 @@
             "name": "X-Service-Name",
             "in": "header",
             "required": true,
-            "description": "set by the Gateway to the authenticated caller",
+            "description": "set by the message broker to the authenticated caller",
             "schema": {
               "type": "string",
               "enum": [
@@ -1994,7 +1994,7 @@
         "x-idempotency": "Read-only",
         "security": [
           {
-            "gatewayServiceCredential": []
+            "brokerServiceCredential": []
           }
         ],
         "parameters": [
@@ -2010,7 +2010,7 @@
             "name": "X-Service-Name",
             "in": "header",
             "required": true,
-            "description": "set by the Gateway to the authenticated caller",
+            "description": "set by the message broker to the authenticated caller",
             "schema": {
               "type": "string",
               "enum": [
@@ -2125,7 +2125,7 @@
         "x-idempotency": "Read-only",
         "security": [
           {
-            "gatewayServiceCredential": []
+            "brokerServiceCredential": []
           }
         ],
         "parameters": [
@@ -2141,7 +2141,7 @@
             "name": "X-Service-Name",
             "in": "header",
             "required": true,
-            "description": "set by the Gateway to the authenticated caller",
+            "description": "set by the message broker to the authenticated caller",
             "schema": {
               "type": "string",
               "enum": [
@@ -2257,7 +2257,7 @@
         "x-idempotency": "requestId/eventId and full immutable content digest are persisted atomically; conflicting reuse is 409",
         "security": [
           {
-            "gatewayServiceCredential": []
+            "brokerServiceCredential": []
           }
         ],
         "parameters": [
@@ -2273,7 +2273,7 @@
             "name": "X-Service-Name",
             "in": "header",
             "required": true,
-            "description": "set by the Gateway to the authenticated caller",
+            "description": "set by the message broker to the authenticated caller",
             "schema": {
               "type": "string",
               "enum": [
@@ -2401,7 +2401,7 @@
         "x-idempotency": "requestId/eventId and full immutable content digest are persisted atomically; conflicting reuse is 409",
         "security": [
           {
-            "gatewayServiceCredential": []
+            "brokerServiceCredential": []
           }
         ],
         "parameters": [
@@ -2417,7 +2417,7 @@
             "name": "X-Service-Name",
             "in": "header",
             "required": true,
-            "description": "set by the Gateway to the authenticated caller",
+            "description": "set by the message broker to the authenticated caller",
             "schema": {
               "type": "string",
               "enum": [
@@ -2545,7 +2545,7 @@
         "x-idempotency": "read-only",
         "security": [
           {
-            "gatewayServiceCredential": []
+            "brokerServiceCredential": []
           }
         ],
         "parameters": [
@@ -2570,7 +2570,7 @@
             "name": "X-Service-Name",
             "in": "header",
             "required": true,
-            "description": "set by the Gateway to the authenticated caller",
+            "description": "set by the message broker to the authenticated caller",
             "schema": {
               "type": "string",
               "enum": [
@@ -2689,7 +2689,7 @@
         "x-idempotency": "read-only",
         "security": [
           {
-            "gatewayServiceCredential": []
+            "brokerServiceCredential": []
           }
         ],
         "parameters": [
@@ -2714,7 +2714,7 @@
             "name": "X-Service-Name",
             "in": "header",
             "required": true,
-            "description": "set by the Gateway to the authenticated caller",
+            "description": "set by the message broker to the authenticated caller",
             "schema": {
               "type": "string",
               "enum": [
@@ -2834,7 +2834,7 @@
         "x-idempotency": "read-only",
         "security": [
           {
-            "gatewayServiceCredential": []
+            "brokerServiceCredential": []
           }
         ],
         "parameters": [
@@ -2859,7 +2859,7 @@
             "name": "X-Service-Name",
             "in": "header",
             "required": true,
-            "description": "set by the Gateway to the authenticated caller",
+            "description": "set by the message broker to the authenticated caller",
             "schema": {
               "type": "string",
               "enum": [
@@ -2988,7 +2988,7 @@
         "x-idempotency": "Explicitly resets nondelivered retry state only; never repeats a committed domain initialization. Only the original producer may resume.",
         "security": [
           {
-            "gatewayServiceCredential": []
+            "brokerServiceCredential": []
           }
         ],
         "parameters": [
@@ -3013,7 +3013,7 @@
             "name": "X-Service-Name",
             "in": "header",
             "required": true,
-            "description": "set by the Gateway to the authenticated caller",
+            "description": "set by the message broker to the authenticated caller",
             "schema": {
               "type": "string",
               "enum": [
@@ -3130,7 +3130,7 @@
         "x-idempotency": "no side effects",
         "security": [
           {
-            "gatewayServiceCredential": []
+            "brokerServiceCredential": []
           }
         ],
         "parameters": [
@@ -3146,7 +3146,7 @@
             "name": "X-Service-Name",
             "in": "header",
             "required": true,
-            "description": "set by the Gateway to the authenticated caller",
+            "description": "set by the message broker to the authenticated caller",
             "schema": {
               "type": "string",
               "enum": [
@@ -3211,7 +3211,7 @@
         "x-idempotency": "Persisted eventId plus unique sessionId/shiftId; identical semantic request returns original snapshot across replicas/restarts/rotation; conflict 409.",
         "security": [
           {
-            "gatewayServiceCredential": []
+            "brokerServiceCredential": []
           }
         ],
         "parameters": [
@@ -3227,7 +3227,7 @@
             "name": "X-Service-Name",
             "in": "header",
             "required": true,
-            "description": "set by the Gateway to the authenticated caller",
+            "description": "set by the message broker to the authenticated caller",
             "schema": {
               "type": "string",
               "enum": [
@@ -3333,7 +3333,7 @@
         "x-idempotency": "Read the immutable shift snapshot.",
         "security": [
           {
-            "gatewayServiceCredential": []
+            "brokerServiceCredential": []
           }
         ],
         "parameters": [
@@ -3367,7 +3367,7 @@
             "name": "X-Service-Name",
             "in": "header",
             "required": true,
-            "description": "set by the Gateway to the authenticated caller",
+            "description": "set by the message broker to the authenticated caller",
             "schema": {
               "type": "string",
               "enum": [
@@ -3463,7 +3463,7 @@
         "x-idempotency": "Persisted eventId and content conflict detection; completion also deduplicates by session/player.",
         "security": [
           {
-            "gatewayServiceCredential": []
+            "brokerServiceCredential": []
           }
         ],
         "parameters": [
@@ -3479,7 +3479,7 @@
             "name": "X-Service-Name",
             "in": "header",
             "required": true,
-            "description": "set by the Gateway to the authenticated caller",
+            "description": "set by the message broker to the authenticated caller",
             "schema": {
               "type": "string",
               "enum": [
@@ -3594,7 +3594,7 @@
         "x-idempotency": "eventId: identical repeat is 200 DUPLICATE with no effect; different content is 409 EVENT_CONFLICT",
         "security": [
           {
-            "gatewayServiceCredential": []
+            "brokerServiceCredential": []
           }
         ],
         "parameters": [
@@ -3610,7 +3610,7 @@
             "name": "X-Service-Name",
             "in": "header",
             "required": true,
-            "description": "set by the Gateway to the authenticated caller",
+            "description": "set by the message broker to the authenticated caller",
             "schema": {
               "type": "string",
               "enum": [
@@ -3689,7 +3689,7 @@
         "x-idempotency": "read-only",
         "security": [
           {
-            "gatewayServiceCredential": []
+            "brokerServiceCredential": []
           }
         ],
         "parameters": [
@@ -3705,7 +3705,7 @@
             "name": "X-Service-Name",
             "in": "header",
             "required": true,
-            "description": "set by the Gateway to the authenticated caller",
+            "description": "set by the message broker to the authenticated caller",
             "schema": {
               "type": "string",
               "enum": [
@@ -3774,7 +3774,7 @@
         "x-idempotency": "scoreChangeId: the same id with identical content applies at most once and returns applied=false with the current score; the same id with different content is 409 SCORE_CHANGE_CONFLICT",
         "security": [
           {
-            "gatewayServiceCredential": []
+            "brokerServiceCredential": []
           }
         ],
         "parameters": [
@@ -3790,7 +3790,7 @@
             "name": "X-Service-Name",
             "in": "header",
             "required": true,
-            "description": "set by the Gateway to the authenticated caller",
+            "description": "set by the message broker to the authenticated caller",
             "schema": {
               "type": "string",
               "enum": [
@@ -3878,7 +3878,7 @@
         "x-idempotency": "Read-only",
         "security": [
           {
-            "gatewayServiceCredential": []
+            "brokerServiceCredential": []
           }
         ],
         "parameters": [
@@ -3894,7 +3894,7 @@
             "name": "X-Service-Name",
             "in": "header",
             "required": true,
-            "description": "set by the Gateway to the authenticated caller",
+            "description": "set by the message broker to the authenticated caller",
             "schema": {
               "type": "string",
               "enum": [
@@ -5451,10 +5451,10 @@
       }
     },
     "securitySchemes": {
-      "gatewayServiceCredential": {
+      "brokerServiceCredential": {
         "type": "http",
         "scheme": "bearer",
-        "description": "caller credential to the Gateway; target credential from the Gateway"
+        "description": "caller credential to the broker; target credential from the broker"
       }
     }
   }

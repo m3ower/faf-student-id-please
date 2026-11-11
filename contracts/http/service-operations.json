@@ -1,18 +1,22 @@
 {
-  "catalogVersion": "0.2.0-candidate",
-  "description": "Shared HTTP/JSON service-operation catalog for the Lab 4 Gateway baseline. The receiving owner defines each operation's method, path, schemas, errors, authorization and idempotency. Callers send every operation to the Gateway; the Gateway authenticates the caller with its own credential, enforces the operation's caller allowlist, replaces the credential with the target's credential, adds X-Service-Name and forwards the same path. This is temporary HTTP transport, not RabbitMQ or Message Broker delivery.",
+  "catalogVersion": "0.3.0-candidate",
+  "description": "Shared HTTP/JSON service-operation catalog. The receiving owner defines each operation's method, path, schemas, errors, authorization and idempotency. Lab 4 Grade 5: callers send every operation to the MESSAGE BROKER (moved from the Gateway's service route). The broker authenticates the caller with its own credential, enforces the operation's caller allowlist, chooses a target instance from Service Discovery (round robin, skipping instances whose circuit is open), replaces the credential with the target's credential, adds X-Service-Name and forwards the same path. This is request/reply routing; queue and topic delivery are later work. The Gateway remains the public entry point for players (publicBackendCredentials below).",
   "transport": {
-    "callerSends": "POST|GET <GATEWAY_URL><path> with Authorization: Bearer <caller credential> and X-Trace-Id",
-    "gatewayForwards": "the same method and path to one Discovery-selected target instance, with Authorization: Bearer <target credential> and X-Service-Name: <authenticated caller>",
+    "callerSends": "POST|GET <BROKER_URL><path> with Authorization: Bearer <caller credential> and X-Trace-Id",
+    "brokerForwards": "the same method, path and query to one target instance chosen by round robin among the Discovery instances whose circuit admits traffic, with Authorization: Bearer <target credential>, X-Service-Name: <authenticated caller>, X-Trace-Id and Content-Type only",
+    "loadBalancing": "per target service, round robin over Discovery's fresh instance list (moved from the Gateway)",
+    "circuitBreaker": "per instance: 3 failures (5xx, timeout, unreachable) within 3.5x the operation timeout trip it; the instance is skipped until a cooldown elapses, then probed once (half-open), and is submitted for removal from Discovery (moved from the Gateway)",
+    "failover": "only a connection never established (refused or connect timeout) is retried, once, on another instance; replies, 5xx and timeouts are never retried by the broker",
     "credentials": "Every caller and every target has its own secret of 32-256 visible ASCII characters. No universal service token, no Discovery-token reuse, no player JWT on service routes. Secrets live only in deployment environments, never in Git.",
-    "noGenericForwarding": "The Gateway routes only the paths listed here; any other /internal path is 404. No caller-chosen target URL.",
+    "noGenericForwarding": "The broker routes only the operations listed here; any other /internal path is 404. No caller-chosen target URL.",
     "identity": "Public REST: the Gateway sets X-Player-Id from the verified access-JWT subject and discards any client value. Service operations carry no player identity header; player ids are body fields that the receiving owner authorizes.",
     "trace": "X-Trace-Id is preserved on every hop and echoed on every response.",
     "budgetsMs": {
       "target": 500,
+      "broker": 750,
       "gateway": 750,
       "caller": 1000,
-      "note": "Membership budgets remain fixed. Generation/readiness and durable callbacks may declare explicit per-operation budgets; fit child calls inside parent deadlines."
+      "note": "Membership budgets remain fixed. Generation/readiness and durable callbacks may declare explicit per-operation budgets; fit child calls inside parent deadlines. 'broker' is the message broker's budget; 'gateway' is kept for the deprecated Gateway service route while callers migrate."
     },
     "errorEnvelope": {
       "error": {
@@ -22,14 +26,16 @@
         "traceId": "string"
       }
     },
-    "gatewayErrors": {
-      "401 UNAUTHENTICATED": "missing or unknown caller credential",
+    "brokerErrors": {
+      "401 UNAUTHENTICATED": "missing or unknown caller credential (player JWTs and target secrets are not caller credentials)",
       "403 CALLER_NOT_ALLOWED": "authenticated caller is not on the operation allowlist",
-      "404 ROUTE_NOT_FOUND": "path is not a catalog operation",
-      "429 TASK_LIMIT_REACHED": "service-operation pool saturated",
-      "503 SERVICE_AUTH_NOT_CONFIGURED | NO_SERVICE_INSTANCES | UPSTREAM_UNAVAILABLE": "Gateway or target cannot serve",
-      "504 TASK_TIMEOUT": "the 750 ms Gateway budget was exceeded"
-    }
+      "404 ROUTE_NOT_FOUND": "method and path are not a catalog operation",
+      "413 PAYLOAD_TOO_LARGE": "request body over 64 KiB",
+      "429 TASK_LIMIT_REACHED": "broker task capacity reached",
+      "503 SERVICE_AUTH_NOT_CONFIGURED | DISCOVERY_NOT_CONFIGURED | DISCOVERY_UNAVAILABLE | NO_SERVICE_INSTANCES | CIRCUIT_OPEN | UPSTREAM_UNAVAILABLE": "the broker or every target instance cannot serve",
+      "504 TASK_TIMEOUT": "the operation's broker budget was exceeded"
+    },
+    "legacyGatewayRoute": "Deprecated for service-to-service calls (Gateway #51). Until every caller has moved to BROKER_URL, the Gateway's authenticated service route may still route these operations with the same allowlists and budgetsMs.gateway. Moderation and Discord DMs call only the broker."
   },
   "targets": {
     "session-service": {
@@ -100,6 +106,7 @@
       "semantics": "200 with member=false and empty role/arrays for unknown sessions, non-members, unassigned players and completed sessions. Membership comes only from persisted Session assignments.",
       "budgetsMs": {
         "target": 500,
+        "broker": 750,
         "gateway": 750,
         "caller": 1000
       }
@@ -128,6 +135,7 @@
       "statusEvidence": "Receiver accepts the proposed operation; implementation under Session issue25, not merged or released.",
       "budgetsMs": {
         "target": 500,
+        "broker": 750,
         "gateway": 750,
         "caller": 1000
       }
@@ -154,6 +162,7 @@
       "statusEvidence": "Receiver accepts the proposed operation; implementation under Session issue25, not merged or released.",
       "budgetsMs": {
         "target": 500,
+        "broker": 750,
         "gateway": 750,
         "caller": 1000
       }
@@ -318,6 +327,7 @@
       "semantics": "Read real Player existence; never return a fixture profile.",
       "budgetsMs": {
         "target": 500,
+        "broker": 750,
         "gateway": 750,
         "caller": 1000
       }
@@ -348,6 +358,7 @@
       "semantics": "Read persisted team ownership and membership. Unknown team is 404 TEAM_NOT_FOUND.",
       "budgetsMs": {
         "target": 500,
+        "broker": 750,
         "gateway": 750,
         "caller": 1000
       }
@@ -378,6 +389,7 @@
       "semantics": "Update each real player once per session. PASSED +100 XP, FAILED +0; level 1+floor(totalXP/500), senior at level5. Accuracy is average completed-shift accuracy. Commit PlayerProgressed outbox in the same transaction; XP is new total.",
       "budgetsMs": {
         "target": 500,
+        "broker": 750,
         "gateway": 750,
         "caller": 1000
       }
@@ -411,6 +423,7 @@
       "semantics": "Read stored shift context only; rulesetVersion=0 means not selected. Never calls Rules or initializes applicants, preventing recursive fact lookups.",
       "budgetsMs": {
         "target": 500,
+        "broker": 750,
         "gateway": 750,
         "caller": 1000
       }
@@ -441,6 +454,7 @@
       "semantics": "Persist a receipt for a completed session player, notify SSE, do not become the XP owner or republish.",
       "budgetsMs": {
         "target": 500,
+        "broker": 750,
         "gateway": 750,
         "caller": 1000
       }
@@ -473,6 +487,7 @@
       "semantics": "Private answer key for Moderation only. Requires sessionId matching immutable initialization; missing/invalid session is 400, wrong/unknown session is 404. No public route or player JWT access.",
       "budgetsMs": {
         "target": 500,
+        "broker": 750,
         "gateway": 750,
         "caller": 1000
       }
@@ -505,6 +520,7 @@
       "semantics": "Authoritative persisted Record truth, accessible only to Credential and Rules using service identity. NOT_ENROLLED is enrolled=false and record=null; claimed identity is never rewritten to match truth.",
       "budgetsMs": {
         "target": 500,
+        "broker": 750,
         "gateway": 750,
         "caller": 1000
       }
@@ -541,6 +557,7 @@
       },
       "budgetsMs": {
         "target": 500,
+        "broker": 750,
         "gateway": 750,
         "caller": 1000
       }
@@ -573,6 +590,7 @@
       "semantics": "Owned persisted HTTP baseline. Initialization consumers commit only their component and receipt, without republishing. Never exposes deception through claims/profile or public management projections.",
       "budgetsMs": {
         "target": 500,
+        "broker": 750,
         "gateway": 750,
         "caller": 1000
       }
@@ -607,6 +625,7 @@
       "semantics": "Owned persisted HTTP baseline. Initialization consumers commit only their component and receipt, without republishing. Never exposes deception through claims/profile or public management projections.",
       "budgetsMs": {
         "target": 500,
+        "broker": 750,
         "gateway": 750,
         "caller": 1000
       }
@@ -644,6 +663,7 @@
       },
       "budgetsMs": {
         "target": 500,
+        "broker": 750,
         "gateway": 750,
         "caller": 1000
       }
@@ -680,6 +700,7 @@
       },
       "budgetsMs": {
         "target": 500,
+        "broker": 750,
         "gateway": 750,
         "caller": 1000
       }
@@ -716,6 +737,7 @@
       },
       "budgetsMs": {
         "target": 500,
+        "broker": 750,
         "gateway": 750,
         "caller": 1000
       }
@@ -748,6 +770,7 @@
       "semantics": "Owned persisted HTTP baseline. Initialization consumers commit only their component and receipt, without republishing. Never exposes deception through claims/profile or public management projections.",
       "budgetsMs": {
         "target": 500,
+        "broker": 750,
         "gateway": 750,
         "caller": 1000
       }
@@ -782,6 +805,7 @@
       "semantics": "Owned persisted HTTP baseline. Initialization consumers commit only their component and receipt, without republishing. Never exposes deception through claims/profile or public management projections.",
       "budgetsMs": {
         "target": 500,
+        "broker": 750,
         "gateway": 750,
         "caller": 1000
       }
@@ -819,6 +843,7 @@
       },
       "budgetsMs": {
         "target": 500,
+        "broker": 750,
         "gateway": 750,
         "caller": 1000
       }
@@ -855,6 +880,7 @@
       },
       "budgetsMs": {
         "target": 500,
+        "broker": 750,
         "gateway": 750,
         "caller": 1000
       }
@@ -893,6 +919,7 @@
       },
       "budgetsMs": {
         "target": 500,
+        "broker": 750,
         "gateway": 750,
         "caller": 1000
       }
@@ -931,6 +958,7 @@
       },
       "budgetsMs": {
         "target": 500,
+        "broker": 750,
         "gateway": 750,
         "caller": 1000
       }
@@ -965,6 +993,7 @@
       },
       "budgetsMs": {
         "target": 500,
+        "broker": 750,
         "gateway": 750,
         "caller": 1000
       }
@@ -986,6 +1015,7 @@
       "semantics": "Receiver-owned immutable rules snapshot. One Session is one shift, so Session supplies shiftId=sessionId and persists binding eventId before delivery.",
       "budgetsMs": {
         "target": 500,
+        "broker": 750,
         "gateway": 750,
         "caller": 1000
       },
@@ -1016,6 +1046,7 @@
       "semantics": "Receiver-owned immutable rules snapshot. One Session is one shift, so Session supplies shiftId=sessionId and persists binding eventId before delivery.",
       "budgetsMs": {
         "target": 500,
+        "broker": 750,
         "gateway": 750,
         "caller": 1000
       },
