@@ -19,7 +19,7 @@ import json
 import math
 import re
 import sys
-from datetime import datetime
+from datetime import date, datetime
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -74,11 +74,19 @@ def validate(value, schema: dict, schemas: dict, where: str = "$") -> list[str]:
             errors.append(f"{where}: not a UUID")
         if fmt == "date-time":
             try:
+                if not re.fullmatch(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})",value):
+                    raise ValueError("RFC3339 syntax required")
                 parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
                 if parsed.tzinfo is None or parsed.utcoffset() is None:
                     raise ValueError("Offset is required")
             except ValueError:
                 errors.append(f"{where}: not an RFC 3339 date-time")
+        if fmt == "date":
+            try:
+                if not re.fullmatch(r"\d{4}-\d{2}-\d{2}",value): raise ValueError("ISO date syntax required")
+                date.fromisoformat(value)
+            except ValueError:
+                errors.append(f"{where}: not an ISO calendar date")
         if len(value) < schema.get("minLength", 0) or len(value) > schema.get("maxLength", 10**9):
             errors.append(f"{where}: length out of range")
         if "pattern" in schema and re.search(schema["pattern"], value) is None:
@@ -155,6 +163,9 @@ def check_catalog(catalog: dict) -> list[str]:
             ref = op.get(part)
             if ref is not None and ref not in schemas:
                 problems.append(f"{name}: {part} schema {ref!r} is not defined")
+        for status, ref in op.get("successResponses", {}).items():
+            if not re.fullmatch(r"2\d\d", status) or ref not in schemas:
+                problems.append(f"{name}: invalid success response {status}:{ref}")
         if op["method"] == "GET" and op.get("request") is not None:
             problems.append(f"{name}: GET operations have no body")
     return problems
@@ -186,8 +197,13 @@ def check_examples(catalog: dict, folder: Path = EXAMPLES) -> list[str]:
             problems.append(f"{file.name}: request line does not match {op['method']} {op['path']}")
         if op.get("request"):
             problems += [f"{file.name}: request {e}" for e in validate(req.get("body"), {"$ref": op["request"]}, schemas)]
-        if resp["status"] == 200 and op.get("response"):
-            problems += [f"{file.name}: response {e}" for e in validate(resp.get("body"), {"$ref": op["response"]}, schemas)]
+        successes = op.get("successResponses", {"200": op.get("response")})
+        if 200 <= resp["status"] < 300:
+            ref = successes.get(str(resp["status"]))
+            if ref is None:
+                problems.append(f"{file.name}: undeclared success status {resp['status']}")
+            else:
+                problems += [f"{file.name}: response {e}" for e in validate(resp.get("body"), {"$ref": ref}, schemas)]
         for header in ("Authorization", "X-Trace-Id"):
             if header not in req.get("headers", {}):
                 problems.append(f"{file.name}: request must show {header}")
@@ -236,7 +252,9 @@ def openapi(catalog: dict) -> dict:
             "security": [{"gatewayServiceCredential": []}],
             "parameters": params,
             "responses": {
-                "200": {"description": "OK", "content": {"application/json": {"schema": {"$ref": f"#/components/schemas/{op['response']}"}}}},
+                **{status: {"description": "OK" if status=="200" else "Initialization pending",
+                   "content": {"application/json": {"schema": {"$ref": f"#/components/schemas/{ref}"}}}}
+                   for status,ref in op.get("successResponses", {"200":op['response']}).items()},
                 **{code.split(" ")[0]: {"description": f"{code}: {why}",
                                         "content": {"application/json": {"schema": {"$ref": "#/components/schemas/errorEnvelope"}}}}
                    for code, why in op["errors"].items()},

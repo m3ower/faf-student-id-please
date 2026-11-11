@@ -1,0 +1,45 @@
+{
+  "operation": "applicant.initialize",
+  "note": "Candidate request sent through Gateway. Only the receiving target receives its own target credential and authenticated X-Service-Name. No claim of live peer availability.",
+  "request": {
+    "method": "POST",
+    "path": "/internal/v1/applicants/events/applicant-initialized",
+    "headers": {
+      "Authorization": "Bearer <credential-service caller credential>",
+      "X-Trace-Id": "owned-initialization-example",
+      "Content-Type": "application/json"
+    },
+    "body": {
+      "eventId": "00000000-0000-0000-0000-000000008001",
+      "type": "ApplicantInitialized",
+      "occurredAt": "2026-11-11T12:00:00.123Z",
+      "producer": "credential-service",
+      "version": 1,
+      "payload": {
+        "applicantId": "00000000-0000-0000-0000-000000007001",
+        "seed": 1,
+        "initiator": "credential-service",
+        "identity": {
+          "name": "Applicant 000000000000",
+          "studentId": "PAD-00000000000000000000000000007001",
+          "year": 2
+        },
+        "deception": {
+          "type": "IMPERSONATION",
+          "impersonatedStudentId": "PAD-00000000000000000000000000007001",
+          "inconsistentFields": []
+        },
+        "sessionId": "00000000-0000-0000-0000-000000009000"
+      }
+    }
+  },
+  "response": {
+    "status": 200,
+    "body": {
+      "applicantId": "00000000-0000-0000-0000-000000007001",
+      "eventId": "00000000-0000-0000-0000-000000008001",
+      "eventHash": "a1ca2aa4e378904f1968e7cbd89abc96d8ee21332a6935b7823596800188bfb4",
+      "status": "INITIALIZED"
+    }
+  }
+}

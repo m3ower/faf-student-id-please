@@ -1,0 +1,22 @@
+{
+  "operation": "rules.shift.read",
+  "note": "Synthetic example; one Session represents one shift. Not a live exchange.",
+  "request": {
+    "method": "GET",
+    "path": "/internal/v1/rulesets/sessions/55555555-5555-5555-5555-555555555555/shifts/55555555-5555-5555-5555-555555555555",
+    "headers": {
+      "Authorization": "Bearer <CALLER_SERVICE_CREDENTIAL>",
+      "X-Trace-Id": "rules-binding-example"
+    }
+  },
+  "response": {
+    "status": 200,
+    "body": {
+      "eventId": "d0000000-0000-0000-0000-000000000010",
+      "sessionId": "55555555-5555-5555-5555-555555555555",
+      "shiftId": "55555555-5555-5555-5555-555555555555",
+      "rulesetVersion": 1,
+      "rules": []
+    }
+  }
+}

@@ -317,8 +317,8 @@ protobuf and RabbitMQ descriptions below are design context, not implemented tra
 **Player/Session review candidate:** the [real business baseline](docs/player-session-http-baseline.md)
 documents real login/teams, persisted membership/access, score/decision receipts and
 completion/progression delivery through Gateway. It extends the same executable catalog.
-Source awaiting review is separate from the pinned Lab 3 images; unresolved Rules
-selection and Applicant response schemas prevent a full-game readiness claim.
+Source awaiting review is separate from the pinned Lab 3 images; unresolved Credential initialization and cross-owner context semantics prevent
+a full-game readiness claim.
 
 Lab 4 Task 3 documents the new custom Message Broker repository only. It adds no
 broker endpoint, subscription, discovery field or protobuf definition and changes

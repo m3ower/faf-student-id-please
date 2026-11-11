@@ -87,40 +87,53 @@ a player to obtain Record facts.
   difficulty before remote work. Pending/blocked initialization exposes no applicant;
   lobby mutations are frozen. Host resume preserves the original identities.
 
-## Remaining receiving-owner decisions
+## Latest receiving-owner reconciliation and remaining gates
 
-Rules must publish its service-only selection method/path for
-`{sessionId,difficulty}` → `{sessionId,rulesetVersion>=1}` and guarantee the same
-frozen selection on retries. It is owner-to-define and deliberately unrouted.
-Session's optional configured internal selection path does not grant a routing
-allowlist or imply that Rules implements it. Missing configuration fails503.
+CPR #126 at90fc1b9 now supplies exact Applicant/Record response schemas. The
+catalog imports those receiver definitions and canonical operation names, including
+202 readiness/profile responses; Session reads the exact {applicant:{...}} wrapper.
+No unspecified profile/facts placeholder remains.
 
-Applicant/Record's candidate specifies profile/facts paths, but some responses
-remain unspecified objects in its OpenAPI. These are labelled unknown detailed
-schemas, not executable proof of business compatibility. Applicant must confirm
-the Session profile whitelist (name,studentId,major,year,universityStatus,role,courses)
-and publish its exact response. No Session fallback invents those fields.
+CPR #127 at28e3d8e now publishes Rules' immutable POST /internal/v1/rulesets/bind
+and GET /internal/v1/rulesets/sessions/{sessionId}/shifts/{shiftId}. Session/Gateway
+accept those receiver-owned paths and {eventId,sessionId,shiftId} request. One
+Session already represents one shift, so Session supplies shiftId=sessionId,
+persists binding intent before remote work and keeps the same eventId on recovery.
+The worker finalizes the ShiftStarted payload only after the correlated version
+is stored. WAITING_RULES exposes no applicant; no guessed path or hardcoded version.
 
-Credential/Rules validation/evaluation operations requested by Moderation remain
-receiver-owned work. DMs callback correctness, Applicant's complete initialization
-fan-out and Moderation's end-to-end decision/appeal delivery require their owners'
-real builds. This PR does not modify those private services or claim them READY.
+The three canonical Credential list/validation and Rules evaluation operations
+are receiver-implemented candidates now, so Gateway may route their exact allowlists.
+The earlier owned aliases and incompatible Credential initialization endpoints
+are not automatically promoted.
+
+Credential's seed-only initialization/receipt protocol still differs from
+Applicant/Record's full session-bound envelope, canonical hash and matching receipts.
+Those owners must reconcile it before aggregate readiness can work. Their proposed
+consumer context ports (including requestedChannel and applicantId inputs) also
+need adaptation to Session's actual stored-state API or an agreed additive operation.
+Session supplies shiftId in stored context, without inventing another owner's truth.
+These are semantic gates, not problems a configurable forwarding path can solve.
+
+DMs callback correctness, real initialization fan-out and Moderation's complete
+decision/appeal delivery require real owner builds and coordinated acceptance.
+No private peer code is changed or certified READY by this PR.
 
 ## Verification and deployment handoff
 
 Owned unit/database suites and >=70% coverage gates apply. Real network acceptance
 uses ephemeral keys, synthetic accounts and disposable PostgreSQL databases, with
-one trace through actual Player→Gateway→Session and Session→Gateway→Player calls.
+one trace through actual Playerâ†’Gatewayâ†’Session and Sessionâ†’Gatewayâ†’Player calls.
 No shared stack/production database is used. Exact results, source SHAs and sanitized
 trace evidence accompany the private source handoff. Historical fixture tests alone
 are never integration evidence.
 
-The real network subset includes login→team→create/join→roles/access/membership,
-denial/spoofing, duplicate scores/events, completion→XP→progression callback and
+The real network subset includes loginâ†’teamâ†’create/joinâ†’roles/access/membership,
+denial/spoofing, duplicate scores/events, completionâ†’XPâ†’progression callback and
 Session restart persistence. The completion phase explicitly seeds the external
 applicant-ready prerequisite in the disposable Session database; it does **not**
 verify real Rules/Applicant/DMs/Moderation initialization. Full coordinated gameplay
-acceptance stays blocked until those owners' contracts and real endpoints are ready.
+acceptance stays blocked until initialization/context semantics and real owner endpoints are reconciled.
 
 The updated Player collection obtains real login tokens transiently and exercises
 CRUD/teams/refresh/logout. Session's Core folder creates real accounts/team/session;
@@ -129,7 +142,7 @@ readiness/decision steps. Never export populated tokens or private environments.
 Other owners' collections are unchanged by this feature.
 
 After two approvals/code-owner review and green CI, merge features to dev, then
-release dev→main under each repository's rules. Main CI publishes lab-versioned
+release devâ†’main under each repository's rules. Main CI publishes lab-versioned
 images; verify revision labels and immutable digest before a separate CPR image/
 pointer/private-network/credential deployment PR. Existing Compose and published
 Lab3 images are not automatically updated by these source changes.

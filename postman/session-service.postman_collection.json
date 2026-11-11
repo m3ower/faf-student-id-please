@@ -799,10 +799,10 @@
     },
     {
       "name": "Optional shift lifecycle - real external services required",
-      "description": "Run requests individually after Core, waiting for readiness and real Moderation decisions. Not an automatic full-stack fixture test. Missing peer contract returns 503 and must be fixed by its owner.",
+      "description": "Run requests individually after Core with real Rules/Applicant/DMs services, waiting for readiness and real Moderation decisions. Credential initialization and consumer context semantics must be reconciled; this is not a fixture-based full-stack pass.",
       "item": [
         {
-          "name": "Start real initialization (requires Rules selection contract)",
+          "name": "Start durable Rules/applicant/chat initialization",
           "request": {
             "method": "POST",
             "header": [],

@@ -86,13 +86,26 @@ class CatalogTest(unittest.TestCase):
             self.assertEqual(v.main(["--check", "dms.decisionRecorded", "response", str(good)]), 0)
             good.write_text(json.dumps({"eventId": "59f5ed3b-e286-3554-98bb-a02ce878769e", "status": "MAYBE"}))
             self.assertEqual(v.main(["--check", "dms.decisionRecorded", "response", str(good)]), 1)
-            self.assertEqual(v.main(["--check", "record.enrollmentFacts", "response", str(good)]), 2)
+            self.assertEqual(v.main(["--check", "missing.operation", "response", str(good)]), 2)
 
     def test_imported_owner_constraints_are_not_silently_ignored(self):
         self.assertTrue(v.validate("wrong", {"const": "INITIALIZED"}, {}))
         self.assertTrue(v.validate("not-a-digest", {"type": "string", "pattern": "^[a-f0-9]{64}$"}, {}))
         self.assertTrue(v.validate(["x", "x"], {"type": "array", "uniqueItems": True}, {}))
         self.assertTrue(v.validate(float("nan"), {"type": "number", "minimum": 0, "maximum": 1}, {}))
+        self.assertTrue(v.validate('2026-02-30',{'type':'string','format':'date'},{}))
+        self.assertTrue(v.validate('2026-11-11 12:00:00Z',{'type':'string','format':'date-time'},{}))
+
+    def test_pending_success_responses_are_executable_and_documented(self):
+        operation=next(o for o in self.catalog['operations'] if o['name']=='applicant.warmup')
+        self.assertEqual(operation['successResponses']['202'],'ownedWarmupResponse')
+        self.assertIn('202',v.openapi(self.catalog)['paths'][operation['path']]['post']['responses'])
+        with tempfile.TemporaryDirectory() as tmp:
+            folder=Path(tmp)
+            example=json.loads((v.EXAMPLES/'applicant.warmup.json').read_text())
+            example['response']['body']={'status':'READY','applicantIds':[]}
+            (folder/'bad.json').write_text(json.dumps(example))
+            self.assertTrue(any('bad.json: response' in error for error in v.check_examples(self.catalog,folder)))
 
 
 if __name__ == "__main__":
