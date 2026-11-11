@@ -155,4 +155,3 @@ removes the fixture modes this harness used: DMs refuses `STORE=memory` and
 `scripts/verify_gateway_membership_baseline.py` was updated accordingly; that updated
 harness has not been executed yet because Docker was unavailable on the machine that
 changed it.
-
