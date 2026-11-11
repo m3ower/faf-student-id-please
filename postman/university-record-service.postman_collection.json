@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "Student ID - University Record Service",
-    "description": "University Record merged Lab 3 source (0.4.0): run in order through Gateway http://localhost:8090 with a valid accessToken in a private local environment. Tracked tokens stay empty. Generates disposable student IDs, verifies CRUD, duplicate create/update 409 and rollback, sanitized 400/404 errors, 405 and cleanup. Record membership headers use a local mock, not live Session authorization. Internal /status, concurrent races, database faults, image provenance and full shared-stack acceptance are separate checks. Existing CPR image pins may predate these source changes.",
+    "description": "University Record merged Lab 3 source (0.4.0): run in order through Gateway http://localhost:8090 with a valid accessToken in a private local environment. Tracked tokens stay empty. Generates disposable student IDs, verifies CRUD, duplicate create/update 409 and rollback, sanitized 400/404 errors, 405 and cleanup. Record membership headers use a local mock, not live Session authorization. Internal /status, concurrent races, database faults, image provenance and full shared-stack acceptance are separate checks. Existing CPR image pins may predate these source changes. Lab 4 Task 3: the custom Python Message Broker is a repository scaffold with no runtime API or routing integration yet. The Gateway boundary folder checks this service's existing health relay and rejects missing or malformed authorization. Existing business requests and their contracts are unchanged.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
@@ -51,6 +51,89 @@
     }
   ],
   "item": [
+    {
+      "name": "Lab 4 Task 3 - Gateway boundary",
+      "description": "Run these existing Gateway checks before the business requests below. Keep baseUrl pointed at Gateway, not a backend or the new broker. The custom Python broker currently has no listener, published image, endpoint or queue contract to call.",
+      "item": [
+        {
+          "name": "Owned service health through Gateway",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "noauth"
+            },
+            "url": "{{baseUrl}}/api/v1/health/university-record-service",
+            "description": "Public Gateway relay for this service's existing health/readiness endpoint. Requires a running, healthy service and its database; this does not probe the custom broker."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Owned service health: HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Owned service reports UP', () => pm.expect(pm.response.json().status).to.eql('UP'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Missing bearer token is rejected",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "noauth"
+            },
+            "url": "{{baseUrl}}/api/v1/university-records",
+            "description": "Explicit No Auth overrides the collection bearer token. Gateway must reject this request before forwarding it to the owned service."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Gateway rejects unauthorized access: HTTP 401', () => pm.response.to.have.status(401));",
+                  "pm.test('Gateway uses the existing authentication error contract', () => { const error = pm.response.json().error; pm.expect(error.code).to.eql('UNAUTHENTICATED'); pm.expect(error.service).to.eql('gateway-service'); pm.expect(pm.response.headers.get('WWW-Authenticate')).to.eql('Bearer'); });",
+                  "pm.test('Authentication error matches the response trace ID', () => { const traceId = pm.response.headers.get('X-Trace-Id'); pm.expect(traceId).to.be.a('string').and.not.empty; pm.expect(pm.response.json().error.traceId).to.eql(traceId); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Malformed bearer header is rejected",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/university-records",
+            "description": "No Auth disables inherited authorization; the deliberately incomplete Bearer header contains no token. Gateway must return its existing 401 error."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Gateway rejects unauthorized access: HTTP 401', () => pm.response.to.have.status(401));",
+                  "pm.test('Gateway uses the existing authentication error contract', () => { const error = pm.response.json().error; pm.expect(error.code).to.eql('UNAUTHENTICATED'); pm.expect(error.service).to.eql('gateway-service'); pm.expect(pm.response.headers.get('WWW-Authenticate')).to.eql('Bearer'); });",
+                  "pm.test('Authentication error matches the response trace ID', () => { const traceId = pm.response.headers.get('X-Trace-Id'); pm.expect(traceId).to.be.a('string').and.not.empty; pm.expect(pm.response.json().error.traceId).to.eql(traceId); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
     {
       "name": "Create disposable university record",
       "request": {
