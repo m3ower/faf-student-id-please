@@ -162,8 +162,9 @@ acceptance, two-review gates and reviewed releases remain required.
 
 ## Exact remaining peer requirements
 
-The canonical catalog now defines all Applicant/Record receiving paths and includes requested
-Credential initialization/receipt dependencies. Applicant/Record each use a distinct caller
+The current merged canonical catalog defines all Applicant/Record receiving paths.
+Credential initialization/receipt remain an incompatible external implementation dependency;
+its seed/callback draft is not an approved replacement route. Applicant/Record each use a distinct caller
 credential and their own receiving target credential. Gateway issue #51 must include these
 new catalog rows; this PR does not modify Gateway or another owner's source.
 
@@ -176,3 +177,18 @@ the immutable session binding and all scenario types. These are test inputs, not
 Both owned repositories now have active two-review, code-owner, strict verify-CI and no-bypass
 rules on dev/main. Source candidates are 1.0.0 because authentication/configuration changes
 are breaking. No stable release or shared image-pin update is part of these feature PRs.
+
+
+## 2026-11-12 Gateway verification
+
+[Current evidence](owned-http-evidence.md) records 53 checks against the actual owned images,
+the unchanged Gateway routing candidate and a historical membership-only Session image.
+The current CPR interfaces, schemas, allowlists and Gateway-phase budgets match the peer
+registry snapshot. Record player reads now authenticate the receiving target credential and
+Gateway caller identity before trusting X-Player-Id or querying Session.
+
+The merged reconciliation explicitly says Credential must adopt the full protocol; parent CPR
+contains contracts/gitlinks, not its private application source. No CredentialsReady callback
+was misrepresented as an INITIALIZED hash receipt. Full current Session gameplay and Credential
+readiness remain unverified. The user requested this Gateway baseline before broker migration;
+new broker-only metadata does not alter the scope of these owned implementation tests.
