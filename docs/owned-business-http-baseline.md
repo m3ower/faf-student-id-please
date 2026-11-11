@@ -16,8 +16,9 @@ production-baseline prompt. Candidate [CPR #122](https://github.com/m3ower/faf-s
 and [Gateway #48](https://github.com/Vasiok11/student-id-gateway-service/pull/48)
 have now merged (CPR dev `3fca798`). The latter permits only Record and DMs as
 membership callers. Record #22 is inaccessible to this account. No private owner
-package or canonical Applicant/context/Record-facts/Session-ruleset/history HTTP
-catalog was supplied. Do not invent those operations or claim their acceptance.
+package was supplied. Applicant/context/Record-facts/Session-ruleset response
+schemas remain unresolved; Moderation history is now specified by merged #129.
+Do not invent the unresolved operations or claim their acceptance.
 
 ## Implemented in the owned candidate sources
 

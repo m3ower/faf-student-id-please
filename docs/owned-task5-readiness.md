@@ -83,8 +83,9 @@ these logical ports to receiver-reviewed POST /internal/v1/... paths on Gateway:
 | Credential | applicant.context, record.facts, applicant.ready, record.ready |
 | Rules | session.context, applicant.context, record.facts |
 
-Rules' Credential batch operation already has our canonical path:
+Rules' Credential batch operation uses our implemented candidate extension:
 POST /internal/v1/credentials/validate-applicant.
+It remains under `ownedDrafts`, not the merged catalog's approved operation list.
 
 The Gateway owner must register the catalog's exact operation/caller allowlists,
 accept separate caller credentials, replace them with receiver-specific target
@@ -123,8 +124,9 @@ That final correlated-trace test remains necessary after shared wiring/review.
 
 After reconciliation with #129: Credential `mvn verify` passed all **70 tests**;
 Rules' complete normal Go suite with disposable PostgreSQL passed with **83.2%**
-total coverage (**88.7%** for its rules package). The race result above predates
-this reconciliation; the updated Linux race check must pass in the private PR.
+total coverage (**88.7%** for its rules package). The updated Linux PostgreSQL
+race check also passed in Rules PR #29 at `81e6eb2`; Credential PR #33's test
+check passed at `5ed5d2b`. CPR's remote checks were still queued when checked.
 These checks use network test peers, not the other owners' private applications.
 
 Use an explicitly disposable PostgreSQL database only. Never target the existing
