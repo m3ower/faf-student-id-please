@@ -2492,8 +2492,8 @@
   "ownedInitializationProtocol": {
     "scope": "New HTTP operation candidate, not a change to an already deployed broker transport. Receiving owners must review before consumers merge.",
     "sessionBinding": "payload.sessionId is required, immutable, included as the last length-prefixed event hash field. Envelopes without session binding are rejected by the new receivers.",
-    "hashDefinition": "docs/owned-real-integrations.md",
-    "vectors": "contracts/http/test-vectors/initialization-v1.json",
+    "hashDefinition": "https://github.com/m3ower/faf-student-id-please/blob/90fc1b9bb98de61b50903cd9819ddaced4974c1e/docs/owned-real-integrations.md",
+    "vectors": "https://github.com/m3ower/faf-student-id-please/blob/90fc1b9bb98de61b50903cd9819ddaced4974c1e/contracts/http/test-vectors/initialization-v1.json",
     "deadline": "500 ms target budget; receipt fan-out parallel with 400 ms per HTTP call. Membership budgets unchanged."
   },
   "receiverReconciliation": {
