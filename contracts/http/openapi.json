@@ -1,0 +1,1549 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Student ID, please: service operations through the Gateway",
+    "version": "0.1.0",
+    "description": "Generated from contracts/http/service-operations.json. Do not edit by hand."
+  },
+  "paths": {
+    "/internal/v1/applicants/{applicantId}/deception": {
+      "get": {
+        "operationId": "applicant.getDeception",
+        "summary": "The game's answer key. Service-only: it must never be reachable on a public /api/v1 route or by a player token.",
+        "x-owner": "applicant-service",
+        "x-status": "requested",
+        "x-callers": [
+          "moderation-service"
+        ],
+        "x-idempotency": "read-only",
+        "security": [
+          {
+            "gatewayServiceCredential": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "applicantId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "sessionId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "X-Trace-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Service-Name",
+            "in": "header",
+            "required": true,
+            "description": "set by the Gateway to the authenticated caller",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "moderation-service"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/deceptionResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "404 APPLICANT_NOT_FOUND: unknown applicant, or not in that session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "503: unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/chat/decision-recorded": {
+      "post": {
+        "operationId": "dms.decisionRecorded",
+        "summary": "Posts one announcement in #general-mod-chat and fans it out across replicas. Never scores and never republishes.",
+        "x-owner": "discord-dms-service",
+        "x-status": "implemented-pending-review",
+        "x-callers": [
+          "moderation-service"
+        ],
+        "x-idempotency": "as dms.shiftStarted",
+        "security": [
+          {
+            "gatewayServiceCredential": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Trace-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Service-Name",
+            "in": "header",
+            "required": true,
+            "description": "set by the Gateway to the authenticated caller",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "moderation-service"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/eventAck"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "400 MALFORMED_REQUEST: as dms.shiftStarted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "401 UNAUTHENTICATED: as dms.shiftStarted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "403 PRODUCER_MISMATCH: as dms.shiftStarted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "409 SESSION_CHAT_NOT_INITIALIZED: ShiftStarted not processed yet; not acknowledged, resend later",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "422 INVALID_EVENT: final",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "503 STORE_UNAVAILABLE: resend",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/decisionRecordedEnvelope"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/chat/shift-started": {
+      "post": {
+        "operationId": "dms.shiftStarted",
+        "summary": "Creates the four default channels and one announcement in #general-mod-chat; 200 only after both are stored in Redis.",
+        "x-owner": "discord-dms-service",
+        "x-status": "implemented-pending-review",
+        "x-callers": [
+          "session-service"
+        ],
+        "x-idempotency": "eventId with a persisted content digest: identical repeat 200 DUPLICATE, different content 409 EVENT_CONFLICT; an interrupted delivery is re-processed with deterministic effects",
+        "security": [
+          {
+            "gatewayServiceCredential": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Trace-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Service-Name",
+            "in": "header",
+            "required": true,
+            "description": "set by the Gateway to the authenticated caller",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "session-service"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/eventAck"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "400 MALFORMED_REQUEST: not an envelope, or unknown top-level field",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "401 UNAUTHENTICATED: missing/wrong target credential",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "403 PRODUCER_MISMATCH: envelope.producer is not the authenticated caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "409 EVENT_CONFLICT: eventId reused with different content",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "422 INVALID_EVENT: type/version/payload invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "503 SERVICE_AUTH_NOT_CONFIGURED: no target credential configured",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/shiftStartedEnvelope"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/credentials": {
+      "get": {
+        "operationId": "credential.listApplicantCredentials",
+        "summary": "The applicant's documents, at most 32.",
+        "x-owner": "credential-service",
+        "x-status": "requested",
+        "x-callers": [
+          "moderation-service"
+        ],
+        "x-idempotency": "read-only",
+        "security": [
+          {
+            "gatewayServiceCredential": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "applicantId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "sessionId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "X-Trace-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Service-Name",
+            "in": "header",
+            "required": true,
+            "description": "set by the Gateway to the authenticated caller",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "moderation-service"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/credentialListResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "404 APPLICANT_NOT_FOUND: unknown applicant",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "503: unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/credentials/{credentialId}/validation": {
+      "get": {
+        "operationId": "credential.validateCredential",
+        "summary": "Credential's authoritative verdict on one document. Moderation fans these out in parallel inside its deadline.",
+        "x-owner": "credential-service",
+        "x-status": "requested",
+        "x-callers": [
+          "moderation-service"
+        ],
+        "x-idempotency": "read-only",
+        "security": [
+          {
+            "gatewayServiceCredential": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "credentialId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "X-Trace-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Service-Name",
+            "in": "header",
+            "required": true,
+            "description": "set by the Gateway to the authenticated caller",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "moderation-service"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/credentialValidationResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "404 CREDENTIAL_NOT_FOUND: unknown credential",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "503: unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/moderation/applicants/{applicantId}/decision-facts": {
+      "get": {
+        "operationId": "moderation.applicantDecisionFacts",
+        "summary": "Moderation's own recorded decisions about an applicant for a prior-ban check. Read-only; never evaluates or calls another service, so it cannot recurse into rules.evaluate. Returns no expected action, violations or correctness.",
+        "x-owner": "moderation-service",
+        "x-status": "implemented-pending-review",
+        "x-callers": [
+          "rules-service"
+        ],
+        "x-idempotency": "read-only",
+        "security": [
+          {
+            "gatewayServiceCredential": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "applicantId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "X-Trace-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Service-Name",
+            "in": "header",
+            "required": true,
+            "description": "set by the Gateway to the authenticated caller",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "rules-service"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/decisionFactsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "400 MALFORMED_REQUEST: non-UUID applicantId",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "401 UNAUTHENTICATED: missing/wrong target credential",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "403 CALLER_NOT_ALLOWED: X-Service-Name is not rules-service",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "503 SERVICE_AUTH_NOT_CONFIGURED: no target credential configured",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/rules/evaluations": {
+      "post": {
+        "operationId": "rules.evaluate",
+        "summary": "Authoritative violations for the session's ruleset. Rules obtains the facts it needs with its own service identity (record facts below, moderation.applicantDecisionFacts), never by impersonating a player.",
+        "x-owner": "rules-service",
+        "x-status": "requested",
+        "x-callers": [
+          "moderation-service"
+        ],
+        "x-idempotency": "no side effects",
+        "security": [
+          {
+            "gatewayServiceCredential": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Trace-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Service-Name",
+            "in": "header",
+            "required": true,
+            "description": "set by the Gateway to the authenticated caller",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "moderation-service"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/rulesEvaluationResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "404 APPLICANT_NOT_FOUND: unknown applicant",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "503: unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/rulesEvaluationRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/session-events/decision-recorded": {
+      "post": {
+        "operationId": "session.decisionRecorded",
+        "summary": "Advances the queue and counts the decision. It never applies a score (session.applyScoreChange already did) and is never republished.",
+        "x-owner": "session-service",
+        "x-status": "requested",
+        "x-callers": [
+          "moderation-service"
+        ],
+        "x-idempotency": "eventId: identical repeat is 200 DUPLICATE with no effect; different content is 409 EVENT_CONFLICT",
+        "security": [
+          {
+            "gatewayServiceCredential": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Trace-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Service-Name",
+            "in": "header",
+            "required": true,
+            "description": "set by the Gateway to the authenticated caller",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "moderation-service"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/eventAck"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "409 EVENT_CONFLICT: final",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "422 INVALID_EVENT: final",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "503: retry later",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/decisionRecordedEnvelope"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/session-memberships/verify": {
+      "post": {
+        "operationId": "session.verifyMembership",
+        "summary": "200 with member=false and empty role/arrays for unknown sessions, non-members, unassigned players and completed sessions. Membership comes only from persisted Session assignments.",
+        "x-owner": "session-service",
+        "x-status": "candidate",
+        "x-callers": [
+          "university-record-service",
+          "discord-dms-service",
+          "moderation-service"
+        ],
+        "x-idempotency": "read-only",
+        "security": [
+          {
+            "gatewayServiceCredential": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Trace-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Service-Name",
+            "in": "header",
+            "required": true,
+            "description": "set by the Gateway to the authenticated caller",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "university-record-service",
+                "discord-dms-service",
+                "moderation-service"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/membershipResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "400 INVALID_REQUEST: non-UUID ids",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "503: database failure; never a permission denial",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/membershipRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/session-score-changes": {
+      "post": {
+        "operationId": "session.applyScoreChange",
+        "summary": "The only score/penalty mutation. reason DECISION, APPEAL_REFUND or DECISION_VOID; a decision causes at most one change of each reason. Session must not score DecisionRecorded again.",
+        "x-owner": "session-service",
+        "x-status": "requested",
+        "x-callers": [
+          "moderation-service"
+        ],
+        "x-idempotency": "scoreChangeId: the same id with identical content applies at most once and returns applied=false with the current score; the same id with different content is 409 SCORE_CHANGE_CONFLICT",
+        "security": [
+          {
+            "gatewayServiceCredential": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Trace-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Service-Name",
+            "in": "header",
+            "required": true,
+            "description": "set by the Gateway to the authenticated caller",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "moderation-service"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/scoreChangeResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "404 SESSION_NOT_FOUND: unknown session (final)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "409 SESSION_NOT_ACTIVE: session not accepting decisions (final)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "422 INVALID_SCORE_CHANGE: schema or business validation failed (final)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "503: temporarily unavailable (caller retries later)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/scoreChangeRequest"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "uuid": {
+        "type": "string",
+        "format": "uuid"
+      },
+      "membershipRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "sessionId",
+          "playerId"
+        ],
+        "properties": {
+          "sessionId": {
+            "$ref": "#/components/schemas/uuid"
+          },
+          "playerId": {
+            "$ref": "#/components/schemas/uuid"
+          }
+        }
+      },
+      "membershipResponse": {
+        "type": "object",
+        "required": [
+          "member",
+          "role",
+          "recordAccess",
+          "channels"
+        ],
+        "properties": {
+          "member": {
+            "type": "boolean"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "",
+              "MODERATOR",
+              "JUNIOR_MODERATOR"
+            ]
+          },
+          "recordAccess": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "ENROLLMENT_LIST",
+                "OUTLOOK_GROUPS",
+                "COURSE_CATALOG",
+                "FCIM_RECORD"
+              ]
+            }
+          },
+          "channels": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "#enrollment-check",
+                "#faculty-check",
+                "#course-registration",
+                "#general-mod-chat"
+              ]
+            }
+          },
+          "playerName": {
+            "type": "string",
+            "maxLength": 64
+          }
+        }
+      },
+      "scoreChangeRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "scoreChangeId",
+          "sessionId",
+          "decisionId",
+          "applicantId",
+          "moderatorId",
+          "reason",
+          "delta",
+          "penalties"
+        ],
+        "properties": {
+          "scoreChangeId": {
+            "$ref": "#/components/schemas/uuid"
+          },
+          "sessionId": {
+            "$ref": "#/components/schemas/uuid"
+          },
+          "decisionId": {
+            "$ref": "#/components/schemas/uuid"
+          },
+          "applicantId": {
+            "$ref": "#/components/schemas/uuid"
+          },
+          "moderatorId": {
+            "$ref": "#/components/schemas/uuid"
+          },
+          "reason": {
+            "type": "string",
+            "enum": [
+              "DECISION",
+              "APPEAL_REFUND",
+              "DECISION_VOID"
+            ]
+          },
+          "delta": {
+            "type": "integer",
+            "minimum": -10000,
+            "maximum": 10000
+          },
+          "penalties": {
+            "type": "integer",
+            "minimum": -1,
+            "maximum": 1
+          }
+        }
+      },
+      "scoreChangeResponse": {
+        "type": "object",
+        "required": [
+          "scoreChangeId",
+          "applied",
+          "score",
+          "penalties"
+        ],
+        "properties": {
+          "scoreChangeId": {
+            "$ref": "#/components/schemas/uuid"
+          },
+          "applied": {
+            "type": "boolean"
+          },
+          "score": {
+            "type": "integer"
+          },
+          "penalties": {
+            "type": "integer"
+          }
+        }
+      },
+      "deceptionResponse": {
+        "type": "object",
+        "required": [
+          "applicantId",
+          "type"
+        ],
+        "properties": {
+          "applicantId": {
+            "$ref": "#/components/schemas/uuid"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "NONE",
+              "IMPERSONATION",
+              "FORGED_DOCUMENT",
+              "EXPIRED_DOCUMENT",
+              "INCONSISTENT_CLAIM",
+              "NOT_ENROLLED",
+              "PREVIOUSLY_BANNED"
+            ]
+          },
+          "impersonatedStudentId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "inconsistentFields": {
+            "type": "array",
+            "maxItems": 32,
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "credentialListResponse": {
+        "type": "object",
+        "required": [
+          "applicantId",
+          "credentials"
+        ],
+        "properties": {
+          "applicantId": {
+            "$ref": "#/components/schemas/uuid"
+          },
+          "credentials": {
+            "type": "array",
+            "maxItems": 32,
+            "items": {
+              "type": "object",
+              "required": [
+                "credentialId",
+                "applicantId",
+                "type"
+              ],
+              "properties": {
+                "credentialId": {
+                  "$ref": "#/components/schemas/uuid"
+                },
+                "applicantId": {
+                  "$ref": "#/components/schemas/uuid"
+                },
+                "type": {
+                  "type": "string",
+                  "enum": [
+                    "STUDENT_ID",
+                    "UNIVERSITY_EMAIL",
+                    "ENROLLMENT_CONFIRMATION",
+                    "COURSE_REGISTRATION"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "credentialValidationResponse": {
+        "type": "object",
+        "required": [
+          "credentialId",
+          "type",
+          "structurallyValid",
+          "authentic",
+          "issues"
+        ],
+        "properties": {
+          "credentialId": {
+            "$ref": "#/components/schemas/uuid"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "STUDENT_ID",
+              "UNIVERSITY_EMAIL",
+              "ENROLLMENT_CONFIRMATION",
+              "COURSE_REGISTRATION"
+            ]
+          },
+          "structurallyValid": {
+            "type": "boolean"
+          },
+          "authentic": {
+            "type": "boolean"
+          },
+          "issues": {
+            "type": "array",
+            "maxItems": 32,
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "rulesEvaluationRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "sessionId",
+          "applicantId"
+        ],
+        "properties": {
+          "sessionId": {
+            "$ref": "#/components/schemas/uuid"
+          },
+          "applicantId": {
+            "$ref": "#/components/schemas/uuid"
+          }
+        }
+      },
+      "rulesEvaluationResponse": {
+        "type": "object",
+        "required": [
+          "applicantId",
+          "rulesetVersion",
+          "violations",
+          "recommendedAction"
+        ],
+        "properties": {
+          "applicantId": {
+            "$ref": "#/components/schemas/uuid"
+          },
+          "rulesetVersion": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "violations": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "code",
+                "severity"
+              ],
+              "properties": {
+                "code": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 128
+                },
+                "severity": {
+                  "type": "string",
+                  "enum": [
+                    "MINOR",
+                    "MAJOR",
+                    "CRITICAL"
+                  ]
+                }
+              }
+            }
+          },
+          "recommendedAction": {
+            "type": "string",
+            "enum": [
+              "ACCEPT",
+              "REJECT",
+              "FLAG",
+              "BAN"
+            ]
+          }
+        }
+      },
+      "decisionFactsResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "applicantId",
+          "previouslyBanned",
+          "decisions"
+        ],
+        "properties": {
+          "applicantId": {
+            "$ref": "#/components/schemas/uuid"
+          },
+          "previouslyBanned": {
+            "type": "boolean"
+          },
+          "decisions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "decisionId",
+                "sessionId",
+                "action",
+                "decidedAt"
+              ],
+              "properties": {
+                "decisionId": {
+                  "$ref": "#/components/schemas/uuid"
+                },
+                "sessionId": {
+                  "$ref": "#/components/schemas/uuid"
+                },
+                "action": {
+                  "type": "string",
+                  "enum": [
+                    "ACCEPT",
+                    "REJECT",
+                    "FLAG",
+                    "BAN"
+                  ]
+                },
+                "decidedAt": {
+                  "type": "string",
+                  "format": "date-time"
+                }
+              }
+            }
+          }
+        }
+      },
+      "envelope": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "eventId",
+          "type",
+          "occurredAt",
+          "producer",
+          "version",
+          "payload"
+        ],
+        "properties": {
+          "eventId": {
+            "$ref": "#/components/schemas/uuid"
+          },
+          "type": {
+            "type": "string"
+          },
+          "occurredAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "producer": {
+            "type": "string"
+          },
+          "version": {
+            "type": "integer",
+            "enum": [
+              1
+            ]
+          },
+          "payload": {
+            "type": "object"
+          }
+        }
+      },
+      "shiftStartedEnvelope": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/envelope"
+          }
+        ],
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "ShiftStarted"
+            ]
+          },
+          "producer": {
+            "type": "string",
+            "enum": [
+              "session-service"
+            ]
+          },
+          "payload": {
+            "type": "object",
+            "required": [
+              "sessionId",
+              "players",
+              "rulesetVersion"
+            ],
+            "properties": {
+              "sessionId": {
+                "$ref": "#/components/schemas/uuid"
+              },
+              "players": {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 16,
+                "items": {
+                  "$ref": "#/components/schemas/uuid"
+                }
+              },
+              "rulesetVersion": {
+                "type": "integer",
+                "minimum": 1
+              }
+            }
+          }
+        }
+      },
+      "decisionRecordedEnvelope": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/envelope"
+          }
+        ],
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "DecisionRecorded"
+            ]
+          },
+          "producer": {
+            "type": "string",
+            "enum": [
+              "moderation-service"
+            ]
+          },
+          "payload": {
+            "type": "object",
+            "required": [
+              "decisionId",
+              "sessionId",
+              "applicantId",
+              "moderatorId",
+              "action",
+              "correct",
+              "scoreDelta"
+            ],
+            "properties": {
+              "decisionId": {
+                "$ref": "#/components/schemas/uuid"
+              },
+              "sessionId": {
+                "$ref": "#/components/schemas/uuid"
+              },
+              "applicantId": {
+                "$ref": "#/components/schemas/uuid"
+              },
+              "moderatorId": {
+                "$ref": "#/components/schemas/uuid"
+              },
+              "action": {
+                "type": "string",
+                "enum": [
+                  "ACCEPT",
+                  "REJECT",
+                  "FLAG",
+                  "BAN"
+                ]
+              },
+              "correct": {
+                "type": "boolean"
+              },
+              "scoreDelta": {
+                "type": "integer"
+              }
+            }
+          }
+        }
+      },
+      "eventAck": {
+        "type": "object",
+        "required": [
+          "eventId",
+          "status"
+        ],
+        "properties": {
+          "eventId": {
+            "$ref": "#/components/schemas/uuid"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PROCESSED",
+              "DUPLICATE"
+            ]
+          }
+        }
+      },
+      "errorEnvelope": {
+        "type": "object",
+        "required": [
+          "error"
+        ],
+        "properties": {
+          "error": {
+            "type": "object",
+            "required": [
+              "code",
+              "message",
+              "service",
+              "traceId"
+            ],
+            "properties": {
+              "code": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              },
+              "service": {
+                "type": "string"
+              },
+              "traceId": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "securitySchemes": {
+      "gatewayServiceCredential": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "caller credential to the Gateway; target credential from the Gateway"
+      }
+    }
+  }
+}

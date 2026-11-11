@@ -1,15 +1,20 @@
 {
   "info": {
     "name": "Student ID - Moderation Service",
-    "description": "Moderation Service (Java), reached through the Gateway on http://localhost:8090 as the communication contract requires: no request here talks to the service's own port. Run the whole collection with the Runner; the first request starts a fresh session id, so the collection can be re-run any number of times. Downstream services are mocked; see the service README for the demo applicant ids.\n\nAuthentication: protected Gateway requests inherit Bearer {{accessToken}}. Select a private local Postman environment containing an explicitly disposable, one-hour local test access JWT, using the same Gateway public-key setup as the Player/Session collections. Player has no login, refresh or JWT issuance. Regenerate expired tokens locally; keep tokens and private keys out of tracked files. Gateway removes Authorization before forwarding and does not bind JWT sub to client-provided X-Player-Id; existing service header checks remain unchanged. The health request explicitly uses no authentication.",
+    "description": "Moderation Service (Java), reached through the Gateway on {{baseUrl}} as the communication contract requires: no request here talks to the service's own port. Lab 4: there are no mocks. Decisions are scored from the real Session, Applicant, Credential and Rules owners through the Gateway service route (see docs/http-operation-catalog.md), so this collection needs a real session ({{sessionId}}) in which the moderator, junior and outsider tokens hold those roles, and real applicants of that session whose owners generated the stated deceptions ({{applicantBanned}}, {{applicantRuleBreaker}}, {{applicantInconsistent}}, {{applicantExpiredDocument}}). Until every operation marked requested in the catalog is implemented by its owner, submit requests fail closed with 503 <DEPENDENCY>_UNAVAILABLE, which is the expected behaviour, not a pass.\n\nAuthentication: every request sends Bearer {{<player>Token}}, a real access JWT of that player (Player login, or a disposable local test signer whose public key the Gateway and DMs are configured with). The Gateway verifies it and sets X-Player-Id from its subject, so this collection sends no X-Player-Id: identity cannot be chosen by the client. Keep tokens in a private Postman environment, never in tracked files. The health request uses no authentication. Penalty-policy writes use {{policyAdminToken}}, a player listed in MODERATION_POLICY_ADMINS.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
     "type": "bearer",
-    "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }]
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{moderatorToken}}",
+        "type": "string"
+      }
+    ]
   },
   "variable": [
-    { "key": "accessToken", "value": "", "type": "string", "description": "Disposable local test JWT. Set in a private local environment; keep this collection value empty." },
     {
       "key": "baseUrl",
       "value": "http://localhost:8090"
@@ -19,8 +24,40 @@
       "value": ""
     },
     {
-      "key": "moderatorId",
-      "value": "11111111-1111-1111-1111-111111111111"
+      "key": "moderatorToken",
+      "value": ""
+    },
+    {
+      "key": "junior1Token",
+      "value": ""
+    },
+    {
+      "key": "junior2Token",
+      "value": ""
+    },
+    {
+      "key": "outsiderToken",
+      "value": ""
+    },
+    {
+      "key": "policyAdminToken",
+      "value": ""
+    },
+    {
+      "key": "applicantBanned",
+      "value": ""
+    },
+    {
+      "key": "applicantRuleBreaker",
+      "value": ""
+    },
+    {
+      "key": "applicantInconsistent",
+      "value": ""
+    },
+    {
+      "key": "applicantExpiredDocument",
+      "value": ""
     },
     {
       "key": "decisionId",
@@ -40,9 +77,11 @@
       "name": "Health",
       "item": [
         {
-          "name": "Health (starts a fresh session)",
+          "name": "Health",
           "request": {
-            "auth": { "type": "noauth" },
+            "auth": {
+              "type": "noauth"
+            },
             "method": "GET",
             "header": [],
             "url": {
@@ -65,8 +104,8 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test(\"status is 200\", () => pm.response.to.have.status(200));",
-                  "pm.collectionVariables.set(\"sessionId\", pm.variables.replaceIn(\"{{$guid}}\"));",
-                  "pm.test(\"UP\", () => pm.expect(pm.response.json().status).to.eql(\"UP\"));"
+                  "pm.test(\"UP\", () => pm.expect(pm.response.json().status).to.eql(\"UP\"));",
+                  "pm.test(\"sessionId is set to a real session\", () => pm.expect(pm.collectionVariables.get(\"sessionId\") || pm.environment.get(\"sessionId\")).to.be.ok);"
                 ]
               }
             }
@@ -100,7 +139,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"sessionId\": \"{{sessionId}}\",\n  \"applicantId\": \"a0000000-0000-0000-0000-000000000003\",\n  \"moderatorId\": \"{{moderatorId}}\",\n  \"action\": \"BAN\",\n  \"reason\": \"Postman run\"\n}",
+              "raw": "{\n  \"sessionId\": \"{{sessionId}}\",\n  \"applicantId\": \"{{applicantBanned}}\",\n  \"action\": \"BAN\",\n  \"reason\": \"Postman run\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -118,7 +157,8 @@
                   "const b = pm.response.json();",
                   "pm.collectionVariables.set(\"decisionId\", b.decisionId);",
                   "pm.test(\"correct\", () => pm.expect(b.correct).to.be.true);",
-                  "pm.test(\"+100\", () => pm.expect(b.scoreDelta).to.eql(100));"
+                  "pm.test(\"+100\", () => pm.expect(b.scoreDelta).to.eql(100));",
+                  "pm.test(\"scored by Session, not estimated\", () => pm.expect(b.scoreStatus).to.be.oneOf([\"APPLIED\", \"PENDING\"]));"
                 ]
               }
             }
@@ -147,7 +187,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"sessionId\": \"{{sessionId}}\",\n  \"applicantId\": \"a0000000-0000-0000-0000-000000000008\",\n  \"moderatorId\": \"{{moderatorId}}\",\n  \"action\": \"ACCEPT\",\n  \"reason\": \"Postman run\"\n}",
+              "raw": "{\n  \"sessionId\": \"{{sessionId}}\",\n  \"applicantId\": \"{{applicantRuleBreaker}}\",\n  \"action\": \"ACCEPT\",\n  \"reason\": \"Postman run\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -195,7 +235,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"sessionId\": \"{{sessionId}}\",\n  \"applicantId\": \"a0000000-0000-0000-0000-000000000006\",\n  \"moderatorId\": \"{{moderatorId}}\",\n  \"action\": \"REJECT\",\n  \"reason\": \"Postman run\"\n}",
+              "raw": "{\n  \"sessionId\": \"{{sessionId}}\",\n  \"applicantId\": \"{{applicantInconsistent}}\",\n  \"action\": \"REJECT\",\n  \"reason\": \"Postman run\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -217,7 +257,7 @@
           ]
         },
         {
-          "name": "Submit - duplicate (409)",
+          "name": "Submit - identical repeat returns the stored decision (200)",
           "request": {
             "method": "POST",
             "header": [
@@ -239,7 +279,51 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"sessionId\": \"{{sessionId}}\",\n  \"applicantId\": \"a0000000-0000-0000-0000-000000000003\",\n  \"moderatorId\": \"{{moderatorId}}\",\n  \"action\": \"BAN\",\n  \"reason\": \"Postman run\"\n}",
+              "raw": "{\n  \"sessionId\": \"{{sessionId}}\",\n  \"applicantId\": \"{{applicantBanned}}\",\n  \"action\": \"BAN\",\n  \"reason\": \"Postman run\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"same decision, not scored again\", () => pm.expect(pm.response.json().decisionId).to.eql(pm.collectionVariables.get(\"decisionId\")));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Submit - different decision for the same applicant (409)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/decisions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "decisions"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sessionId\": \"{{sessionId}}\",\n  \"applicantId\": \"{{applicantBanned}}\",\n  \"action\": \"REJECT\",\n  \"reason\": \"Postman run\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -255,6 +339,60 @@
                 "exec": [
                   "pm.test(\"status is 409\", () => pm.response.to.have.status(409));",
                   "pm.test(\"error code DECISION_EXISTS\", () => pm.expect(pm.response.json().error.code).to.eql(\"DECISION_EXISTS\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Submit - body names another moderator (403)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/decisions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "decisions"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sessionId\": \"{{sessionId}}\",\n  \"applicantId\": \"{{applicantBanned}}\",\n  \"action\": \"BAN\",\n  \"reason\": \"Postman run\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{junior1Token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 403\", () => pm.response.to.have.status(403));",
+                  "pm.test(\"error code PLAYER_ID_MISMATCH\", () => pm.expect(pm.response.json().error.code).to.eql(\"PLAYER_ID_MISMATCH\"));"
                 ]
               }
             }
@@ -283,12 +421,22 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"sessionId\": \"{{sessionId}}\",\n  \"applicantId\": \"a0000000-0000-0000-0000-000000000001\",\n  \"moderatorId\": \"22222222-2222-2222-2222-222222222222\",\n  \"action\": \"ACCEPT\",\n  \"reason\": \"Postman run\"\n}",
+              "raw": "{\n  \"sessionId\": \"{{sessionId}}\",\n  \"applicantId\": \"{{applicantRuleBreaker}}\",\n  \"action\": \"ACCEPT\",\n  \"reason\": \"Postman run\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
                 }
               }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{junior1Token}}",
+                  "type": "string"
+                }
+              ]
             }
           },
           "event": [
@@ -327,7 +475,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"sessionId\": \"{{sessionId}}\",\n  \"applicantId\": \"00000000-0000-0000-0000-000000000000\",\n  \"moderatorId\": \"{{moderatorId}}\",\n  \"action\": \"ACCEPT\",\n  \"reason\": \"Postman run\"\n}",
+              "raw": "{\n  \"sessionId\": \"{{sessionId}}\",\n  \"applicantId\": \"00000000-0000-0000-0000-000000000000\",\n  \"action\": \"ACCEPT\",\n  \"reason\": \"Postman run\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -415,7 +563,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"sessionId\": \"{{sessionId}}\",\n  \"applicantId\": \"a0000000-0000-0000-0000-000000000001\",\n  \"moderatorId\": \"{{moderatorId}}\",\n  \"action\": \"YEET\",\n  \"reason\": \"Postman run\"\n}",
+              "raw": "{\n  \"sessionId\": \"{{sessionId}}\",\n  \"applicantId\": \"{{applicantRuleBreaker}}\",\n  \"action\": \"YEET\",\n  \"reason\": \"Postman run\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -462,6 +610,47 @@
                 "exec": [
                   "pm.test(\"status is 200\", () => pm.response.to.have.status(200));",
                   "pm.test(\"same id\", () => pm.expect(pm.response.json().decisionId).to.eql(pm.collectionVariables.get(\"decisionId\")));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get decision - outsider (403)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{outsiderToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/decisions/{{decisionId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "decisions",
+                "{{decisionId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 403\", () => pm.response.to.have.status(403));",
+                  "pm.test(\"error code PLAYER_NOT_IN_SESSION\", () => pm.expect(pm.response.json().error.code).to.eql(\"PLAYER_NOT_IN_SESSION\"));"
                 ]
               }
             }
@@ -542,10 +731,6 @@
             "method": "PATCH",
             "header": [
               {
-                "key": "X-Player-Id",
-                "value": "{{moderatorId}}"
-              },
-              {
                 "key": "Content-Type",
                 "value": "application/json"
               }
@@ -570,6 +755,16 @@
                   "language": "json"
                 }
               }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{moderatorToken}}",
+                  "type": "string"
+                }
+              ]
             }
           },
           "event": [
@@ -590,10 +785,6 @@
           "request": {
             "method": "PATCH",
             "header": [
-              {
-                "key": "X-Player-Id",
-                "value": "22222222-2222-2222-2222-222222222222"
-              },
               {
                 "key": "Content-Type",
                 "value": "application/json"
@@ -619,6 +810,16 @@
                   "language": "json"
                 }
               }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{junior1Token}}",
+                  "type": "string"
+                }
+              ]
             }
           },
           "event": [
@@ -662,7 +863,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"sessionId\": \"{{sessionId}}\",\n  \"applicantId\": \"a0000000-0000-0000-0000-000000000004\",\n  \"moderatorId\": \"{{moderatorId}}\",\n  \"action\": \"FLAG\",\n  \"reason\": \"Postman run\"\n}",
+              "raw": "{\n  \"sessionId\": \"{{sessionId}}\",\n  \"applicantId\": \"{{applicantExpiredDocument}}\",\n  \"action\": \"FLAG\",\n  \"reason\": \"Postman run\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -710,7 +911,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"playerId\": \"{{moderatorId}}\",\n  \"argument\": \"I flagged it for investigation instead of letting them in\"\n}",
+              "raw": "{\n  \"argument\": \"I flagged it for investigation instead of letting them in\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -758,7 +959,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"playerId\": \"{{moderatorId}}\",\n  \"argument\": \"please\"\n}",
+              "raw": "{\n  \"argument\": \"please\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -804,12 +1005,22 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"playerId\": \"33333333-3333-3333-3333-333333333333\",\n  \"argument\": \"seemed harsh\"\n}",
+              "raw": "{\n  \"argument\": \"seemed harsh\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
                 }
               }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{junior2Token}}",
+                  "type": "string"
+                }
+              ]
             }
           },
           "event": [
@@ -834,12 +1045,7 @@
           "name": "Delete decision - junior (403)",
           "request": {
             "method": "DELETE",
-            "header": [
-              {
-                "key": "X-Player-Id",
-                "value": "22222222-2222-2222-2222-222222222222"
-              }
-            ],
+            "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/decisions/{{flagDecisionId}}",
               "host": [
@@ -850,6 +1056,16 @@
                 "v1",
                 "decisions",
                 "{{flagDecisionId}}"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{junior1Token}}",
+                  "type": "string"
+                }
               ]
             }
           },
@@ -870,12 +1086,7 @@
           "name": "Delete decision",
           "request": {
             "method": "DELETE",
-            "header": [
-              {
-                "key": "X-Player-Id",
-                "value": "{{moderatorId}}"
-              }
-            ],
+            "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/decisions/{{flagDecisionId}}",
               "host": [
@@ -886,6 +1097,16 @@
                 "v1",
                 "decisions",
                 "{{flagDecisionId}}"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{moderatorToken}}",
+                  "type": "string"
+                }
               ]
             }
           },
@@ -997,6 +1218,16 @@
                   "language": "json"
                 }
               }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{policyAdminToken}}",
+                  "type": "string"
+                }
+              ]
             }
           },
           "event": [
@@ -1041,6 +1272,16 @@
                   "language": "json"
                 }
               }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{policyAdminToken}}",
+                  "type": "string"
+                }
+              ]
             }
           },
           "event": [
@@ -1085,6 +1326,16 @@
                   "language": "json"
                 }
               }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{policyAdminToken}}",
+                  "type": "string"
+                }
+              ]
             }
           },
           "event": [
@@ -1190,6 +1441,16 @@
                   "language": "json"
                 }
               }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{policyAdminToken}}",
+                  "type": "string"
+                }
+              ]
             }
           },
           "event": [
@@ -1252,6 +1513,16 @@
                 "v1",
                 "penalty-policies",
                 "{{policyId}}"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{policyAdminToken}}",
+                  "type": "string"
+                }
               ]
             }
           },

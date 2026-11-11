@@ -307,6 +307,13 @@ Credential and Rules are its initial callers. The
 describes Lab 3 Grade 5, controlled instance removal and cross-instance streams.
 It updates the shared `docker-compose.yml`; public business routes remain unchanged.
 
+**Lab 4 Gateway service-call baseline.** Business calls between services use HTTP/JSON
+through the Gateway's authenticated service route, as listed in the shared
+[HTTP operation catalog](docs/http-operation-catalog.md)
+([`contracts/http/`](contracts/http/service-operations.json)). The receiving owner defines
+each operation; operations still marked `requested` there are not working end to end. The
+protobuf and RabbitMQ descriptions below are design context, not implemented transport.
+
 Lab 4 Task 3 documents the new custom Message Broker repository only. It adds no
 broker endpoint, subscription, discovery field or protobuf definition and changes
 no existing REST path or event payload. The broker's transport and queue contract
@@ -326,8 +333,8 @@ each surface is specified in full below.
 | Credential | credential read for the moderator UI | `CredentialService` | `ApplicantInitialized` |
 | University Record | partitioned record lookups | `RecordService` | `ApplicantInitialized` |
 | Server Rules | current ruleset read | `RulesService` | `RulesUpdated` |
-| Moderation | decision submission, history | `ModerationService` | `DecisionRecorded` |
-| Discord DMs | channel list, history | — | — |
+| Moderation | decision submission, history | — (HTTP: `moderation.applicantDecisionFacts`) | `DecisionRecorded` (HTTP callback) |
+| Discord DMs | channel list, history | — (HTTP: `dms.shiftStarted`, `dms.decisionRecorded`) | — |
 
 Applicant's existing Lab 1 CRUD API is available through Gateway at
 `/api/v1/applicants`. In the planned game flow, the client receives the current
@@ -444,8 +451,8 @@ forwarded to the service and returned on every response, so one id spans both ho
 
 | Traffic | Reason |
 | --- | --- |
-| Planned gRPC and RabbitMQ service integrations | These are distinct from the Lab 4 REST membership candidate described below. |
-| `/api/v1/internal/...` on Discord DMs | RabbitMQ stand-ins, excluded from the Gateway by this contract. |
+| Planned gRPC and RabbitMQ service integrations | Never implemented; business calls use the Gateway service route in the [HTTP operation catalog](docs/http-operation-catalog.md). |
+| `/api/v1/internal/...` on Discord DMs | Removed from DMs; its internal operations are reached only through the Gateway's service route (see the catalog). |
 | `WS /ws/v1/sessions/{sessionId}` | The Gateway returns a direct DMs URL through the negotiation endpoint below; the socket itself stays direct. |
 
 The gRPC/event game integrations remain planned or in-process fixtures in the
@@ -460,6 +467,13 @@ assignments. This is a candidate contract and verification harness: the existing
 shared image pins and Compose deployment still select the previous releases.
 Discovery registration stays direct. Broker routing, queues, load-balancer and
 circuit-breaker migration require subsequent implementation and confirmation.
+
+The [HTTP operation catalog](docs/http-operation-catalog.md) extends this to every business
+call: Moderation calls Session, Applicant, Credential and Rules and delivers
+`DecisionRecorded` to Session and DMs as authenticated HTTP callbacks; Session delivers
+`ShiftStarted` to DMs; Rules may read Moderation's decision facts. Each operation's status
+there says whether its owner has implemented it; `requested` operations do not work end to
+end yet.
 
 The Gateway adds three failure codes of its own, each carrying
 `"service": "gateway-service"`:
@@ -1145,8 +1159,10 @@ Server to client:
 { "type": "ERROR", "code": "CHANNEL_FORBIDDEN", "message": "string" }
 ```
 
-Channel membership is resolved at connection time through
-`SessionService.VerifyMembership` and cached for the lifetime of the socket.
+Discord DMs verifies the access token in the URL itself (RS256, issuer, audience,
+expiry, `token_use=access`, `playerId` equal to `sub`) and resolves membership through
+`session.verifyMembership` at the handshake, on every action frame and periodically; a
+player Session no longer lists is disconnected with close code `4403`.
 
 ---
 
@@ -1730,6 +1746,10 @@ test records in one run.
 
 ## Mocks in Lab 1
 
+**Lab 4 note.** The Moderation and Discord DMs services no longer contain runtime mocks:
+their fixtures below survive only as synthetic test data, and production calls the real
+owners through the Gateway (see the [HTTP operation catalog](docs/http-operation-catalog.md)).
+
 Until the services are connected in Lab 2, every service replaces its dependencies with
 mocks that use the contract's data types. The Moderation and Discord DMs services share
 the same demo players, so the collections line up:
@@ -1779,10 +1799,10 @@ moderator-only for writes, with a `readOnly` flag.
 * The caller is identified by the `X-Player-Id` header (JWT subject from Lab 2).
 * New WebSocket server frames: `MESSAGE_EDITED`, `MESSAGE_DELETED`, `USER_TYPING`,
 `CHANNEL_JOINED`.
-* Internal endpoints that stand in for RabbitMQ consumers until Lab 2:
-`POST /api/v1/internal/sessions/{id}/channels/defaults` (ShiftStarted) and
-`POST /api/v1/internal/sessions/{id}/broadcast` (Session events). Not routed through
-the gateway.
+* ~~Internal endpoints that stand in for RabbitMQ consumers~~
+`POST /api/v1/internal/sessions/{id}/channels/defaults` and `.../broadcast` are removed
+in the Lab 4 baseline, replaced by the authenticated `dms.shiftStarted` and
+`dms.decisionRecorded` operations in the HTTP operation catalog.
 
 ### Moderation Service: Grade 9 decisions
 
@@ -1810,6 +1830,10 @@ expected action is REJECT.
 
 Unknown ids are never treated as clean: an unknown applicant is `404 APPLICANT_NOT_FOUND`,
 an unknown session has no members, and an unknown credential is reported invalid.
+
+**Lab 4:** superseded by `session.applyScoreChange` in the HTTP operation catalog, whose
+idempotency key is `scoreChangeId` (one per decision and reason) and which also carries
+`decisionId`. **Still requires the Session owner's acceptance and implementation.**
 
 **PROPOSED, additive: `decisionId`.** The Moderation Service sends `decisionId` to
 `ApplyScoreDelta` and publishes it in `DecisionRecorded`. It is the idempotency key for the
@@ -1841,8 +1865,8 @@ transports messages and judges nothing.
 
 ### Moderation Service: framework
 
-The Moderation Service runs on **Quarkus 3.15** (Java 21, PostgreSQL). REST paths, request
-and response bodies, the error envelope and the gRPC contract are unchanged. The only
+The Moderation Service runs on **Quarkus 3.15** (Java 21, PostgreSQL). It has no gRPC
+server; its service operation is HTTP (`moderation.applicantDecisionFacts`). The only
 visible difference is the health endpoint: `GET /q/health/ready` and `/q/health/live`
 instead of `/actuator/health`.
 

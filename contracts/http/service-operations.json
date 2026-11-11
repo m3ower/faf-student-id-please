@@ -1,0 +1,379 @@
+{
+  "catalogVersion": "0.1.0",
+  "description": "Shared HTTP/JSON service-operation catalog for the Lab 4 Gateway baseline. The receiving owner defines each operation's method, path, schemas, errors, authorization and idempotency. Callers send every operation to the Gateway; the Gateway authenticates the caller with its own credential, enforces the operation's caller allowlist, replaces the credential with the target's credential, adds X-Service-Name and forwards the same path. This is temporary HTTP transport, not RabbitMQ or Message Broker delivery.",
+  "transport": {
+    "callerSends": "POST|GET <GATEWAY_URL><path> with Authorization: Bearer <caller credential> and X-Trace-Id",
+    "gatewayForwards": "the same method and path to one Discovery-selected target instance, with Authorization: Bearer <target credential> and X-Service-Name: <authenticated caller>",
+    "credentials": "Every caller and every target has its own secret of 32-256 visible ASCII characters. No universal service token, no Discovery-token reuse, no player JWT on service routes. Secrets live only in deployment environments, never in Git.",
+    "noGenericForwarding": "The Gateway routes only the paths listed here; any other /internal path is 404. No caller-chosen target URL.",
+    "identity": "Public REST: the Gateway sets X-Player-Id from the verified access-JWT subject and discards any client value. Service operations carry no player identity header; player ids are body fields that the receiving owner authorizes.",
+    "trace": "X-Trace-Id is preserved on every hop and echoed on every response.",
+    "budgetsMs": { "target": 500, "gateway": 750, "caller": 1000 },
+    "errorEnvelope": { "error": { "code": "STRING", "message": "string", "service": "string", "traceId": "string" } },
+    "gatewayErrors": {
+      "401 UNAUTHENTICATED": "missing or unknown caller credential",
+      "403 CALLER_NOT_ALLOWED": "authenticated caller is not on the operation allowlist",
+      "404 ROUTE_NOT_FOUND": "path is not a catalog operation",
+      "429 TASK_LIMIT_REACHED": "service-operation pool saturated",
+      "503 SERVICE_AUTH_NOT_CONFIGURED | NO_SERVICE_INSTANCES | UPSTREAM_UNAVAILABLE": "Gateway or target cannot serve",
+      "504 TASK_TIMEOUT": "the 750 ms Gateway budget was exceeded"
+    }
+  },
+  "targets": {
+    "session-service": { "owner": "Vasiok11", "targetCredentialEnv": "SESSION_INTERNAL_TOKEN" },
+    "applicant-service": { "owner": "Andreiisthebest", "targetCredentialEnv": "APPLICANT_INTERNAL_TOKEN" },
+    "university-record-service": { "owner": "Andreiisthebest", "targetCredentialEnv": "RECORD_INTERNAL_TOKEN" },
+    "credential-service": { "owner": "CmMarin", "targetCredentialEnv": "CREDENTIAL_INTERNAL_TOKEN" },
+    "rules-service": { "owner": "CmMarin", "targetCredentialEnv": "RULES_INTERNAL_TOKEN" },
+    "moderation-service": { "owner": "m3ower", "targetCredentialEnv": "MODERATION_INTERNAL_TOKEN" },
+    "discord-dms-service": { "owner": "m3ower", "targetCredentialEnv": "DMS_INTERNAL_TOKEN" }
+  },
+  "statusLegend": {
+    "candidate": "defined by the receiving owner in an open PR; not merged or released",
+    "implemented-pending-review": "implemented by the receiving owner on a feature branch with tests; not merged or released",
+    "requested": "exact dependency contract published by a caller; the receiving owner has not accepted or implemented it",
+    "owner-to-define": "needed operation whose contract only its owner can define"
+  },
+  "operations": [
+    {
+      "name": "session.verifyMembership",
+      "status": "candidate",
+      "statusEvidence": "CPR #122, Gateway #48 (caller allowlist currently record + dms only)",
+      "owner": "session-service",
+      "method": "POST",
+      "path": "/internal/v1/session-memberships/verify",
+      "callers": ["university-record-service", "discord-dms-service", "moderation-service"],
+      "callerNotes": { "moderation-service": "requested addition to the Gateway allowlist; Moderation checks the MODERATOR role before reading any answer key" },
+      "idempotency": "read-only",
+      "retry": "never retried by callers",
+      "request": "membershipRequest",
+      "response": "membershipResponse",
+      "errors": {
+        "400 INVALID_REQUEST": "non-UUID ids",
+        "503": "database failure; never a permission denial"
+      },
+      "semantics": "200 with member=false and empty role/arrays for unknown sessions, non-members, unassigned players and completed sessions. Membership comes only from persisted Session assignments."
+    },
+    {
+      "name": "session.applyScoreChange",
+      "status": "requested",
+      "owner": "session-service",
+      "method": "POST",
+      "path": "/internal/v1/session-score-changes",
+      "callers": ["moderation-service"],
+      "idempotency": "scoreChangeId: the same id with identical content applies at most once and returns applied=false with the current score; the same id with different content is 409 SCORE_CHANGE_CONFLICT",
+      "retry": "the caller's outbox may resend the identical stored body after an outage, a deadline or a restart",
+      "request": "scoreChangeRequest",
+      "response": "scoreChangeResponse",
+      "errors": {
+        "404 SESSION_NOT_FOUND": "unknown session (final)",
+        "409 SCORE_CHANGE_CONFLICT": "id reused with different content (final)",
+        "409 SESSION_NOT_ACTIVE": "session not accepting decisions (final)",
+        "422 INVALID_SCORE_CHANGE": "schema or business validation failed (final)",
+        "503": "temporarily unavailable (caller retries later)"
+      },
+      "semantics": "The only score/penalty mutation. reason DECISION, APPEAL_REFUND or DECISION_VOID; a decision causes at most one change of each reason. Session must not score DecisionRecorded again."
+    },
+    {
+      "name": "session.decisionRecorded",
+      "status": "requested",
+      "owner": "session-service",
+      "method": "POST",
+      "path": "/internal/v1/session-events/decision-recorded",
+      "callers": ["moderation-service"],
+      "idempotency": "eventId: identical repeat is 200 DUPLICATE with no effect; different content is 409 EVENT_CONFLICT",
+      "retry": "outbox; delivered only after the decision's score change was applied",
+      "request": "decisionRecordedEnvelope",
+      "response": "eventAck",
+      "errors": { "409 EVENT_CONFLICT": "final", "422 INVALID_EVENT": "final", "503": "retry later" },
+      "semantics": "Advances the queue and counts the decision. It never applies a score (session.applyScoreChange already did) and is never republished."
+    },
+    {
+      "name": "applicant.getDeception",
+      "status": "requested",
+      "owner": "applicant-service",
+      "method": "GET",
+      "path": "/internal/v1/applicants/{applicantId}/deception?sessionId={sessionId}",
+      "callers": ["moderation-service"],
+      "idempotency": "read-only",
+      "retry": "never retried by the caller",
+      "request": null,
+      "response": "deceptionResponse",
+      "errors": { "404 APPLICANT_NOT_FOUND": "unknown applicant, or not in that session", "503": "unavailable" },
+      "semantics": "The game's answer key. Service-only: it must never be reachable on a public /api/v1 route or by a player token."
+    },
+    {
+      "name": "credential.listApplicantCredentials",
+      "status": "requested",
+      "owner": "credential-service",
+      "method": "GET",
+      "path": "/internal/v1/credentials?applicantId={applicantId}&sessionId={sessionId}",
+      "callers": ["moderation-service"],
+      "idempotency": "read-only",
+      "retry": "never retried by the caller",
+      "request": null,
+      "response": "credentialListResponse",
+      "errors": { "404 APPLICANT_NOT_FOUND": "unknown applicant", "503": "unavailable" },
+      "semantics": "The applicant's documents, at most 32."
+    },
+    {
+      "name": "credential.validateCredential",
+      "status": "requested",
+      "owner": "credential-service",
+      "method": "GET",
+      "path": "/internal/v1/credentials/{credentialId}/validation",
+      "callers": ["moderation-service"],
+      "idempotency": "read-only",
+      "retry": "never retried by the caller",
+      "request": null,
+      "response": "credentialValidationResponse",
+      "errors": { "404 CREDENTIAL_NOT_FOUND": "unknown credential", "503": "unavailable" },
+      "semantics": "Credential's authoritative verdict on one document. Moderation fans these out in parallel inside its deadline."
+    },
+    {
+      "name": "rules.evaluate",
+      "status": "requested",
+      "owner": "rules-service",
+      "method": "POST",
+      "path": "/internal/v1/rules/evaluations",
+      "callers": ["moderation-service"],
+      "idempotency": "no side effects",
+      "retry": "never retried by the caller",
+      "request": "rulesEvaluationRequest",
+      "response": "rulesEvaluationResponse",
+      "errors": { "404 APPLICANT_NOT_FOUND": "unknown applicant", "503": "unavailable" },
+      "semantics": "Authoritative violations for the session's ruleset. Rules obtains the facts it needs with its own service identity (record facts below, moderation.applicantDecisionFacts), never by impersonating a player."
+    },
+    {
+      "name": "moderation.applicantDecisionFacts",
+      "status": "implemented-pending-review",
+      "statusEvidence": "m3ower/student-id-moderation-service issue #30",
+      "owner": "moderation-service",
+      "method": "GET",
+      "path": "/internal/v1/moderation/applicants/{applicantId}/decision-facts",
+      "callers": ["rules-service"],
+      "idempotency": "read-only",
+      "retry": "caller's choice; no side effects",
+      "request": null,
+      "response": "decisionFactsResponse",
+      "errors": {
+        "400 MALFORMED_REQUEST": "non-UUID applicantId",
+        "401 UNAUTHENTICATED": "missing/wrong target credential",
+        "403 CALLER_NOT_ALLOWED": "X-Service-Name is not rules-service",
+        "503 SERVICE_AUTH_NOT_CONFIGURED": "no target credential configured"
+      },
+      "semantics": "Moderation's own recorded decisions about an applicant for a prior-ban check. Read-only; never evaluates or calls another service, so it cannot recurse into rules.evaluate. Returns no expected action, violations or correctness."
+    },
+    {
+      "name": "dms.shiftStarted",
+      "status": "implemented-pending-review",
+      "statusEvidence": "m3ower/student-id-discord-dms-service issue #33",
+      "owner": "discord-dms-service",
+      "method": "POST",
+      "path": "/internal/v1/chat/shift-started",
+      "callers": ["session-service"],
+      "idempotency": "eventId with a persisted content digest: identical repeat 200 DUPLICATE, different content 409 EVENT_CONFLICT; an interrupted delivery is re-processed with deterministic effects",
+      "retry": "producer may resend the identical envelope",
+      "request": "shiftStartedEnvelope",
+      "response": "eventAck",
+      "errors": {
+        "400 MALFORMED_REQUEST": "not an envelope, or unknown top-level field",
+        "401 UNAUTHENTICATED": "missing/wrong target credential",
+        "403 CALLER_NOT_ALLOWED": "caller is not session-service",
+        "403 PRODUCER_MISMATCH": "envelope.producer is not the authenticated caller",
+        "409 EVENT_CONFLICT": "eventId reused with different content",
+        "422 INVALID_EVENT": "type/version/payload invalid",
+        "503 STORE_UNAVAILABLE": "not acknowledged; resend",
+        "503 SERVICE_AUTH_NOT_CONFIGURED": "no target credential configured"
+      },
+      "semantics": "Creates the four default channels and one announcement in #general-mod-chat; 200 only after both are stored in Redis."
+    },
+    {
+      "name": "dms.decisionRecorded",
+      "status": "implemented-pending-review",
+      "statusEvidence": "m3ower/student-id-discord-dms-service issue #33",
+      "owner": "discord-dms-service",
+      "method": "POST",
+      "path": "/internal/v1/chat/decision-recorded",
+      "callers": ["moderation-service"],
+      "idempotency": "as dms.shiftStarted",
+      "retry": "producer outbox resends the identical envelope",
+      "request": "decisionRecordedEnvelope",
+      "response": "eventAck",
+      "errors": {
+        "400 MALFORMED_REQUEST": "as dms.shiftStarted",
+        "401 UNAUTHENTICATED": "as dms.shiftStarted",
+        "403 CALLER_NOT_ALLOWED": "caller is not moderation-service",
+        "403 PRODUCER_MISMATCH": "as dms.shiftStarted",
+        "409 EVENT_CONFLICT": "final",
+        "409 SESSION_CHAT_NOT_INITIALIZED": "ShiftStarted not processed yet; not acknowledged, resend later",
+        "422 INVALID_EVENT": "final",
+        "503 STORE_UNAVAILABLE": "resend"
+      },
+      "semantics": "Posts one announcement in #general-mod-chat and fans it out across replicas. Never scores and never republishes."
+    },
+    {
+      "name": "record.enrollmentFacts",
+      "status": "owner-to-define",
+      "owner": "university-record-service",
+      "method": null,
+      "path": null,
+      "callers": ["credential-service", "rules-service"],
+      "idempotency": "read-only",
+      "retry": null,
+      "request": null,
+      "response": null,
+      "errors": {},
+      "semantics": "Privileged service fact read so Credential and Rules use their own service identity instead of a junior's user-scoped ENROLLMENT_LIST permission. Path, schema and allowlist must be published by the University Record owner."
+    }
+  ],
+  "schemas": {
+    "uuid": { "type": "string", "format": "uuid" },
+    "membershipRequest": {
+      "type": "object", "additionalProperties": false, "required": ["sessionId", "playerId"],
+      "properties": { "sessionId": { "$ref": "uuid" }, "playerId": { "$ref": "uuid" } }
+    },
+    "membershipResponse": {
+      "type": "object", "required": ["member", "role", "recordAccess", "channels"],
+      "properties": {
+        "member": { "type": "boolean" },
+        "role": { "type": "string", "enum": ["", "MODERATOR", "JUNIOR_MODERATOR"] },
+        "recordAccess": { "type": "array", "items": { "type": "string", "enum": ["ENROLLMENT_LIST", "OUTLOOK_GROUPS", "COURSE_CATALOG", "FCIM_RECORD"] } },
+        "channels": { "type": "array", "items": { "type": "string", "enum": ["#enrollment-check", "#faculty-check", "#course-registration", "#general-mod-chat"] } },
+        "playerName": { "type": "string", "maxLength": 64 }
+      }
+    },
+    "scoreChangeRequest": {
+      "type": "object", "additionalProperties": false,
+      "required": ["scoreChangeId", "sessionId", "decisionId", "applicantId", "moderatorId", "reason", "delta", "penalties"],
+      "properties": {
+        "scoreChangeId": { "$ref": "uuid" }, "sessionId": { "$ref": "uuid" }, "decisionId": { "$ref": "uuid" },
+        "applicantId": { "$ref": "uuid" }, "moderatorId": { "$ref": "uuid" },
+        "reason": { "type": "string", "enum": ["DECISION", "APPEAL_REFUND", "DECISION_VOID"] },
+        "delta": { "type": "integer", "minimum": -10000, "maximum": 10000 },
+        "penalties": { "type": "integer", "minimum": -1, "maximum": 1 }
+      }
+    },
+    "scoreChangeResponse": {
+      "type": "object", "required": ["scoreChangeId", "applied", "score", "penalties"],
+      "properties": {
+        "scoreChangeId": { "$ref": "uuid" }, "applied": { "type": "boolean" },
+        "score": { "type": "integer" }, "penalties": { "type": "integer" }
+      }
+    },
+    "deceptionResponse": {
+      "type": "object", "required": ["applicantId", "type"],
+      "properties": {
+        "applicantId": { "$ref": "uuid" },
+        "type": { "type": "string", "enum": ["NONE", "IMPERSONATION", "FORGED_DOCUMENT", "EXPIRED_DOCUMENT", "INCONSISTENT_CLAIM", "NOT_ENROLLED", "PREVIOUSLY_BANNED"] },
+        "impersonatedStudentId": { "type": ["string", "null"] },
+        "inconsistentFields": { "type": "array", "maxItems": 32, "items": { "type": "string" } }
+      }
+    },
+    "credentialListResponse": {
+      "type": "object", "required": ["applicantId", "credentials"],
+      "properties": {
+        "applicantId": { "$ref": "uuid" },
+        "credentials": {
+          "type": "array", "maxItems": 32,
+          "items": {
+            "type": "object", "required": ["credentialId", "applicantId", "type"],
+            "properties": {
+              "credentialId": { "$ref": "uuid" }, "applicantId": { "$ref": "uuid" },
+              "type": { "type": "string", "enum": ["STUDENT_ID", "UNIVERSITY_EMAIL", "ENROLLMENT_CONFIRMATION", "COURSE_REGISTRATION"] }
+            }
+          }
+        }
+      }
+    },
+    "credentialValidationResponse": {
+      "type": "object", "required": ["credentialId", "type", "structurallyValid", "authentic", "issues"],
+      "properties": {
+        "credentialId": { "$ref": "uuid" },
+        "type": { "type": "string", "enum": ["STUDENT_ID", "UNIVERSITY_EMAIL", "ENROLLMENT_CONFIRMATION", "COURSE_REGISTRATION"] },
+        "structurallyValid": { "type": "boolean" }, "authentic": { "type": "boolean" },
+        "issues": { "type": "array", "maxItems": 32, "items": { "type": "string" } }
+      }
+    },
+    "rulesEvaluationRequest": {
+      "type": "object", "additionalProperties": false, "required": ["sessionId", "applicantId"],
+      "properties": { "sessionId": { "$ref": "uuid" }, "applicantId": { "$ref": "uuid" } }
+    },
+    "rulesEvaluationResponse": {
+      "type": "object", "required": ["applicantId", "rulesetVersion", "violations", "recommendedAction"],
+      "properties": {
+        "applicantId": { "$ref": "uuid" }, "rulesetVersion": { "type": "integer", "minimum": 1 },
+        "violations": {
+          "type": "array",
+          "items": {
+            "type": "object", "required": ["code", "severity"],
+            "properties": { "code": { "type": "string", "minLength": 1, "maxLength": 128 }, "severity": { "type": "string", "enum": ["MINOR", "MAJOR", "CRITICAL"] } }
+          }
+        },
+        "recommendedAction": { "type": "string", "enum": ["ACCEPT", "REJECT", "FLAG", "BAN"] }
+      }
+    },
+    "decisionFactsResponse": {
+      "type": "object", "additionalProperties": false, "required": ["applicantId", "previouslyBanned", "decisions"],
+      "properties": {
+        "applicantId": { "$ref": "uuid" }, "previouslyBanned": { "type": "boolean" },
+        "decisions": {
+          "type": "array",
+          "items": {
+            "type": "object", "additionalProperties": false, "required": ["decisionId", "sessionId", "action", "decidedAt"],
+            "properties": {
+              "decisionId": { "$ref": "uuid" }, "sessionId": { "$ref": "uuid" },
+              "action": { "type": "string", "enum": ["ACCEPT", "REJECT", "FLAG", "BAN"] },
+              "decidedAt": { "type": "string", "format": "date-time" }
+            }
+          }
+        }
+      }
+    },
+    "envelope": {
+      "type": "object", "additionalProperties": false,
+      "required": ["eventId", "type", "occurredAt", "producer", "version", "payload"],
+      "properties": {
+        "eventId": { "$ref": "uuid" }, "type": { "type": "string" },
+        "occurredAt": { "type": "string", "format": "date-time" },
+        "producer": { "type": "string" }, "version": { "type": "integer", "enum": [1] },
+        "payload": { "type": "object" }
+      }
+    },
+    "shiftStartedEnvelope": {
+      "allOf": [{ "$ref": "envelope" }],
+      "properties": {
+        "type": { "type": "string", "enum": ["ShiftStarted"] },
+        "producer": { "type": "string", "enum": ["session-service"] },
+        "payload": {
+          "type": "object", "required": ["sessionId", "players", "rulesetVersion"],
+          "properties": {
+            "sessionId": { "$ref": "uuid" },
+            "players": { "type": "array", "minItems": 1, "maxItems": 16, "items": { "$ref": "uuid" } },
+            "rulesetVersion": { "type": "integer", "minimum": 1 }
+          }
+        }
+      }
+    },
+    "decisionRecordedEnvelope": {
+      "allOf": [{ "$ref": "envelope" }],
+      "properties": {
+        "type": { "type": "string", "enum": ["DecisionRecorded"] },
+        "producer": { "type": "string", "enum": ["moderation-service"] },
+        "payload": {
+          "type": "object", "required": ["decisionId", "sessionId", "applicantId", "moderatorId", "action", "correct", "scoreDelta"],
+          "properties": {
+            "decisionId": { "$ref": "uuid" }, "sessionId": { "$ref": "uuid" }, "applicantId": { "$ref": "uuid" },
+            "moderatorId": { "$ref": "uuid" },
+            "action": { "type": "string", "enum": ["ACCEPT", "REJECT", "FLAG", "BAN"] },
+            "correct": { "type": "boolean" }, "scoreDelta": { "type": "integer" }
+          }
+        }
+      }
+    },
+    "eventAck": {
+      "type": "object", "required": ["eventId", "status"],
+      "properties": { "eventId": { "$ref": "uuid" }, "status": { "type": "string", "enum": ["PROCESSED", "DUPLICATE"] } }
+    }
+  }
+}

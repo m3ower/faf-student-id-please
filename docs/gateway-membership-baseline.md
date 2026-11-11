@@ -142,3 +142,16 @@ existing reviewed main workflow, verify image provenance, then update shared
 CPR gitlinks/image pins and client settings in a separate reviewed change.
 This candidate does not claim those remote releases or shared deployment steps
 have occurred. Architecture diagrams are left to their owner.
+
+## Follow-up: shared catalog and DMs settings
+
+This operation is now part of the shared
+[HTTP operation catalog](http-operation-catalog.md), which keeps its path and schema
+unchanged and requests `moderation-service` as a third caller. The Discord DMs feature
+branch for [DMs #33](https://github.com/m3ower/student-id-discord-dms-service/issues/33)
+removes the fixture modes this harness used: DMs refuses `STORE=memory` and
+`SESSION_CLIENT=mock`, needs Redis, its own `DMS_INTERNAL_TOKEN`, and
+`PLAYER_JWT_PUBLIC_KEY_B64` (the same public key as the Gateway) for WebSocket handshakes.
+`scripts/verify_gateway_membership_baseline.py` was updated accordingly; that updated
+harness has not been executed yet because Docker was unavailable on the machine that
+changed it.
