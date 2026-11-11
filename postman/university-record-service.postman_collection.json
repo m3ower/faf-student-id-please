@@ -43,7 +43,7 @@
     },
     {
       "key": "sessionId",
-      "value": "postman-session"
+      "value": ""
     },
     {
       "key": "playerId",
@@ -378,7 +378,7 @@
       ]
     },
     {
-      "name": "Enrollment lookup with mock membership",
+      "name": "Enrollment lookup with live Session permission",
       "request": {
         "method": "GET",
         "url": "{{baseUrl}}/api/v1/records/enrollment?studentId={{recordStudentId}}",
@@ -386,20 +386,26 @@
           {
             "key": "X-Session-Id",
             "value": "{{sessionId}}"
-          },
-          {
-            "key": "X-Player-Id",
-            "value": "{{playerId}}"
           }
-        ]
+        ],
+        "description": "Requires the Gateway membership candidate: sessionId must name a real Session with explicit ENROLLMENT_LIST assigned to the player in accessToken. Gateway derives player identity from that JWT. See docs/gateway-membership-baseline.md. Legacy fixture IDs alone do not grant access."
       },
       "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (!pm.collectionVariables.get('sessionId')) { throw new Error('Set sessionId to a real Session granting this JWT player ENROLLMENT_LIST access.'); }"
+            ]
+          }
+        },
         {
           "listen": "test",
           "script": {
             "type": "text/javascript",
             "exec": [
-              "pm.test('Enrollment lookup with mock membership: HTTP 200', () => pm.response.to.have.status(200));",
+              "pm.test('Enrollment lookup with live Session permission: HTTP 200', () => pm.response.to.have.status(200));",
               "pm.test('Enrollment matches created record', () => { const body = pm.response.json(); pm.expect(body.found).to.eql(true); pm.expect(body.studentId).to.eql(pm.collectionVariables.get('recordStudentId')); });"
             ]
           }

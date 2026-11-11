@@ -432,7 +432,8 @@ Discovery startup registration uses the direct control-plane contract, while
 client-facing CRUD requests use the Gateway.
 
 A prefix matches only on a segment boundary. The method, path, query string, body and
-headers reach the service unchanged, and its status, body and headers are relayed back
+headers reach the service with the credential/identity handling described below,
+and its status, body and headers are relayed back
 unchanged, error envelope included, so a service's own `404` or `422` is not rewritten by
 the Gateway. Hop-by-hop headers are dropped on each hop.
 
@@ -443,16 +444,22 @@ forwarded to the service and returned on every response, so one id spans both ho
 
 | Traffic | Reason |
 | --- | --- |
-| All service-to-service calls | They are gRPC or RabbitMQ events; the Gateway speaks REST only. |
+| Planned gRPC and RabbitMQ service integrations | These are distinct from the Lab 4 REST membership candidate described below. |
 | `/api/v1/internal/...` on Discord DMs | RabbitMQ stand-ins, excluded from the Gateway by this contract. |
 | `WS /ws/v1/sessions/{sessionId}` | The Gateway returns a direct DMs URL through the negotiation endpoint below; the socket itself stays direct. |
 
-Service-to-service traffic is unaffected by the Gateway because none of it is REST. Both
-services owned by Gurev Andreea illustrate this: the Moderation Service reaches the
-Applicant, Credential, Server Rules and Session services over `ApplicantService`,
-`CredentialService`, `RulesService` and `SessionService` gRPC, and publishes
-`DecisionRecorded` to RabbitMQ; the Discord DMs Service calls
-`SessionService.VerifyMembership` over gRPC. Every one of those stays a direct call.
+The gRPC/event game integrations remain planned or in-process fixtures in the
+current releases; their contracts do not establish live transport. The additive
+[Lab 4 Gateway membership baseline](docs/gateway-membership-baseline.md) prepares
+real Record and Discord DMs calls through Gateway to persisted Session permissions.
+Its service-only `POST /internal/v1/session-memberships/verify` operation uses
+dedicated caller and target credentials. Gateway binds public `X-Player-Id` to the
+verified player JWT subject. Session adds host-only
+`PUT /api/v1/sessions/{sessionId}/access` for explicit stored record/channel
+assignments. This is a candidate contract and verification harness: the existing
+shared image pins and Compose deployment still select the previous releases.
+Discovery registration stays direct. Broker routing, queues, load-balancer and
+circuit-breaker migration require subsequent implementation and confirmation.
 
 The Gateway adds three failure codes of its own, each carrying
 `"service": "gateway-service"`:
