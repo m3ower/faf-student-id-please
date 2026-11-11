@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "Student ID - Server Rules Service",
-    "description": "Owned production-baseline candidate, NOT deployed or integration-ready. Current-rules reads require real Session membership, a UUID sessionId and Gateway's target-credential/verified-player extension tracked by CPR #123 and Gateway #50. Set a real member's accessToken/sessionId privately. Never enter service or backend credentials into public Postman requests. Published lab3-0.4.1 predates this guard. The existing facts-input evaluate request remains legacy caller-supplied claims, NOT authoritative truth or evidence of the required production evaluation integration. New fact providers/rotation/session version pinning remain incomplete.",
+    "description": "UNRELEASED owned business HTTP candidate; not a live full-stack acceptance claim. Current reads require actual Session membership and Gateway target-credential/verified-player support. The old caller-facts evaluation is retired with 410 CALLER_FACTS_RETIRED; the service-only ID evaluation is invoked by Moderation using its own service identity, never public player tokens or service credentials in this collection. Credential generation/provenance and Rules authoritative HTTP consumers are implemented locally, but peer schema review, exact Gateway bindings and live integration remain pending. Published lab3 images predate these changes.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
@@ -48,8 +48,8 @@
     },
     { "name": "Current ruleset", "event": [{ "listen": "test", "script": { "exec": ["pm.test('Current snapshot contains created rule and a version', () => { pm.response.to.have.status(200); const body = pm.response.json(); pm.expect(body.rulesetVersion).to.be.a('number').and.at.least(1); pm.expect(body.rules.some(r => r.code === pm.collectionVariables.get('ruleCode'))).to.eql(true); });"] } }], "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/rules/current?sessionId={{sessionId}}" } },
     {
-      "name": "Evaluate applicant",
-      "event": [{ "listen": "test", "script": { "exec": ["pm.test('Evaluation uses the updated rule', () => { pm.response.to.have.status(200); const body = pm.response.json(); pm.expect(body.rulesetVersion).to.be.a('number').and.at.least(1); pm.expect(body.violations.some(v => v.code === pm.collectionVariables.get('ruleCode') && v.severity === 'MAJOR')).to.eql(true); });"] } }],
+      "name": "Caller-facts evaluation is retired",
+      "event": [{ "listen": "test", "script": { "exec": ["pm.test('Unverified caller facts are refused', () => { pm.response.to.have.status(410); pm.expect(pm.response.json().error.code).to.eql('CALLER_FACTS_RETIRED'); });"] } }],
       "request": {
         "method": "POST",
         "header": [{ "key": "Content-Type", "value": "application/json" }],

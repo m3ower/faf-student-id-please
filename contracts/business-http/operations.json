@@ -1,5 +1,5 @@
 {
-  "catalogVersion": "0.1.0-candidate",
+  "catalogVersion": "0.3.0-candidate",
   "status": "not-approved-not-integration-ready",
   "openapi": "openapi.json",
   "coordinationIssue": "https://github.com/m3ower/faf-student-id-please/issues/123",
@@ -9,9 +9,15 @@
       "owner": "session-service",
       "method": "POST",
       "path": "/internal/v1/session-memberships/verify",
-      "status": "upstream-candidate-cpr-122-gateway-48",
-      "currentlyAllowedCallers": ["university-record-service", "discord-dms-service"],
-      "requestedAdditionalCallers": ["credential-service", "rules-service"],
+      "status": "merged-cpr-122-gateway-48-owned-callers-not-yet-enabled",
+      "currentlyAllowedCallers": [
+        "university-record-service",
+        "discord-dms-service"
+      ],
+      "requestedAdditionalCallers": [
+        "credential-service",
+        "rules-service"
+      ],
       "callerBudgetMs": 1000,
       "gatewayBudgetMs": 750,
       "receiverBudgetMs": 500,
@@ -25,10 +31,14 @@
       "method": "GET",
       "path": "/api/v1/credentials/applicant/{applicantId}",
       "status": "implemented-owned-candidate-requires-gateway-extension",
-      "allowedBackendCallers": ["gateway-service"],
+      "allowedBackendCallers": [
+        "gateway-service"
+      ],
       "receiverCredentialSetting": "CREDENTIAL_INTERNAL_TOKEN",
       "requiresVerifiedPlayerSubject": true,
-      "dependencyOperations": ["session.membership.verify"],
+      "dependencyOperations": [
+        "session.membership.verify"
+      ],
       "automaticRetries": 0
     },
     {
@@ -37,19 +47,198 @@
       "method": "GET",
       "path": "/api/v1/rules/current",
       "status": "implemented-owned-candidate-requires-gateway-extension",
-      "allowedBackendCallers": ["gateway-service"],
+      "allowedBackendCallers": [
+        "gateway-service"
+      ],
       "receiverCredentialSetting": "RULES_INTERNAL_TOKEN",
       "requiresVerifiedPlayerSubject": true,
-      "dependencyOperations": ["session.membership.verify"],
+      "dependencyOperations": [
+        "session.membership.verify"
+      ],
       "automaticRetries": 0
+    },
+    {
+      "operationId": "credential.documents.internalRead",
+      "owner": "credential-service",
+      "method": "GET",
+      "path": "/internal/v1/credentials/applicants/{applicantId}",
+      "allowedBackendCallers": [
+        "applicant-service",
+        "moderation-service",
+        "rules-service"
+      ],
+      "receiverCredentialSetting": "CREDENTIAL_INTERNAL_TOKEN",
+      "responseSchema": "#/components/schemas/Documents",
+      "status": "implemented-owned-candidate-requires-gateway-extension",
+      "automaticRetries": 0
+    },
+    {
+      "operationId": "credential.document.inspect",
+      "owner": "credential-service",
+      "method": "GET",
+      "path": "/internal/v1/credentials/{credentialId}/checks",
+      "allowedBackendCallers": [
+        "moderation-service",
+        "rules-service"
+      ],
+      "receiverCredentialSetting": "CREDENTIAL_INTERNAL_TOKEN",
+      "responseSchema": "#/components/schemas/CredentialChecks",
+      "status": "implemented-owned-candidate-requires-gateway-extension",
+      "automaticRetries": 0
+    },
+    {
+      "operationId": "rules.shift.bind",
+      "owner": "rules-service",
+      "method": "POST",
+      "path": "/internal/v1/rulesets/bind",
+      "allowedBackendCallers": [
+        "session-service"
+      ],
+      "receiverCredentialSetting": "RULES_INTERNAL_TOKEN",
+      "requestSchema": "#/components/schemas/ShiftBinding",
+      "responseSchema": "#/components/schemas/ShiftRuleset",
+      "idempotency": "Persisted eventId plus unique sessionId/shiftId; identical semantic request returns original snapshot across replicas/restarts/rotation; conflict 409.",
+      "status": "implemented-owned-candidate-requires-gateway-extension",
+      "automaticRetries": 0
+    },
+    {
+      "operationId": "rules.shift.read",
+      "owner": "rules-service",
+      "method": "GET",
+      "path": "/internal/v1/rulesets/sessions/{sessionId}/shifts/{shiftId}",
+      "allowedBackendCallers": [
+        "session-service",
+        "moderation-service"
+      ],
+      "receiverCredentialSetting": "RULES_INTERNAL_TOKEN",
+      "responseSchema": "#/components/schemas/ShiftRuleset",
+      "status": "implemented-owned-candidate-requires-gateway-extension",
+      "automaticRetries": 0
+    },
+    {
+      "operationId": "credential.initialization.accept",
+      "owner": "credential-service",
+      "method": "POST",
+      "path": "/internal/v1/credentials/initialize",
+      "allowedBackendCallers": [
+        "applicant-service",
+        "university-record-service",
+        "credential-service"
+      ],
+      "receiverCredentialSetting": "CREDENTIAL_INTERNAL_TOKEN",
+      "status": "implemented-owned-candidate-requires-gateway-extension",
+      "automaticRetries": 0,
+      "requestSchema": "#/components/schemas/Initialization",
+      "responseSchema": "#/components/schemas/InitializationStatus"
+    },
+    {
+      "operationId": "credential.initialization.recover",
+      "owner": "credential-service",
+      "method": "POST",
+      "path": "/internal/v1/credentials/initializations/{eventId}/recover",
+      "allowedBackendCallers": [
+        "applicant-service",
+        "university-record-service",
+        "credential-service"
+      ],
+      "receiverCredentialSetting": "CREDENTIAL_INTERNAL_TOKEN",
+      "status": "implemented-owned-candidate-requires-gateway-extension",
+      "automaticRetries": 0,
+      "responseSchema": "#/components/schemas/InitializationStatus"
+    },
+    {
+      "operationId": "credential.initialization.status",
+      "owner": "credential-service",
+      "method": "GET",
+      "path": "/internal/v1/credentials/initializations/{eventId}",
+      "allowedBackendCallers": [
+        "applicant-service",
+        "university-record-service",
+        "credential-service",
+        "session-service"
+      ],
+      "receiverCredentialSetting": "CREDENTIAL_INTERNAL_TOKEN",
+      "status": "implemented-owned-candidate-requires-gateway-extension",
+      "automaticRetries": 0,
+      "responseSchema": "#/components/schemas/InitializationStatus"
+    },
+    {
+      "operationId": "credential.applicant.validate",
+      "owner": "credential-service",
+      "method": "POST",
+      "path": "/internal/v1/credentials/validate-applicant",
+      "allowedBackendCallers": [
+        "moderation-service",
+        "rules-service"
+      ],
+      "receiverCredentialSetting": "CREDENTIAL_INTERNAL_TOKEN",
+      "status": "implemented-owned-candidate-requires-gateway-extension",
+      "automaticRetries": 0,
+      "requestSchema": "#/components/schemas/ApplicantOnly",
+      "responseSchema": "#/components/schemas/ApplicantValidation"
+    },
+    {
+      "operationId": "credential.document.validate",
+      "owner": "credential-service",
+      "method": "POST",
+      "path": "/internal/v1/credentials/{credentialId}/validate",
+      "allowedBackendCallers": [
+        "moderation-service",
+        "rules-service"
+      ],
+      "receiverCredentialSetting": "CREDENTIAL_INTERNAL_TOKEN",
+      "status": "implemented-owned-candidate-requires-gateway-extension",
+      "automaticRetries": 0,
+      "responseSchema": "#/components/schemas/AuthoritativeCheck"
+    },
+    {
+      "operationId": "rules.applicant.evaluate",
+      "owner": "rules-service",
+      "method": "POST",
+      "path": "/internal/v1/rules/evaluate",
+      "allowedBackendCallers": [
+        "moderation-service"
+      ],
+      "receiverCredentialSetting": "RULES_INTERNAL_TOKEN",
+      "status": "implemented-owned-candidate-requires-gateway-extension",
+      "automaticRetries": 0,
+      "requestSchema": "#/components/schemas/BusinessEvaluationRequest",
+      "responseSchema": "#/components/schemas/BusinessEvaluation"
     }
   ],
   "missingReceiverOwnedContracts": [
-    {"owner": "applicant-service", "purpose": "authoritative applicant claims and coordinated initialization context", "status": "needs-owner-contract-no-path-invented"},
-    {"owner": "university-record-service", "purpose": "privileged authoritative record facts and initialization callbacks", "status": "needs-owner-contract-no-path-invented"},
-    {"owner": "session-service", "purpose": "persisted shift/ruleset/applicant context and readiness coordination", "status": "needs-owner-contract-no-path-invented"},
-    {"owner": "moderation-service", "purpose": "read-only authoritative ban/history facts without recursive submit", "status": "needs-owner-contract-no-path-invented"},
-    {"owner": "credential-service", "purpose": "real persisted Generate/Get/Validate and initialization operations", "status": "not-implemented-peer-context-contracts-required"},
-    {"owner": "rules-service", "purpose": "authoritative session-bound evaluation and rotation", "status": "not-implemented-peer-facts-contracts-required"}
+    {
+      "owner": "applicant-service",
+      "purpose": "authoritative applicant claims and coordinated initialization context",
+      "status": "needs-owner-contract-no-path-invented"
+    },
+    {
+      "owner": "university-record-service",
+      "purpose": "privileged authoritative record facts and initialization callbacks",
+      "status": "needs-owner-contract-no-path-invented"
+    },
+    {
+      "owner": "session-service",
+      "purpose": "persisted shift/ruleset/applicant context and readiness coordination",
+      "status": "needs-owner-contract-no-path-invented"
+    },
+    {
+      "owner": "moderation-service",
+      "purpose": "read-only authoritative ban/history facts without recursive submit",
+      "status": "needs-owner-contract-no-path-invented"
+    }
+  ],
+  "consumerPorts": "openapi.json#/x-consumer-ports",
+  "ownedImplementationStatus": [
+    {
+      "owner": "credential-service",
+      "purpose": "authoritative Generate/Validate provenance and durable initialization, delivery and recovery (stored Get/inspection implemented)",
+      "status": "consumer-and-receiver-implemented-awaiting-peer-contract-review-and-live-integration"
+    },
+    {
+      "owner": "rules-service",
+      "purpose": "authoritative ID-based evaluation provider and peer Session use of implemented shift binding/read operations",
+      "status": "consumer-and-receiver-implemented-awaiting-peer-contract-review-and-live-integration"
+    }
   ]
 }

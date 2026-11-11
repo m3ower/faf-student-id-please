@@ -4,10 +4,10 @@ Tracks [CPR #123](https://github.com/m3ower/faf-student-id-please/issues/123),
 [Credential #31](https://github.com/CmMarin/student-id-credential-service/issues/31)
 and [Rules #27](https://github.com/CmMarin/student-id-rules-service/issues/27).
 
-This is an **incomplete first implementation slice**, not completion of the
+This is an **incomplete implementation candidate**, not completion of the
 production-baseline prompt. Candidate [CPR #122](https://github.com/m3ower/faf-student-id-please/pull/122)
 and [Gateway #48](https://github.com/Vasiok11/student-id-gateway-service/pull/48)
-are open, not merged. The latter currently permits only Record and DMs as
+have now merged (CPR dev `3fca798`). The latter permits only Record and DMs as
 membership callers. Record #22 is inaccessible to this account. No private owner
 package or canonical Applicant/context/Record-facts/Session-ruleset/history HTTP
 catalog was supplied. Do not invent those operations or claim their acceptance.
@@ -72,22 +72,54 @@ Other receiving owners must extend/review it with their canonical operations.
 Existing GET reads have no durable write effects and no retry; none of this
 implements initialization idempotency or callbacks.
 
+## Additional owned receiving operations (not yet Gateway-routed)
+
+The same shared catalog/OpenAPI now specifies these exact backend operations;
+the receiving owners are us. These are implemented, not guessed peer routes:
+
+| Operation | Authenticated service callers | Behavior |
+| --- | --- | --- |
+| `GET /internal/v1/credentials/applicants/{applicantId}` | Applicant, Moderation, Rules | Reads actual stored documents; no generation on a miss. |
+| `GET /internal/v1/credentials/{credentialId}/checks` | Moderation, Rules | Checks stored structure, expiry (UTC) and future issue date. Authenticity is explicitly `UNVERIFIED`, not fabricated true/false. |
+| `POST /internal/v1/rulesets/bind` | Session only | Persists active full rules and version for a session/shift, correlated by eventId. |
+| `GET /internal/v1/rulesets/sessions/{sessionId}/shifts/{shiftId}` | Session, Moderation | Reads that immutable binding, never silently uses newer rules. |
+
+All four require Gateway's receiver-specific target Bearer credential plus its
+authenticated service caller header. Gateway must explicitly register their
+caller allowlists and replace credentials; a user JWT is not service authority.
+Do not route `/internal/` with a generic prefix proxy or publish backend ports.
+
+Binding writes lock the Rules version row before reading active rules; rule
+CRUD takes that lock before mutation too. Identical eventId/sessionId/shiftId
+replays the original stored result even after rule rotation/deletion. Reusing an
+event for different identifiers or rebinding a shift with a different event is
+409. The PostgreSQL table survives process restart and is shared by replicas.
+It stores no applicant/Record truth and sends no remote callbacks.
+
+Generation, authoritative validation consumers, initialization/outbox recovery
+and ID-based evaluation are now implemented too; see
+[the current handoff](owned-task5-readiness.md). Their real HTTP adapters use the
+shared OpenAPI `x-consumer-ports`. No peer path is guessed: deployment bindings
+must map those ports to receiver-reviewed internal POST operations on Gateway.
+Session must adopt bind/read and readiness, and peers must agree the port schemas.
+
 ## Still missing before the full goal can be fulfilled
 
-1. Credential's real persisted Generate/Get/Validate operations, generated-document
-   provenance/authenticity and durable initialization/outbox/recovery. Removing
-   the fixture does not implement those operations.
-2. Receiver-owned Applicant context, internal Record facts, Session ruleset/shift
+1. Receiver-owned agreement on Applicant context, internal Record facts, Session ruleset/shift
    context, moderation-history and initialization callback contracts, including
    method/path, schemas, credentials, allowlists, budgets and idempotency rules.
    Public junior Record access must not be impersonated for internal fact reads.
-3. Authoritative Rules fact provider, session-bound persisted ruleset selection,
-   rotation/evaluation operations and a finite dependency graph. The existing
-   caller-facts `/evaluate` path remains a legacy/unverified-facts compatibility
-   operation; it must not be described as authoritative or full baseline readiness.
-4. Gateway registry/allowlist and target-credential changes, real peer services,
+2. Session adoption of persisted shift snapshots and coordinated readiness,
+   including explicit recovery of pending initializations and durable callback
+   deduplication. Rules' provider reads history only; it never submits decisions.
+3. Gateway registry/allowlist and target-credential changes, real peer services,
    then database-backed multi-service success/denial/spoofing/outage/recovery and
    second-replica/restart/duplicate initialization acceptance.
+
+The candidate intentionally retires public caller-facts evaluation with
+`410 CALLER_FACTS_RETIRED`, replacing it with service-only ID-based evaluation.
+This is a breaking contract change requiring coordinated review/versioning
+before release, not an additive change to silently deploy on existing clients.
 
 The catalog deliberately does not assign guessed peer paths. Keep reviewable
 candidate PRs draft until these coordinated prerequisites are resolved. Do not

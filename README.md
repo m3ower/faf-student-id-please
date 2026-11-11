@@ -431,8 +431,10 @@ calls: their integration dependencies remain fixtures/plans. Their direct Discov
 registration is control-plane traffic; client CRUD uses Gateway. The unmerged
 [owned business HTTP candidate](docs/owned-business-http-baseline.md) removes
 fixtures from production artifacts and implements protected-read membership calls
-through Gateway. It is not deployed or integration-ready; generation, authoritative
-facts, initialization and Gateway/peer contracts remain incomplete.
+through Gateway, plus persisted generation/provenance, recoverable initialization
+and ID-based Rules evaluation consumers. It is not deployed or integration-ready:
+peer consumer-port agreement, exact Gateway bindings and real multi-service
+acceptance remain outstanding. Discovery's current dev needs no domain calls.
 
 A prefix matches only on a segment boundary. The method, path, query string, body and
 headers reach the service unchanged, and its status, body and headers are relayed back
