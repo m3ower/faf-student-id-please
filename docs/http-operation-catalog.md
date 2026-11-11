@@ -55,14 +55,14 @@ tests with the 70% coverage gate.
 | `session.verifyMembership` `POST /internal/v1/session-memberships/verify` | Session | Record, DMs, **Moderation (requested addition)** | candidate (#122, Gateway #48) |
 | `session.applyScoreChange` `POST /internal/v1/session-score-changes` | Session | Moderation | requested |
 | `session.decisionRecorded` `POST /internal/v1/session-events/decision-recorded` | Session | Moderation | requested |
-| `applicant.getDeception` `GET /internal/v1/applicants/{id}/deception?sessionId=` | Applicant | Moderation | requested |
+| `applicant.getDeception` `GET /internal/v1/applicants/{id}/deception?sessionId=` | Applicant | Moderation | implemented, pending review (CPR #126) |
 | `credential.listApplicantCredentials` `GET /internal/v1/credentials?applicantId=&sessionId=` | Credential | Moderation | requested |
 | `credential.validateCredential` `GET /internal/v1/credentials/{id}/validation` | Credential | Moderation | requested |
 | `rules.evaluate` `POST /internal/v1/rules/evaluations` | Rules | Moderation | requested |
 | `moderation.applicantDecisionFacts` `GET /internal/v1/moderation/applicants/{id}/decision-facts` | Moderation | Rules | implemented, pending review |
 | `dms.shiftStarted` `POST /internal/v1/chat/shift-started` | DMs | Session | implemented, pending review |
 | `dms.decisionRecorded` `POST /internal/v1/chat/decision-recorded` | DMs | Moderation | implemented, pending review |
-| `record.enrollmentFacts` | University Record | Credential, Rules | owner to define |
+| `record.enrollmentFacts` `GET /internal/v1/records/{id}/facts` | University Record | Credential, Rules | implemented, pending review (CPR #126) |
 
 `requested` means the caller's side is implemented against exactly this contract and the
 owner has not accepted or implemented it. Until each one is implemented by its owner,
@@ -101,3 +101,23 @@ from the client. Until #48 (or an equivalent) is released, identity binding thro
 deployed Gateway is **not** in place, whatever the services do. Both services' business
 ports must stay private; DMs can publish only its WebSocket listener (`PUBLIC_WS_PORT`),
 where it verifies the Player access JWT itself.
+
+
+## Owned initialization and ready-data operations
+
+[The owned HTTP guide](owned-real-integrations.md) specifies the additional Applicant/Record
+receiving operations, including generate, initialize, local receipt, aggregate readiness and
+resume, plus Applicant profile, claims and warmup. Their exact caller allowlists and all
+schemas/examples live in this same executable catalog, with status implemented-pending-review.
+Credential initialize/local-receipt are requested dependencies; only Credential's owner can
+accept their implementation. No second OpenAPI catalog is maintained.
+
+The immutable session-bound envelope is a new HTTP candidate; legacy unbound envelopes are
+rejected. A consumer never republishes initialization or takes delivery ownership. Session
+receives 202 without profile/claims while any owner receipt is missing. Internal targets cap
+work at 500 ms with parallel receipt checks. Generation/warmup/resume return 202; these success
+responses are represented in generated OpenAPI and validated in examples.
+
+The operation registry request above must also include the new owned rows from the catalog;
+Gateway #48 still routes membership only. These contracts and unit/DB/HTTP-peer tests do not
+claim a live cross-owner deployment or authorize broker migration.

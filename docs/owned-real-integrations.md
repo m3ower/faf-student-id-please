@@ -2,7 +2,7 @@
 
 Issue [#124](https://github.com/m3ower/faf-student-id-please/issues/124).
 The executable operation catalog is
-[owned-integrations-v1.openapi.json](../contracts/http/owned-integrations-v1.openapi.json).
+[service-operations.json](../contracts/http/service-operations.json), with generated [OpenAPI](../contracts/http/openapi.json).
 It extends the membership candidate, not the Message Broker implementation.
 These routes require Gateway's owner to register their exact caller allowlists
 and separate target credentials. They are not implemented by Gateway PR #48.
@@ -45,7 +45,9 @@ envelope. Reuse of identifiers with different input is 409, without regeneration
 The initializer's eventId is requestId. Its event type is ApplicantInitialized,
 version 1, and occurredAt is a UTC instant with millisecond precision, assigned
 once. Producer and payload.initiator are the same canonical owning service.
-The envelope retains the existing seed/identity/deception payload. Each of the
+The new HTTP candidate requires payload.sessionId in addition to seed/identity/deception.
+It rejects old unbound envelopes; Credential must accept the new candidate before consumers merge.
+Each of the
 three owners may initiate; Credential must implement the same protocol.
 
 The generation specification is deliberately independent of fixture IDs:
@@ -81,7 +83,7 @@ The event hash is SHA-256 of concatenated UTF-8 fields, each encoded as
 2. payload applicantId (lowercase UUID); seed (decimal integer); initiator;
 3. identity name; studentId; year (decimal integer);
 4. deception type; impersonatedStudentId; inconsistentFields count (decimal);
-   then each inconsistent field in its validated order.
+   then each inconsistent field in its validated order; finally payload.sessionId (lowercase UUID).
 
 Generation request fingerprint uses the same encoding over requestId,
 applicantId, sessionId, seed, difficulty. The envelope hash does not include
@@ -109,9 +111,10 @@ deliveries use bounded exponential backoff, at most eight automatic attempts;
 explicitly resumes nondelivered work. The receiver remains durably idempotent.
 
 `GET /{applicantId}/initialization` returns a local committed receipt and performs
-no remote call. `GET /{applicantId}/readiness` checks matching local receipts from
+no remote call. `GET /{applicantId}/readiness` checks matching local receipts in parallel from
 both peers, returning 200 only when all three match; otherwise 202 with
-`ready:false,pendingServices:[...]`. This distinction avoids recursive readiness
+`ready:false,pendingServices:[...]`. Generation always returns 202 after its local commit.
+Session profile/claims reads also return 202 without applicant data until all receipts match. This distinction avoids recursive readiness
 calls. Session must not offer a pending applicant. A lost dependency never
 becomes a fabricated ready response.
 
@@ -142,7 +145,7 @@ Production configuration requires GATEWAY_URL, a dedicated GATEWAY_SERVICE_TOKEN
 SERVICE_INTERNAL_TOKEN and MANAGEMENT_TOKEN. The three secrets must differ and
 contain 32-256 visible ASCII characters. Record uses real Gateway membership;
 mock/disabled modes are rejected. Legacy fixture classes live only in tests.
-HTTP calls have 400 ms total body deadlines, no redirects/ambient proxy and a
+Internal operations have 500 ms total task/context deadlines. HTTP calls have 400 ms total body deadlines, no redirects/ambient proxy and a
 16 KiB reply bound. Local database operations have bounded statements and use
 the original task deadline where available. Credentials/payloads are not logged;
 safe trace IDs link synchronous calls and stable event IDs link recovery work.
@@ -156,3 +159,20 @@ Peer contract servers may support unit tests, but cannot prove whole-system
 readiness. No broker migration, shared image-pin change, stable publication or
 architecture modification is included. Owner implementation/PRs, real cross-owner
 acceptance, two-review gates and reviewed releases remain required.
+
+## Exact remaining peer requirements
+
+The canonical catalog now defines all Applicant/Record receiving paths and includes requested
+Credential initialization/receipt dependencies. Applicant/Record each use a distinct caller
+credential and their own receiving target credential. Gateway issue #51 must include these
+new catalog rows; this PR does not modify Gateway or another owner's source.
+
+Applicant's deception read requires a valid matching sessionId and returns 404 for a different
+session. Record facts use `/internal/v1/records/{applicantId}/facts` for Credential/Rules only.
+Session's owner must accept the warmup/generate/poll-ready protocol; no unagreed shift callback
+is labeled implemented. The 7 golden vectors are identical in both owned test suites and cover
+the immutable session binding and all scenario types. These are test inputs, not production IDs.
+
+Both owned repositories now have active two-review, code-owner, strict verify-CI and no-bypass
+rules on dev/main. Source candidates are 1.0.0 because authentication/configuration changes
+are breaking. No stable release or shared image-pin update is part of these feature PRs.

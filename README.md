@@ -457,9 +457,11 @@ forwarded to the service and returned on every response, so one id spans both ho
 
 The gRPC/event game integrations remain planned or in-process fixtures in the
 current releases; their contracts do not establish live transport. The additive
-[Lab 4 Gateway membership baseline](docs/gateway-membership-baseline.md) and the
-[owned real-integration contract](docs/owned-real-integrations.md) prepare
+[Lab 4 Gateway membership baseline](docs/gateway-membership-baseline.md) prepares
 real Record and Discord DMs calls through Gateway to persisted Session permissions.
+The [owned integration candidate](docs/owned-real-integrations.md) adds persisted Applicant/Record
+initialization and private facts; its [test evidence and remaining gates](docs/owned-http-evidence.md)
+distinguish the tested owned sources from the shared deployment.
 Its service-only `POST /internal/v1/session-memberships/verify` operation uses
 dedicated caller and target credentials. Gateway binds public `X-Player-Id` to the
 verified player JWT subject. Session adds host-only

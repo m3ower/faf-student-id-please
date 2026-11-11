@@ -86,7 +86,10 @@ class CatalogTest(unittest.TestCase):
             self.assertEqual(v.main(["--check", "dms.decisionRecorded", "response", str(good)]), 0)
             good.write_text(json.dumps({"eventId": "59f5ed3b-e286-3554-98bb-a02ce878769e", "status": "MAYBE"}))
             self.assertEqual(v.main(["--check", "dms.decisionRecorded", "response", str(good)]), 1)
-            self.assertEqual(v.main(["--check", "record.enrollmentFacts", "response", str(good)]), 2)
+            self.assertEqual(v.main(["--check", "record.enrollmentFacts", "response", str(good)]), 1)
+            record = json.loads((v.EXAMPLES / "record.enrollmentFacts.json").read_text())
+            good.write_text(json.dumps(record["response"]["body"]))
+            self.assertEqual(v.main(["--check", "record.enrollmentFacts", "response", str(good)]), 0)
 
 
 if __name__ == "__main__":
