@@ -1,0 +1,31 @@
+{
+  "operation": "session.verifyMembership",
+  "note": "Sent to the Gateway by the caller. The Gateway forwards the same method and path with the target credential and X-Service-Name: discord-dms-service.",
+  "request": {
+    "method": "POST",
+    "path": "/internal/v1/session-memberships/verify",
+    "headers": {
+      "Authorization": "Bearer <discord-dms-service caller credential>",
+      "X-Trace-Id": "example-trace-1",
+      "Content-Type": "application/json"
+    },
+    "body": {
+      "sessionId": "55555555-5555-5555-5555-555555555555",
+      "playerId": "22222222-2222-2222-2222-222222222222"
+    }
+  },
+  "response": {
+    "status": 200,
+    "body": {
+      "member": true,
+      "role": "JUNIOR_MODERATOR",
+      "recordAccess": [
+        "ENROLLMENT_LIST"
+      ],
+      "channels": [
+        "#enrollment-check",
+        "#general-mod-chat"
+      ]
+    }
+  }
+}
