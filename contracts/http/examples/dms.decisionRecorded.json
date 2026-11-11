@@ -1,0 +1,36 @@
+{
+  "operation": "dms.decisionRecorded",
+  "note": "A redelivery of an event DMs already committed: acknowledged as DUPLICATE with no second announcement.",
+  "request": {
+    "method": "POST",
+    "path": "/internal/v1/chat/decision-recorded",
+    "headers": {
+      "Authorization": "Bearer <moderation-service caller credential>",
+      "X-Trace-Id": "example-trace-1",
+      "Content-Type": "application/json"
+    },
+    "body": {
+      "eventId": "59f5ed3b-e286-3554-98bb-a02ce878769e",
+      "type": "DecisionRecorded",
+      "occurredAt": "2026-11-11T18:20:04.112Z",
+      "producer": "moderation-service",
+      "version": 1,
+      "payload": {
+        "decisionId": "d0000000-0000-0000-0000-000000000002",
+        "sessionId": "55555555-5555-5555-5555-555555555555",
+        "applicantId": "a0000000-0000-0000-0000-000000000002",
+        "moderatorId": "11111111-1111-1111-1111-111111111111",
+        "action": "REJECT",
+        "correct": true,
+        "scoreDelta": 100
+      }
+    }
+  },
+  "response": {
+    "status": 200,
+    "body": {
+      "eventId": "59f5ed3b-e286-3554-98bb-a02ce878769e",
+      "status": "DUPLICATE"
+    }
+  }
+}
