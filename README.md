@@ -493,7 +493,8 @@ Discovery registration stays direct. The [Applicant/Record migration](docs/appli
 now routes their business and membership calls through Message Broker, with unchanged
 wire contracts and an opt-in deployment overlay. Gateway retains public routing.
 The matching broker catalog/image and actual current-peer acceptance remain required;
-queue/topic delivery is later work.
+queue/topic delivery is introduced by the shared
+[Task6 candidate](docs/messaging-queues.md); each owner must still adopt it.
 
 Lab 4 Grade 5 then moved every service operation, together with load balancing and circuit
 breaking, from the Gateway to the message broker; the [HTTP operation catalog](docs/http-operation-catalog.md)
@@ -1196,8 +1197,10 @@ player Session no longer lists is disconnected with close code `4403`.
 
 ### Asynchronous events
 
-All events are published to RabbitMQ on the topic exchange `studentid.events`.
-Envelope:
+Lab 4 uses the custom Message Broker for topic delivery; RabbitMQ is the earlier
+architecture plan, not the implemented transport. See the
+[queue/topic contract](docs/messaging-queues.md) for bindings, per-group acknowledgments
+and individual owner adoption. Business envelope:
 
 ```json
 {
@@ -2078,6 +2081,15 @@ in the system.
 selection, balancing and circuits to Broker for public as well as service calls.
 Gateway keeps JWT validation and the public API. This is review-stage source work;
 shared Compose, image selections and submodule pointers are unchanged here.
+
+## Subscriber queues and topic messaging (Lab 4 candidate)
+
+[The shared messaging contract](docs/messaging-queues.md) adds Gateway subscriber
+queues, operation-topic request/reply, true event fan-out, Discovery subscriptions
+and fresh readiness observations. [Owner instructions](docs/messaging-owner-handoff.md)
+and [generated subscriptions](contracts/messaging/subscriptions.json) define the
+individual follow-up work. Queues/results are volatile; durable delivery is a
+later task. Source candidates do not imply publication or full-stack adoption.
 
 ## Contribution guide
 

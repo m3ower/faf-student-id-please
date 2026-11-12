@@ -1,0 +1,13 @@
+{
+  "messageId": "10000000-0000-0000-0000-000000000001",
+  "schemaVersion": 1,
+  "kind": "request",
+  "topic": "operation.credential.initialization.recover.v1",
+  "traceId": "messaging.example",
+  "correlationId": "10000000-0000-0000-0000-000000000002",
+  "deadlineAt": "2030-01-01T00:00:01Z",
+  "payload": null,
+  "arguments": {
+    "eventId": "10000000-0000-0000-0000-000000000003"
+  }
+}

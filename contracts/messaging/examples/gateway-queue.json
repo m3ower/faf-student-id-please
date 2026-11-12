@@ -1,0 +1,22 @@
+{
+  "messageId": "10000000-0000-0000-0000-000000000001",
+  "schemaVersion": 1,
+  "kind": "request",
+  "traceId": "messaging.example",
+  "correlationId": "10000000-0000-0000-0000-000000000002",
+  "deadlineAt": "2030-01-01T00:00:01Z",
+  "payload": {
+    "method": "GET",
+    "path": "/api/v1/sessions",
+    "query": "",
+    "headers": [
+      [
+        "accept",
+        "application/json"
+      ]
+    ],
+    "bodyBase64": "",
+    "playerId": "11111111-1111-1111-1111-111111111111"
+  },
+  "queue": "service.session-service.v1"
+}

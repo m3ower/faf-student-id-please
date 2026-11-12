@@ -1,0 +1,116 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:studentid:messaging:result:v1",
+  "title": "Broker result v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "messageId",
+    "correlationId",
+    "state",
+    "groups"
+  ],
+  "properties": {
+    "messageId": {
+      "type": "string",
+      "format": "uuid",
+      "minLength": 36,
+      "maxLength": 36,
+      "not": {
+        "const": "00000000-0000-0000-0000-000000000000"
+      }
+    },
+    "correlationId": {
+      "type": "string",
+      "format": "uuid",
+      "minLength": 36,
+      "maxLength": 36,
+      "not": {
+        "const": "00000000-0000-0000-0000-000000000000"
+      }
+    },
+    "state": {
+      "enum": [
+        "PENDING",
+        "COMPLETED",
+        "FAILED"
+      ]
+    },
+    "groups": {
+      "type": "object",
+      "minProperties": 1,
+      "maxProperties": 8,
+      "propertyNames": {
+        "pattern": "^[a-z][a-z0-9-]{0,62}$"
+      },
+      "additionalProperties": {
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "state",
+              "acknowledged"
+            ],
+            "properties": {
+              "state": {
+                "const": "PENDING"
+              },
+              "acknowledged": {
+                "const": false
+              }
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "state",
+              "acknowledged",
+              "status",
+              "bodyBase64",
+              "headers"
+            ],
+            "properties": {
+              "state": {
+                "enum": [
+                  "SUCCEEDED",
+                  "FAILED"
+                ]
+              },
+              "acknowledged": {
+                "type": "boolean"
+              },
+              "status": {
+                "type": "integer",
+                "minimum": 200,
+                "maximum": 599
+              },
+              "bodyBase64": {
+                "type": "string",
+                "contentEncoding": "base64"
+              },
+              "headers": {
+                "type": "array",
+                "items": {
+                  "type": "array",
+                  "prefixItems": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "string"
+                    }
+                  ],
+                  "items": false,
+                  "minItems": 2,
+                  "maxItems": 2
+                }
+              }
+            }
+          }
+        ]
+      }
+    }
+  }
+}

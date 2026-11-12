@@ -1,0 +1,202 @@
+{
+  "applicant-service": [
+    {
+      "topic": "event.CredentialsReady.v1",
+      "group": "applicant-service"
+    },
+    {
+      "topic": "operation.applicant.credentialContext.v1",
+      "group": "applicant-service"
+    },
+    {
+      "topic": "operation.applicant.credentialsReady.v1",
+      "group": "applicant-service"
+    },
+    {
+      "topic": "operation.applicant.generate.v1",
+      "group": "applicant-service"
+    },
+    {
+      "topic": "operation.applicant.getClaims.v1",
+      "group": "applicant-service"
+    },
+    {
+      "topic": "operation.applicant.getDeception.v1",
+      "group": "applicant-service"
+    },
+    {
+      "topic": "operation.applicant.getInitialization.v1",
+      "group": "applicant-service"
+    },
+    {
+      "topic": "operation.applicant.getProfile.v1",
+      "group": "applicant-service"
+    },
+    {
+      "topic": "operation.applicant.getReadiness.v1",
+      "group": "applicant-service"
+    },
+    {
+      "topic": "operation.applicant.initialize.v1",
+      "group": "applicant-service"
+    },
+    {
+      "topic": "operation.applicant.resumeInitialization.v1",
+      "group": "applicant-service"
+    },
+    {
+      "topic": "operation.applicant.warmup.v1",
+      "group": "applicant-service"
+    }
+  ],
+  "credential-service": [
+    {
+      "topic": "operation.credential.initialization.accept.v1",
+      "group": "credential-service"
+    },
+    {
+      "topic": "operation.credential.initialization.recover.v1",
+      "group": "credential-service"
+    },
+    {
+      "topic": "operation.credential.initialization.status.v1",
+      "group": "credential-service"
+    },
+    {
+      "topic": "operation.credential.listApplicantCredentials.v1",
+      "group": "credential-service"
+    },
+    {
+      "topic": "operation.credential.validateApplicant.v1",
+      "group": "credential-service"
+    },
+    {
+      "topic": "operation.credential.validateCredential.v1",
+      "group": "credential-service"
+    }
+  ],
+  "discord-dms-service": [
+    {
+      "topic": "event.DecisionRecorded.v1",
+      "group": "discord-dms-service"
+    },
+    {
+      "topic": "event.ShiftStarted.v1",
+      "group": "discord-dms-service"
+    },
+    {
+      "topic": "operation.dms.decisionRecorded.v1",
+      "group": "discord-dms-service"
+    },
+    {
+      "topic": "operation.dms.shiftStarted.v1",
+      "group": "discord-dms-service"
+    }
+  ],
+  "moderation-service": [
+    {
+      "topic": "operation.moderation.applicantDecisionFacts.v1",
+      "group": "moderation-service"
+    }
+  ],
+  "player-service": [
+    {
+      "topic": "event.SessionCompleted.v1",
+      "group": "player-service"
+    },
+    {
+      "topic": "operation.player-teams.lookup.v1",
+      "group": "player-service"
+    },
+    {
+      "topic": "operation.players.verify.v1",
+      "group": "player-service"
+    },
+    {
+      "topic": "operation.session-completions.record.v1",
+      "group": "player-service"
+    }
+  ],
+  "rules-service": [
+    {
+      "topic": "operation.rules.evaluate.v1",
+      "group": "rules-service"
+    },
+    {
+      "topic": "operation.rules.shift.bind.v1",
+      "group": "rules-service"
+    },
+    {
+      "topic": "operation.rules.shift.read.v1",
+      "group": "rules-service"
+    }
+  ],
+  "session-service": [
+    {
+      "topic": "event.DecisionRecorded.v1",
+      "group": "session-service"
+    },
+    {
+      "topic": "event.PlayerProgressed.v1",
+      "group": "session-service"
+    },
+    {
+      "topic": "operation.player-progressions.record.v1",
+      "group": "session-service"
+    },
+    {
+      "topic": "operation.session-state.get.v1",
+      "group": "session-service"
+    },
+    {
+      "topic": "operation.session.applyScoreChange.v1",
+      "group": "session-service"
+    },
+    {
+      "topic": "operation.session.decisionRecorded.v1",
+      "group": "session-service"
+    },
+    {
+      "topic": "operation.session.verifyMembership.v1",
+      "group": "session-service"
+    }
+  ],
+  "university-record-service": [
+    {
+      "topic": "event.CredentialsReady.v1",
+      "group": "university-record-service"
+    },
+    {
+      "topic": "operation.record.credentialFacts.v1",
+      "group": "university-record-service"
+    },
+    {
+      "topic": "operation.record.credentialsReady.v1",
+      "group": "university-record-service"
+    },
+    {
+      "topic": "operation.record.enrollmentFacts.v1",
+      "group": "university-record-service"
+    },
+    {
+      "topic": "operation.record.generate.v1",
+      "group": "university-record-service"
+    },
+    {
+      "topic": "operation.record.getInitialization.v1",
+      "group": "university-record-service"
+    },
+    {
+      "topic": "operation.record.getReadiness.v1",
+      "group": "university-record-service"
+    },
+    {
+      "topic": "operation.record.initialize.v1",
+      "group": "university-record-service"
+    },
+    {
+      "topic": "operation.record.resumeInitialization.v1",
+      "group": "university-record-service"
+    }
+  ]
+}

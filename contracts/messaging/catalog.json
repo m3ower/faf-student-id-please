@@ -1,0 +1,637 @@
+{
+  "version": 1,
+  "operations": {
+    "operation.session.verifyMembership.v1": {
+      "operation": "session.verifyMembership",
+      "group": "session-service",
+      "method": "POST",
+      "path": "/internal/v1/session-memberships/verify",
+      "query": "",
+      "arguments": [],
+      "bodySchema": "membershipRequest",
+      "callers": [
+        "credential-service",
+        "discord-dms-service",
+        "moderation-service",
+        "rules-service",
+        "university-record-service"
+      ],
+      "budgetMs": 750
+    },
+    "operation.session.applyScoreChange.v1": {
+      "operation": "session.applyScoreChange",
+      "group": "session-service",
+      "method": "POST",
+      "path": "/internal/v1/session-score-changes",
+      "query": "",
+      "arguments": [],
+      "bodySchema": "scoreChangeRequest",
+      "callers": [
+        "moderation-service"
+      ],
+      "budgetMs": 750
+    },
+    "operation.session.decisionRecorded.v1": {
+      "operation": "session.decisionRecorded",
+      "group": "session-service",
+      "method": "POST",
+      "path": "/internal/v1/session-events/decision-recorded",
+      "query": "",
+      "arguments": [],
+      "bodySchema": "decisionRecordedEnvelope",
+      "callers": [
+        "moderation-service"
+      ],
+      "budgetMs": 750
+    },
+    "operation.credential.listApplicantCredentials.v1": {
+      "operation": "credential.listApplicantCredentials",
+      "group": "credential-service",
+      "method": "GET",
+      "path": "/internal/v1/credentials",
+      "query": "applicantId={applicantId}&sessionId={sessionId}",
+      "arguments": [
+        "applicantId",
+        "sessionId"
+      ],
+      "bodySchema": null,
+      "callers": [
+        "moderation-service"
+      ],
+      "budgetMs": 750
+    },
+    "operation.credential.validateCredential.v1": {
+      "operation": "credential.validateCredential",
+      "group": "credential-service",
+      "method": "GET",
+      "path": "/internal/v1/credentials/{credentialId}/validation",
+      "query": "",
+      "arguments": [
+        "credentialId"
+      ],
+      "bodySchema": null,
+      "callers": [
+        "moderation-service"
+      ],
+      "budgetMs": 750
+    },
+    "operation.rules.evaluate.v1": {
+      "operation": "rules.evaluate",
+      "group": "rules-service",
+      "method": "POST",
+      "path": "/internal/v1/rules/evaluations",
+      "query": "",
+      "arguments": [],
+      "bodySchema": "rulesEvaluationRequest",
+      "callers": [
+        "moderation-service"
+      ],
+      "budgetMs": 750
+    },
+    "operation.moderation.applicantDecisionFacts.v1": {
+      "operation": "moderation.applicantDecisionFacts",
+      "group": "moderation-service",
+      "method": "GET",
+      "path": "/internal/v1/moderation/applicants/{applicantId}/decision-facts",
+      "query": "",
+      "arguments": [
+        "applicantId"
+      ],
+      "bodySchema": null,
+      "callers": [
+        "rules-service"
+      ],
+      "budgetMs": 750
+    },
+    "operation.dms.shiftStarted.v1": {
+      "operation": "dms.shiftStarted",
+      "group": "discord-dms-service",
+      "method": "POST",
+      "path": "/internal/v1/chat/shift-started",
+      "query": "",
+      "arguments": [],
+      "bodySchema": "shiftStartedEnvelope",
+      "callers": [
+        "session-service"
+      ],
+      "budgetMs": 750
+    },
+    "operation.dms.decisionRecorded.v1": {
+      "operation": "dms.decisionRecorded",
+      "group": "discord-dms-service",
+      "method": "POST",
+      "path": "/internal/v1/chat/decision-recorded",
+      "query": "",
+      "arguments": [],
+      "bodySchema": "decisionRecordedEnvelope",
+      "callers": [
+        "moderation-service"
+      ],
+      "budgetMs": 750
+    },
+    "operation.players.verify.v1": {
+      "operation": "players.verify",
+      "group": "player-service",
+      "method": "POST",
+      "path": "/internal/v1/players/verify",
+      "query": "",
+      "arguments": [],
+      "bodySchema": "playerRef",
+      "callers": [
+        "session-service"
+      ],
+      "budgetMs": 750
+    },
+    "operation.player-teams.lookup.v1": {
+      "operation": "player-teams.lookup",
+      "group": "player-service",
+      "method": "POST",
+      "path": "/internal/v1/player-teams/lookup",
+      "query": "",
+      "arguments": [],
+      "bodySchema": "teamRef",
+      "callers": [
+        "session-service"
+      ],
+      "budgetMs": 750
+    },
+    "operation.session-completions.record.v1": {
+      "operation": "session-completions.record",
+      "group": "player-service",
+      "method": "POST",
+      "path": "/internal/v1/session-completions/record",
+      "query": "",
+      "arguments": [],
+      "bodySchema": "sessionCompletedEnvelope",
+      "callers": [
+        "session-service"
+      ],
+      "budgetMs": 750
+    },
+    "operation.session-state.get.v1": {
+      "operation": "session-state.get",
+      "group": "session-service",
+      "method": "POST",
+      "path": "/internal/v1/session-state/get",
+      "query": "",
+      "arguments": [],
+      "bodySchema": "sessionRef",
+      "callers": [
+        "applicant-service",
+        "credential-service",
+        "moderation-service",
+        "rules-service"
+      ],
+      "budgetMs": 750
+    },
+    "operation.player-progressions.record.v1": {
+      "operation": "player-progressions.record",
+      "group": "session-service",
+      "method": "POST",
+      "path": "/internal/v1/player-progressions/record",
+      "query": "",
+      "arguments": [],
+      "bodySchema": "playerProgressedEnvelope",
+      "callers": [
+        "player-service"
+      ],
+      "budgetMs": 750
+    },
+    "operation.applicant.getDeception.v1": {
+      "operation": "applicant.getDeception",
+      "group": "applicant-service",
+      "method": "GET",
+      "path": "/internal/v1/applicants/{applicantId}/deception",
+      "query": "sessionId={sessionId}",
+      "arguments": [
+        "applicantId",
+        "sessionId"
+      ],
+      "bodySchema": null,
+      "callers": [
+        "moderation-service"
+      ],
+      "budgetMs": 750
+    },
+    "operation.record.enrollmentFacts.v1": {
+      "operation": "record.enrollmentFacts",
+      "group": "university-record-service",
+      "method": "GET",
+      "path": "/internal/v1/records/{applicantId}/facts",
+      "query": "",
+      "arguments": [
+        "applicantId"
+      ],
+      "bodySchema": null,
+      "callers": [
+        "credential-service",
+        "rules-service"
+      ],
+      "budgetMs": 750
+    },
+    "operation.applicant.generate.v1": {
+      "operation": "applicant.generate",
+      "group": "applicant-service",
+      "method": "POST",
+      "path": "/internal/v1/applicants/generate",
+      "query": "",
+      "arguments": [],
+      "bodySchema": "ownedGeneration",
+      "callers": [
+        "credential-service",
+        "session-service",
+        "university-record-service"
+      ],
+      "budgetMs": 750
+    },
+    "operation.applicant.initialize.v1": {
+      "operation": "applicant.initialize",
+      "group": "applicant-service",
+      "method": "POST",
+      "path": "/internal/v1/applicants/events/applicant-initialized",
+      "query": "",
+      "arguments": [],
+      "bodySchema": "ownedApplicantInitialized",
+      "callers": [
+        "credential-service",
+        "university-record-service"
+      ],
+      "budgetMs": 750
+    },
+    "operation.applicant.getInitialization.v1": {
+      "operation": "applicant.getInitialization",
+      "group": "applicant-service",
+      "method": "GET",
+      "path": "/internal/v1/applicants/{applicantId}/initialization",
+      "query": "",
+      "arguments": [
+        "applicantId"
+      ],
+      "bodySchema": null,
+      "callers": [
+        "credential-service",
+        "rules-service",
+        "session-service",
+        "university-record-service"
+      ],
+      "budgetMs": 750
+    },
+    "operation.applicant.getReadiness.v1": {
+      "operation": "applicant.getReadiness",
+      "group": "applicant-service",
+      "method": "GET",
+      "path": "/internal/v1/applicants/{applicantId}/readiness",
+      "query": "",
+      "arguments": [
+        "applicantId"
+      ],
+      "bodySchema": null,
+      "callers": [
+        "credential-service",
+        "session-service",
+        "university-record-service"
+      ],
+      "budgetMs": 750
+    },
+    "operation.applicant.resumeInitialization.v1": {
+      "operation": "applicant.resumeInitialization",
+      "group": "applicant-service",
+      "method": "POST",
+      "path": "/internal/v1/applicants/{applicantId}/resume",
+      "query": "",
+      "arguments": [
+        "applicantId"
+      ],
+      "bodySchema": null,
+      "callers": [
+        "credential-service",
+        "session-service",
+        "university-record-service"
+      ],
+      "budgetMs": 750
+    },
+    "operation.record.generate.v1": {
+      "operation": "record.generate",
+      "group": "university-record-service",
+      "method": "POST",
+      "path": "/internal/v1/records/generate",
+      "query": "",
+      "arguments": [],
+      "bodySchema": "ownedGeneration",
+      "callers": [
+        "applicant-service",
+        "credential-service",
+        "session-service"
+      ],
+      "budgetMs": 750
+    },
+    "operation.record.initialize.v1": {
+      "operation": "record.initialize",
+      "group": "university-record-service",
+      "method": "POST",
+      "path": "/internal/v1/records/events/applicant-initialized",
+      "query": "",
+      "arguments": [],
+      "bodySchema": "ownedApplicantInitialized",
+      "callers": [
+        "applicant-service",
+        "credential-service"
+      ],
+      "budgetMs": 750
+    },
+    "operation.record.getInitialization.v1": {
+      "operation": "record.getInitialization",
+      "group": "university-record-service",
+      "method": "GET",
+      "path": "/internal/v1/records/{applicantId}/initialization",
+      "query": "",
+      "arguments": [
+        "applicantId"
+      ],
+      "bodySchema": null,
+      "callers": [
+        "applicant-service",
+        "credential-service",
+        "rules-service",
+        "session-service"
+      ],
+      "budgetMs": 750
+    },
+    "operation.record.getReadiness.v1": {
+      "operation": "record.getReadiness",
+      "group": "university-record-service",
+      "method": "GET",
+      "path": "/internal/v1/records/{applicantId}/readiness",
+      "query": "",
+      "arguments": [
+        "applicantId"
+      ],
+      "bodySchema": null,
+      "callers": [
+        "applicant-service",
+        "credential-service",
+        "session-service"
+      ],
+      "budgetMs": 750
+    },
+    "operation.record.resumeInitialization.v1": {
+      "operation": "record.resumeInitialization",
+      "group": "university-record-service",
+      "method": "POST",
+      "path": "/internal/v1/records/{applicantId}/resume",
+      "query": "",
+      "arguments": [
+        "applicantId"
+      ],
+      "bodySchema": null,
+      "callers": [
+        "applicant-service",
+        "credential-service",
+        "session-service"
+      ],
+      "budgetMs": 750
+    },
+    "operation.applicant.getProfile.v1": {
+      "operation": "applicant.getProfile",
+      "group": "applicant-service",
+      "method": "GET",
+      "path": "/internal/v1/applicants/{applicantId}/profile",
+      "query": "",
+      "arguments": [
+        "applicantId"
+      ],
+      "bodySchema": null,
+      "callers": [
+        "credential-service",
+        "moderation-service",
+        "rules-service",
+        "session-service"
+      ],
+      "budgetMs": 750
+    },
+    "operation.applicant.getClaims.v1": {
+      "operation": "applicant.getClaims",
+      "group": "applicant-service",
+      "method": "GET",
+      "path": "/internal/v1/applicants/{applicantId}/claims",
+      "query": "",
+      "arguments": [
+        "applicantId"
+      ],
+      "bodySchema": null,
+      "callers": [
+        "credential-service",
+        "moderation-service",
+        "rules-service",
+        "session-service"
+      ],
+      "budgetMs": 750
+    },
+    "operation.applicant.warmup.v1": {
+      "operation": "applicant.warmup",
+      "group": "applicant-service",
+      "method": "POST",
+      "path": "/internal/v1/applicants/warmup",
+      "query": "",
+      "arguments": [],
+      "bodySchema": "ownedWarmup",
+      "callers": [
+        "session-service"
+      ],
+      "budgetMs": 750
+    },
+    "operation.rules.shift.bind.v1": {
+      "operation": "rules.shift.bind",
+      "group": "rules-service",
+      "method": "POST",
+      "path": "/internal/v1/rulesets/bind",
+      "query": "",
+      "arguments": [],
+      "bodySchema": "ownedShiftBinding",
+      "callers": [
+        "session-service"
+      ],
+      "budgetMs": 750
+    },
+    "operation.rules.shift.read.v1": {
+      "operation": "rules.shift.read",
+      "group": "rules-service",
+      "method": "GET",
+      "path": "/internal/v1/rulesets/sessions/{sessionId}/shifts/{shiftId}",
+      "query": "",
+      "arguments": [
+        "sessionId",
+        "shiftId"
+      ],
+      "bodySchema": null,
+      "callers": [
+        "moderation-service",
+        "session-service"
+      ],
+      "budgetMs": 750
+    },
+    "operation.credential.initialization.accept.v1": {
+      "operation": "credential.initialization.accept",
+      "group": "credential-service",
+      "method": "POST",
+      "path": "/internal/v1/credentials/initialize",
+      "query": "",
+      "arguments": [],
+      "bodySchema": "ownedInitialization",
+      "callers": [
+        "applicant-service",
+        "university-record-service"
+      ],
+      "budgetMs": 750
+    },
+    "operation.credential.initialization.recover.v1": {
+      "operation": "credential.initialization.recover",
+      "group": "credential-service",
+      "method": "POST",
+      "path": "/internal/v1/credentials/initializations/{eventId}/recover",
+      "query": "",
+      "arguments": [
+        "eventId"
+      ],
+      "bodySchema": null,
+      "callers": [
+        "applicant-service",
+        "university-record-service"
+      ],
+      "budgetMs": 750
+    },
+    "operation.credential.initialization.status.v1": {
+      "operation": "credential.initialization.status",
+      "group": "credential-service",
+      "method": "GET",
+      "path": "/internal/v1/credentials/initializations/{eventId}",
+      "query": "",
+      "arguments": [
+        "eventId"
+      ],
+      "bodySchema": null,
+      "callers": [
+        "applicant-service",
+        "session-service",
+        "university-record-service"
+      ],
+      "budgetMs": 750
+    },
+    "operation.applicant.credentialContext.v1": {
+      "operation": "applicant.credentialContext",
+      "group": "applicant-service",
+      "method": "POST",
+      "path": "/internal/v1/applicants/context",
+      "query": "",
+      "arguments": [],
+      "bodySchema": "ownedApplicantOnly",
+      "callers": [
+        "credential-service"
+      ],
+      "budgetMs": 750
+    },
+    "operation.applicant.credentialsReady.v1": {
+      "operation": "applicant.credentialsReady",
+      "group": "applicant-service",
+      "method": "POST",
+      "path": "/internal/v1/applicants/events/credentials-ready",
+      "query": "",
+      "arguments": [],
+      "bodySchema": "ownedCredentialsReady",
+      "callers": [
+        "credential-service"
+      ],
+      "budgetMs": 750
+    },
+    "operation.record.credentialFacts.v1": {
+      "operation": "record.credentialFacts",
+      "group": "university-record-service",
+      "method": "POST",
+      "path": "/internal/v1/records/facts",
+      "query": "",
+      "arguments": [],
+      "bodySchema": "ownedApplicantOnly",
+      "callers": [
+        "credential-service",
+        "rules-service"
+      ],
+      "budgetMs": 750
+    },
+    "operation.record.credentialsReady.v1": {
+      "operation": "record.credentialsReady",
+      "group": "university-record-service",
+      "method": "POST",
+      "path": "/internal/v1/records/events/credentials-ready",
+      "query": "",
+      "arguments": [],
+      "bodySchema": "ownedCredentialsReady",
+      "callers": [
+        "credential-service"
+      ],
+      "budgetMs": 750
+    },
+    "operation.credential.validateApplicant.v1": {
+      "operation": "credential.validateApplicant",
+      "group": "credential-service",
+      "method": "POST",
+      "path": "/internal/v1/credentials/validate-applicant",
+      "query": "",
+      "arguments": [],
+      "bodySchema": "ownedApplicantOnly",
+      "callers": [
+        "moderation-service",
+        "rules-service"
+      ],
+      "budgetMs": 750
+    }
+  },
+  "events": {
+    "event.DecisionRecorded.v1": {
+      "eventType": "DecisionRecorded",
+      "publisher": "moderation-service",
+      "groups": {
+        "session-service": "session.decisionRecorded",
+        "discord-dms-service": "dms.decisionRecorded"
+      }
+    },
+    "event.ShiftStarted.v1": {
+      "eventType": "ShiftStarted",
+      "publisher": "session-service",
+      "groups": {
+        "discord-dms-service": "dms.shiftStarted"
+      }
+    },
+    "event.CredentialsReady.v1": {
+      "eventType": "CredentialsReady",
+      "publisher": "credential-service",
+      "groups": {
+        "applicant-service": "applicant.credentialsReady",
+        "university-record-service": "record.credentialsReady"
+      }
+    },
+    "event.SessionCompleted.v1": {
+      "eventType": "SessionCompleted",
+      "publisher": "session-service",
+      "groups": {
+        "player-service": "session-completions.record"
+      }
+    },
+    "event.PlayerProgressed.v1": {
+      "eventType": "PlayerProgressed",
+      "publisher": "player-service",
+      "groups": {
+        "session-service": "player-progressions.record"
+      }
+    }
+  },
+  "queues": {
+    "service.applicant-service.v1": "applicant-service",
+    "service.credential-service.v1": "credential-service",
+    "service.discord-dms-service.v1": "discord-dms-service",
+    "service.moderation-service.v1": "moderation-service",
+    "service.player-service.v1": "player-service",
+    "service.rules-service.v1": "rules-service",
+    "service.session-service.v1": "session-service",
+    "service.university-record-service.v1": "university-record-service"
+  }
+}
