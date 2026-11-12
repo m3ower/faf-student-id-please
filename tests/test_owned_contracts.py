@@ -6,6 +6,17 @@ from scripts import validate_http_contracts as contract
 
 
 class OwnedContractsTest(unittest.TestCase):
+    def test_explicit_credential_adapter_preserves_distinct_protocols(self):
+        catalog = contract.load_catalog()
+        operations = {op['name']: op for op in catalog['operations']}
+        self.assertEqual('ownedInitialization', operations['credential.initialization.accept']['request'])
+        self.assertEqual('ownedInitializationStatus', operations['credential.initialization.status']['response'])
+        self.assertEqual('ownedReceipt', operations['record.getInitialization']['response'])
+        self.assertEqual(['credential-service'], operations['applicant.credentialContext']['callers'])
+        path = Path(__file__).resolve().parents[1] / 'contracts/http/test-vectors/credentials-ready-v1.json'
+        vector = json.loads(path.read_text())
+        self.assertEqual([], contract.validate(vector['event'], {'$ref':'ownedCredentialsReady'}, catalog['schemas']))
+        self.assertIn('READY alone is insufficient', catalog['credentialCompatibility']['credentialBoundary'])
     def test_initialization_vectors_match_the_executable_schema(self):
         catalog = contract.load_catalog()
         path = Path(__file__).resolve().parents[1] / "contracts/http/test-vectors/initialization-v1.json"

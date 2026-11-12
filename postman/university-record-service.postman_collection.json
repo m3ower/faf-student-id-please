@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "Student ID - University Record Service",
-    "description": "2026-11-12: these are the owned pre-migration Gateway checks. Record player reads authenticate the Gateway target credential before trusting identity headers; Postman must keep using Gateway with a real player JWT. The current CPR still marks Credential initialization incompatible. Owned 1.0.0 HTTP integration source candidate. Supply separate caller and management credentials only in a private local environment. All requests use Gateway baseUrl. Internal catalog operations require Gateway registry support and actual peer implementations; these checks do not certify whole-system readiness. Broker transport is not enabled. University Record merged Lab 3 source (0.4.0): run in order through Gateway http://localhost:8090 with a valid accessToken in a private local environment. Tracked tokens stay empty. Generates disposable student IDs, verifies CRUD, duplicate create/update 409 and rollback, sanitized 400/404 errors, 405 and cleanup. Record membership uses the configured real Gateway/Session integration; no runtime mock is supported. Internal /status, concurrent races, database faults, image provenance and full shared-stack acceptance are separate checks. Existing CPR image pins may predate these source changes.",
+    "description": "2026-11-12: these are the owned pre-migration Gateway checks. Record player reads authenticate the Gateway target credential before trusting identity headers; Postman must keep using Gateway with a real player JWT. Owned adapters now explicitly support Credential seed/status/callbacks. Actual current private Credential runtime acceptance remains required. Owned 1.0.0 HTTP integration source candidate. Supply separate caller and management credentials only in a private local environment. All requests use Gateway baseUrl. Internal catalog operations require Gateway registry support and actual peer implementations; these checks do not certify whole-system readiness. Broker transport is not enabled. University Record merged Lab 3 source (0.4.0): run in order through Gateway http://localhost:8090 with a valid accessToken in a private local environment. Tracked tokens stay empty. Generates disposable student IDs, verifies CRUD, duplicate create/update 409 and rollback, sanitized 400/404 errors, 405 and cleanup. Record membership uses the configured real Gateway/Session integration; no runtime mock is supported. Internal /status, concurrent races, database faults, image provenance and full shared-stack acceptance are separate checks. Existing CPR image pins may predate these source changes.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
@@ -124,6 +124,12 @@
       "key": "unknownIntegrationId",
       "value": "",
       "description": "Integration candidate input. Set sessionId to the actual session. Empty generated IDs are created once by the generation request."
+    },
+    {
+      "key": "credentialsReadyEnvelope",
+      "value": "",
+      "type": "string",
+      "description": "Actual correlated CredentialsReady JSON from private test evidence; never fill tracked state or invent production readiness."
     }
   ],
   "item": [
@@ -1127,6 +1133,106 @@
                   "pm.test('Documented response', function() { pm.expect(pm.response.code).to.be.oneOf([202]); });",
                   "pm.test('Trace correlation returned', function(){pm.expect(pm.response.headers.get('X-Trace-Id')).to.eql(pm.variables.replaceIn('owned-postman-{{integrationRequestId}}'));});",
                   "pm.test('Readiness is explicit',function(){ var body=pm.response.json(); pm.expect(body.ready).to.be.a('boolean'); if(pm.response.code===202) pm.expect(body.ready).to.eql(false); else pm.expect(body.ready).to.eql(true); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Credential authoritative facts",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/internal/v1/records/facts",
+            "description": "Requires full session-bound initialization and Credential caller identity. Never supplies a player identity or generates missing context.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "type": "string",
+                  "value": "{{credentialServiceToken}}"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "X-Trace-Id",
+                "value": "owned-postman-{{integrationRequestId}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"applicantId\":\"{{integrationApplicantId}}\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Documented response', function(){ pm.expect(pm.response.code).to.be.oneOf([200]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "CredentialsReady durable callback",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/internal/v1/records/events/credentials-ready",
+            "description": "Use an actual Credential callback from the private local test run, matching integrationApplicantId and parent request/event ID. Identical replay 200; changed content or causation 409. A callback alone cannot establish READY.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "type": "string",
+                  "value": "{{credentialServiceToken}}"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "X-Trace-Id",
+                "value": "owned-postman-{{integrationRequestId}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{{credentialsReadyEnvelope}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Documented response', function(){ pm.expect(pm.response.code).to.be.oneOf([200]); });"
                 ]
               }
             }

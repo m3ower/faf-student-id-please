@@ -1,5 +1,5 @@
 {
-  "catalogVersion": "0.3.0-candidate",
+  "catalogVersion": "0.3.0",
   "description": "Shared HTTP/JSON service-operation catalog. The receiving owner defines each operation's method, path, schemas, errors, authorization and idempotency. Lab 4 Grade 5: callers send every operation to the MESSAGE BROKER (moved from the Gateway's service route). The broker authenticates the caller with its own credential, enforces the operation's caller allowlist, chooses a target instance from Service Discovery (round robin, skipping instances whose circuit is open), replaces the credential with the target's credential, adds X-Service-Name and forwards the same path. This is request/reply routing; queue and topic delivery are later work. The Gateway remains the public entry point for players (publicBackendCredentials below).",
   "transport": {
     "callerSends": "POST|GET <BROKER_URL><path> with Authorization: Bearer <caller credential> and X-Trace-Id",
@@ -912,7 +912,7 @@
         "503 DATABASE_UNAVAILABLE": "Storage unavailable; never a fabricated success",
         "504 TASK_TIMEOUT": "500 ms target operation deadline exceeded"
       },
-      "semantics": "Owned persisted HTTP baseline. Initialization consumers commit only their component and receipt, without republishing. Never exposes deception through claims/profile or public management projections. Session receives 202 with no profile/claims until all three owners have matching receipts; authorized peer fact reads may inspect their own initialization dependencies.",
+      "semantics": "Owned persisted HTTP baseline. Initialization consumers commit only their component and receipt, without republishing. Never exposes deception through claims/profile or public management projections. Session receives 202 with no profile/claims until the full peer receipt, local durable Credential callback and correlated Credential READY/zero-pending status are verified; authorized peer fact reads may inspect their own initialization dependencies.",
       "successResponses": {
         "200": "ownedProfileResponse",
         "202": "ownedReadiness"
@@ -951,7 +951,7 @@
         "503 DATABASE_UNAVAILABLE": "Storage unavailable; never a fabricated success",
         "504 TASK_TIMEOUT": "500 ms target operation deadline exceeded"
       },
-      "semantics": "Owned persisted HTTP baseline. Initialization consumers commit only their component and receipt, without republishing. Never exposes deception through claims/profile or public management projections. Session receives 202 with no profile/claims until all three owners have matching receipts; authorized peer fact reads may inspect their own initialization dependencies.",
+      "semantics": "Owned persisted HTTP baseline. Initialization consumers commit only their component and receipt, without republishing. Never exposes deception through claims/profile or public management projections. Session receives 202 with no profile/claims until the full peer receipt, local durable Credential callback and correlated Credential READY/zero-pending status are verified; authorized peer fact reads may inspect their own initialization dependencies.",
       "successResponses": {
         "200": "ownedClaims",
         "202": "ownedReadiness"
@@ -1057,6 +1057,238 @@
         "400 INVALID_REQUEST": "invalid identifiers",
         "401 UNAUTHENTICATED": "invalid receiver credential",
         "403 SERVICE_FORBIDDEN": "caller not allowed"
+      }
+    },
+    {
+      "name": "credential.initialization.accept",
+      "status": "implemented-pending-review",
+      "statusEvidence": "Credential receiver-published CPR #127 / private PR #33. Explicit seed/status/callback adapters are implemented in Applicant PR #23 and Record PR #25; actual current Credential runtime still requires verification.",
+      "owner": "credential-service",
+      "method": "POST",
+      "path": "/internal/v1/credentials/initialize",
+      "callers": [
+        "applicant-service",
+        "university-record-service"
+      ],
+      "idempotency": "Original eventId and seed identity are immutable. Identical initialization/recovery does not regenerate documents; conflict is 409. Status reads have no side effects.",
+      "retry": "Only a persisted owned outbox retries; INITIALIZE and RECOVER stages are separate and survive restart. No in-request retry.",
+      "request": "ownedInitialization",
+      "response": "ownedInitializationStatus",
+      "errors": {
+        "400 INVALID_REQUEST": "Invalid receiver-published input",
+        "401 UNAUTHENTICATED": "Missing/wrong receiver credential",
+        "403 SERVICE_FORBIDDEN": "Caller not permitted",
+        "404 INITIALIZATION_NOT_FOUND": "Unknown event; a recovering sender may return to INITIALIZE without resetting its attempt bound",
+        "409 INITIALIZATION_CONFLICT": "Immutable identifiers/content conflict",
+        "503 DEPENDENCY_UNAVAILABLE": "Storage or authoritative facts unavailable",
+        "504 TASK_TIMEOUT": "Deadline exceeded"
+      },
+      "semantics": "Credential owns documents and accepts its original seed-only protocol. A Status is never a full Applicant/Record hash receipt. Owned adapters require a durable correlated CredentialsReady callback plus matching READY/pendingDeliveries=0; no successful readiness is fabricated.",
+      "budgetsMs": {
+        "target": 500,
+        "gateway": 750,
+        "broker": 750,
+        "caller": 1000
+      },
+      "successResponses": {
+        "200": "ownedInitializationStatus",
+        "201": "ownedInitializationStatus",
+        "202": "ownedInitializationStatus"
+      }
+    },
+    {
+      "name": "credential.initialization.recover",
+      "status": "implemented-pending-review",
+      "statusEvidence": "Credential receiver-published CPR #127 / private PR #33. Explicit seed/status/callback adapters are implemented in Applicant PR #23 and Record PR #25; actual current Credential runtime still requires verification.",
+      "owner": "credential-service",
+      "method": "POST",
+      "path": "/internal/v1/credentials/initializations/{eventId}/recover",
+      "callers": [
+        "applicant-service",
+        "university-record-service"
+      ],
+      "idempotency": "Original eventId and seed identity are immutable. Identical initialization/recovery does not regenerate documents; conflict is 409. Status reads have no side effects.",
+      "retry": "Only a persisted owned outbox retries; INITIALIZE and RECOVER stages are separate and survive restart. No in-request retry.",
+      "request": null,
+      "response": "ownedInitializationStatus",
+      "errors": {
+        "400 INVALID_REQUEST": "Invalid receiver-published input",
+        "401 UNAUTHENTICATED": "Missing/wrong receiver credential",
+        "403 SERVICE_FORBIDDEN": "Caller not permitted",
+        "404 INITIALIZATION_NOT_FOUND": "Unknown event; a recovering sender may return to INITIALIZE without resetting its attempt bound",
+        "409 INITIALIZATION_CONFLICT": "Immutable identifiers/content conflict",
+        "503 DEPENDENCY_UNAVAILABLE": "Storage or authoritative facts unavailable",
+        "504 TASK_TIMEOUT": "Deadline exceeded"
+      },
+      "semantics": "Credential owns documents and accepts its original seed-only protocol. A Status is never a full Applicant/Record hash receipt. Owned adapters require a durable correlated CredentialsReady callback plus matching READY/pendingDeliveries=0; no successful readiness is fabricated.",
+      "budgetsMs": {
+        "target": 500,
+        "gateway": 750,
+        "broker": 750,
+        "caller": 1000
+      },
+      "successResponses": {
+        "200": "ownedInitializationStatus",
+        "201": "ownedInitializationStatus",
+        "202": "ownedInitializationStatus"
+      }
+    },
+    {
+      "name": "credential.initialization.status",
+      "status": "implemented-pending-review",
+      "statusEvidence": "Credential receiver-published CPR #127 / private PR #33. Explicit seed/status/callback adapters are implemented in Applicant PR #23 and Record PR #25; actual current Credential runtime still requires verification.",
+      "owner": "credential-service",
+      "method": "GET",
+      "path": "/internal/v1/credentials/initializations/{eventId}",
+      "callers": [
+        "applicant-service",
+        "university-record-service",
+        "session-service"
+      ],
+      "idempotency": "Original eventId and seed identity are immutable. Identical initialization/recovery does not regenerate documents; conflict is 409. Status reads have no side effects.",
+      "retry": "Only a persisted owned outbox retries; INITIALIZE and RECOVER stages are separate and survive restart. No in-request retry.",
+      "request": null,
+      "response": "ownedInitializationStatus",
+      "errors": {
+        "400 INVALID_REQUEST": "Invalid receiver-published input",
+        "401 UNAUTHENTICATED": "Missing/wrong receiver credential",
+        "403 SERVICE_FORBIDDEN": "Caller not permitted",
+        "404 INITIALIZATION_NOT_FOUND": "Unknown event; a recovering sender may return to INITIALIZE without resetting its attempt bound",
+        "409 INITIALIZATION_CONFLICT": "Immutable identifiers/content conflict",
+        "503 DEPENDENCY_UNAVAILABLE": "Storage or authoritative facts unavailable",
+        "504 TASK_TIMEOUT": "Deadline exceeded"
+      },
+      "semantics": "Credential owns documents and accepts its original seed-only protocol. A Status is never a full Applicant/Record hash receipt. Owned adapters require a durable correlated CredentialsReady callback plus matching READY/pendingDeliveries=0; no successful readiness is fabricated.",
+      "budgetsMs": {
+        "target": 500,
+        "gateway": 750,
+        "broker": 750,
+        "caller": 1000
+      }
+    },
+    {
+      "name": "applicant.credentialContext",
+      "status": "implemented-pending-review",
+      "statusEvidence": "Applicant PR #23 / Record PR #25; explicit adapters to Credential receiver-published CPR #127. Review and registry update required.",
+      "owner": "applicant-service",
+      "method": "POST",
+      "path": "/internal/v1/applicants/context",
+      "callers": [
+        "credential-service"
+      ],
+      "idempotency": "Read-only",
+      "retry": "No automatic in-request retry; Credential durable outbox may resend identical callback.",
+      "request": "ownedApplicantOnly",
+      "response": "ownedApplicantContextPort",
+      "errors": {
+        "400 INVALID_REQUEST | INVALID_EVENT": "Malformed, unbound or duplicate identifiers",
+        "401 UNAUTHENTICATED": "Missing/wrong target credential",
+        "403 SERVICE_CALL_FORBIDDEN": "Caller outside exact operation allowlist",
+        "404 INITIALIZATION_NOT_FOUND": "Unknown full initialization on a read",
+        "409 CREDENTIAL_EVENT_CONFLICT | CREDENTIAL_CAUSATION_CONFLICT": "Immutable callback/parent conflict",
+        "503 INITIALIZATION_PENDING | FACTS_UNAVAILABLE | DATABASE_UNAVAILABLE": "No complete authoritative context; never fabricate success",
+        "504 TASK_TIMEOUT": "500 ms target deadline"
+      },
+      "semantics": "Credential generation context only, using immutable persisted Applicant seed/claims/deception and full-event revision. This is the generation input that Credential would receive in full initialization, not a player/Rules answer-key read. No data is generated on a miss; session-bound initialization must already exist.",
+      "budgetsMs": {
+        "target": 500,
+        "gateway": 750,
+        "broker": 750,
+        "caller": 1000
+      }
+    },
+    {
+      "name": "applicant.credentialsReady",
+      "status": "implemented-pending-review",
+      "statusEvidence": "Applicant PR #23 / Record PR #25; explicit adapters to Credential receiver-published CPR #127. Review and registry update required.",
+      "owner": "applicant-service",
+      "method": "POST",
+      "path": "/internal/v1/applicants/events/credentials-ready",
+      "callers": [
+        "credential-service"
+      ],
+      "idempotency": "Persist callback eventId/content and initialization causation atomically; identical semantic replay acknowledges; changed payload, reused id or wrong causation is 409. Never republishes initialization.",
+      "retry": "No automatic in-request retry; Credential durable outbox may resend identical callback.",
+      "request": "ownedCredentialsReady",
+      "response": "ownedReadyAcknowledgement",
+      "errors": {
+        "400 INVALID_REQUEST | INVALID_EVENT": "Malformed, unbound or duplicate identifiers",
+        "401 UNAUTHENTICATED": "Missing/wrong target credential",
+        "403 SERVICE_CALL_FORBIDDEN": "Caller outside exact operation allowlist",
+        "404 INITIALIZATION_NOT_FOUND": "Unknown full initialization on a read",
+        "409 CREDENTIAL_EVENT_CONFLICT | CREDENTIAL_CAUSATION_CONFLICT": "Immutable callback/parent conflict",
+        "503 INITIALIZATION_PENDING | FACTS_UNAVAILABLE | DATABASE_UNAVAILABLE": "No complete authoritative context; never fabricate success",
+        "504 TASK_TIMEOUT": "500 ms target deadline"
+      },
+      "semantics": "Accept only Credential callbacks causally bound to the persisted full initialization. Return accepted only after a durable receipt. Do not treat this acknowledgement as Credential global READY or a full hash receipt.",
+      "budgetsMs": {
+        "target": 500,
+        "gateway": 750,
+        "broker": 750,
+        "caller": 1000
+      }
+    },
+    {
+      "name": "record.credentialFacts",
+      "status": "implemented-pending-review",
+      "statusEvidence": "Applicant PR #23 / Record PR #25; explicit adapters to Credential receiver-published CPR #127. Review and registry update required.",
+      "owner": "university-record-service",
+      "method": "POST",
+      "path": "/internal/v1/records/facts",
+      "callers": [
+        "credential-service",
+        "rules-service"
+      ],
+      "idempotency": "Read-only",
+      "retry": "No automatic in-request retry; Credential durable outbox may resend identical callback.",
+      "request": "ownedApplicantOnly",
+      "response": "ownedRecordFactsPort",
+      "errors": {
+        "400 INVALID_REQUEST | INVALID_EVENT": "Malformed, unbound or duplicate identifiers",
+        "401 UNAUTHENTICATED": "Missing/wrong target credential",
+        "403 SERVICE_CALL_FORBIDDEN": "Caller outside exact operation allowlist",
+        "404 INITIALIZATION_NOT_FOUND": "Unknown full initialization on a read",
+        "409 CREDENTIAL_EVENT_CONFLICT | CREDENTIAL_CAUSATION_CONFLICT": "Immutable callback/parent conflict",
+        "503 INITIALIZATION_PENDING | FACTS_UNAVAILABLE | DATABASE_UNAVAILABLE": "No complete authoritative context; never fabricate success",
+        "504 TASK_TIMEOUT": "500 ms target deadline"
+      },
+      "semantics": "Separate authoritative owned-university projection for Credential/Rules, never a player impersonation. Persist identity role, institutional game email, actual SVG data-URI asset and enrollment confirmation. NOT_ENROLLED has enrolled=false, no confirmation, no courses and zero enrollment years; a stored absence illustration does not assert enrollment.",
+      "budgetsMs": {
+        "target": 500,
+        "gateway": 750,
+        "broker": 750,
+        "caller": 1000
+      }
+    },
+    {
+      "name": "record.credentialsReady",
+      "status": "implemented-pending-review",
+      "statusEvidence": "Applicant PR #23 / Record PR #25; explicit adapters to Credential receiver-published CPR #127. Review and registry update required.",
+      "owner": "university-record-service",
+      "method": "POST",
+      "path": "/internal/v1/records/events/credentials-ready",
+      "callers": [
+        "credential-service"
+      ],
+      "idempotency": "Persist callback eventId/content and initialization causation atomically; identical semantic replay acknowledges; changed payload, reused id or wrong causation is 409. Never republishes initialization.",
+      "retry": "No automatic in-request retry; Credential durable outbox may resend identical callback.",
+      "request": "ownedCredentialsReady",
+      "response": "ownedReadyAcknowledgement",
+      "errors": {
+        "400 INVALID_REQUEST | INVALID_EVENT": "Malformed, unbound or duplicate identifiers",
+        "401 UNAUTHENTICATED": "Missing/wrong target credential",
+        "403 SERVICE_CALL_FORBIDDEN": "Caller outside exact operation allowlist",
+        "404 INITIALIZATION_NOT_FOUND": "Unknown full initialization on a read",
+        "409 CREDENTIAL_EVENT_CONFLICT | CREDENTIAL_CAUSATION_CONFLICT": "Immutable callback/parent conflict",
+        "503 INITIALIZATION_PENDING | FACTS_UNAVAILABLE | DATABASE_UNAVAILABLE": "No complete authoritative context; never fabricate success",
+        "504 TASK_TIMEOUT": "500 ms target deadline"
+      },
+      "semantics": "Persist and deduplicate Credential callbacks bound to the full immutable parent. No initialization fanout; no callback status is substituted for the other owner full receipt.",
+      "budgetsMs": {
+        "target": 500,
+        "gateway": 750,
+        "broker": 750,
+        "caller": 1000
       }
     }
   ],
@@ -3169,7 +3401,8 @@
     "sessionBinding": "payload.sessionId is required, immutable, included as the last length-prefixed event hash field. Envelopes without session binding are rejected by the new receivers.",
     "hashDefinition": "https://github.com/m3ower/faf-student-id-please/blob/90fc1b9bb98de61b50903cd9819ddaced4974c1e/docs/owned-real-integrations.md",
     "vectors": "https://github.com/m3ower/faf-student-id-please/blob/90fc1b9bb98de61b50903cd9819ddaced4974c1e/contracts/http/test-vectors/initialization-v1.json",
-    "deadline": "500 ms target budget; receipt fan-out parallel with 400 ms per HTTP call. Membership budgets unchanged."
+    "deadline": "500 ms target budget; receipt fan-out parallel with 400 ms per HTTP call. Membership budgets unchanged.",
+    "remainingGap": "The owned compatibility adapter now projects the published Credential protocol explicitly. Candidate registry/bindings and actual current private Credential/Session runtime acceptance still require verification; no full-envelope/seed alias is used."
   },
   "receiverReconciliation": {
     "applicantRecordSource": "90fc1b9bb98de61b50903cd9819ddaced4974c1e",
@@ -3244,53 +3477,6 @@
         "automaticRetries": 0
       },
       {
-        "operationId": "credential.initialization.accept",
-        "owner": "credential-service",
-        "method": "POST",
-        "path": "/internal/v1/credentials/initialize",
-        "allowedBackendCallers": [
-          "applicant-service",
-          "university-record-service",
-          "credential-service"
-        ],
-        "receiverCredentialSetting": "CREDENTIAL_INTERNAL_TOKEN",
-        "status": "implemented-owned-candidate-requires-gateway-extension",
-        "automaticRetries": 0,
-        "requestSchema": "#/components/schemas/ownedInitialization",
-        "responseSchema": "#/components/schemas/ownedInitializationStatus"
-      },
-      {
-        "operationId": "credential.initialization.recover",
-        "owner": "credential-service",
-        "method": "POST",
-        "path": "/internal/v1/credentials/initializations/{eventId}/recover",
-        "allowedBackendCallers": [
-          "applicant-service",
-          "university-record-service",
-          "credential-service"
-        ],
-        "receiverCredentialSetting": "CREDENTIAL_INTERNAL_TOKEN",
-        "status": "implemented-owned-candidate-requires-gateway-extension",
-        "automaticRetries": 0,
-        "responseSchema": "#/components/schemas/ownedInitializationStatus"
-      },
-      {
-        "operationId": "credential.initialization.status",
-        "owner": "credential-service",
-        "method": "GET",
-        "path": "/internal/v1/credentials/initializations/{eventId}",
-        "allowedBackendCallers": [
-          "applicant-service",
-          "university-record-service",
-          "credential-service",
-          "session-service"
-        ],
-        "receiverCredentialSetting": "CREDENTIAL_INTERNAL_TOKEN",
-        "status": "implemented-owned-candidate-requires-gateway-extension",
-        "automaticRetries": 0,
-        "responseSchema": "#/components/schemas/ownedInitializationStatus"
-      },
-      {
         "operationId": "credential.applicant.validate",
         "owner": "credential-service",
         "method": "POST",
@@ -3346,7 +3532,8 @@
           },
           "response": {
             "$ref": "#/components/schemas/ownedApplicantContextPort"
-          }
+          },
+          "canonicalOperation": "applicant.credentialContext"
         },
         {
           "name": "record.facts",
@@ -3356,7 +3543,8 @@
           },
           "response": {
             "$ref": "#/components/schemas/ownedRecordFactsPort"
-          }
+          },
+          "canonicalOperation": "record.credentialFacts"
         },
         {
           "name": "session.context",
@@ -3377,7 +3565,8 @@
           "response": {
             "$ref": "#/components/schemas/ownedReadyAcknowledgement"
           },
-          "semantics": "Durable idempotent receipt; identical eventId/content replays acknowledgement, conflict 409. No initialization republishing."
+          "semantics": "Durable idempotent receipt; identical eventId/content replays acknowledgement, conflict 409. No initialization republishing.",
+          "canonicalOperation": "applicant.credentialsReady"
         },
         {
           "name": "record.ready",
@@ -3388,19 +3577,33 @@
           "response": {
             "$ref": "#/components/schemas/ownedReadyAcknowledgement"
           },
-          "semantics": "Durable idempotent receipt; identical eventId/content replays acknowledgement, conflict 409. No initialization republishing."
+          "semantics": "Durable idempotent receipt; identical eventId/content replays acknowledgement, conflict 409. No initialization republishing.",
+          "canonicalOperation": "record.credentialsReady"
         }
       ]
     },
     "incompatibilities": [
-      "CPR #132 imports the session-bound full ApplicantInitialized payload, canonical length-prefixed hashing and INITIALIZED receipts from Applicant/Record #126 at 90fc1b9. The earlier owned seed-only/CredentialsReady flow remains incompatible; do not alias its endpoints.",
-      "Applicant/Record profile/claims/facts schemas and Session state/binding operations are now published in the canonical catalog. Credential/Rules still need implementation adapters and real-peer acceptance; the earlier POST consumer-port proposals are not aliases for these GET operations.",
-      "Gateway operation registration, separate caller/target credentials and protected-read identity binding require verification against the reviewed Gateway candidate; merged #48 alone did not supply the full registry."
+      "Gateway operation registration, separate caller/target credentials and protected-read identity binding require verification against the reviewed Gateway candidate; merged #48 alone did not supply the full registry.",
+      "Remaining Rules consumer-context adapters and actual current private peer runtime acceptance are not established by the owned Credential protocol bridge."
     ],
     "membershipCallerRequests": [
       "credential-service",
       "rules-service"
     ],
     "canonicalHistoryOperation": "moderation.applicantDecisionFacts"
+  },
+  "credentialCompatibility": {
+    "protocol": "Explicit full-envelope to seed/status/callback adapter; never path aliasing or a fabricated full receipt",
+    "sourceFullEnvelope": "Applicant and Record retain immutable session-bound envelopes and their matching hash receipts.",
+    "credentialBoundary": "Project only the receiver-published seed envelope. Persist delivery stage; use recover after an acknowledged PENDING/DELIVERY_PENDING. READY alone is insufficient without a local durable CredentialsReady receipt.",
+    "readyCondition": "matching full peer receipt AND local callback with matching applicantId/causationId AND Credential status with matching eventId/applicantId, state READY and pendingDeliveries 0",
+    "requiredCredentialBindings": {
+      "applicant.context": "/internal/v1/applicants/context",
+      "record.facts": "/internal/v1/records/facts",
+      "applicant.ready": "/internal/v1/applicants/events/credentials-ready",
+      "record.ready": "/internal/v1/records/events/credentials-ready"
+    },
+    "sourceContextRequirement": "A seed-only message cannot invent a Session id or difficulty. Use the existing owned generate/warmup operation with complete Session context before Credential generation. Any owning caller, including Credential, may initiate those generation operations. Unknown context remains pending.",
+    "runtimeEvidence": "Contract-peer tests do not establish current private Credential implementation readiness."
   }
 }

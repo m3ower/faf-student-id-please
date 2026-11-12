@@ -46,9 +46,9 @@ The initializer's eventId is requestId. Its event type is ApplicantInitialized,
 version 1, and occurredAt is a UTC instant with millisecond precision, assigned
 once. Producer and payload.initiator are the same canonical owning service.
 The new HTTP candidate requires payload.sessionId in addition to seed/identity/deception.
-It rejects old unbound envelopes; Credential must accept the new candidate before consumers merge.
+It rejects old unbound envelopes; Credential uses the explicit seed/status/callback adapter below.
 Each of the
-three owners may initiate; Credential must implement the same protocol.
+three owners may initiate full-context generation; the Credential wire adapter preserves its separate published protocol.
 
 The generation specification is deliberately independent of fixture IDs:
 
@@ -93,7 +93,7 @@ Initializers commit their own part, immutable envelope, and two pending delivery
 rows in one local transaction. Network calls occur after commit. Background
 workers lease a bounded batch using SKIP LOCKED and a fencing UUID; expired
 leases can be reclaimed after restart. The original producer alone delivers the
-same envelope to each peer's `POST /events/applicant-initialized`. A consumer
+full envelope to the other owned peer's `POST /events/applicant-initialized`; Credential receives its explicitly projected seed envelope as described below. A consumer
 commits only its own data and deduplication record; it never fans out that event.
 
 Receivers serialize first initialization using a transaction-scoped advisory
@@ -105,16 +105,15 @@ until operators resolve it using a new identity. No service silently overwrites
 another initialization.
 
 The receipt is `{applicantId,eventId,eventHash,status:"INITIALIZED"}`. Delivery is
-acknowledged only after a matching receipt, never merely an HTTP 200. Pending
+acknowledged only after a matching full-peer receipt, or the separate Credential callback/status proof below; never merely an HTTP 200. Pending
 deliveries use bounded exponential backoff, at most eight automatic attempts;
 409 remains blocked. `POST /{applicantId}/resume` on the original initializer
 explicitly resumes nondelivered work. The receiver remains durably idempotent.
 
 `GET /{applicantId}/initialization` returns a local committed receipt and performs
-no remote call. `GET /{applicantId}/readiness` checks matching local receipts in parallel from
-both peers, returning 200 only when all three match; otherwise 202 with
+no remote call. `GET /{applicantId}/readiness` checks the full peer receipt and Credential callback/status proof in parallel, returning 200 only when both succeed; otherwise 202 with
 `ready:false,pendingServices:[...]`. Generation always returns 202 after its local commit.
-Session profile/claims reads also return 202 without applicant data until all receipts match. This distinction avoids recursive readiness
+Session profile/claims reads also return 202 without applicant data until both component proofs succeed. This distinction avoids recursive readiness
 calls. Session must not offer a pending applicant. A lost dependency never
 becomes a fabricated ready response.
 
@@ -163,7 +162,7 @@ acceptance, two-review gates and reviewed releases remain required.
 ## Exact remaining peer requirements
 
 The current merged canonical catalog defines all Applicant/Record receiving paths.
-Credential initialization/receipt remain an incompatible external implementation dependency;
+The explicit Credential seed/status/callback adapter below resolves the owned protocol boundary; actual current private Credential runtime acceptance remains external;
 its seed/callback draft is not an approved replacement route. Applicant/Record each use a distinct caller
 credential and their own receiving target credential. Gateway issue #51 must include these
 new catalog rows; this PR does not modify Gateway or another owner's source.
@@ -187,8 +186,44 @@ The current CPR interfaces, schemas, allowlists and Gateway-phase budgets match 
 registry snapshot. Record player reads now authenticate the receiving target credential and
 Gateway caller identity before trusting X-Player-Id or querying Session.
 
-The merged reconciliation explicitly says Credential must adopt the full protocol; parent CPR
-contains contracts/gitlinks, not its private application source. No CredentialsReady callback
-was misrepresented as an INITIALIZED hash receipt. Full current Session gameplay and Credential
-readiness remain unverified. The user requested this Gateway baseline before broker migration;
-new broker-only metadata does not alter the scope of these owned implementation tests.
+The explicit adapters preserve both receiver-published protocols. Current private Session gameplay
+and actual Credential implementation acceptance remain unverified. The user requested this
+Gateway baseline before broker migration; broker-only metadata does not alter these tests.
+
+## Credential compatibility configuration
+
+Configure the current Credential deployment with its published consumer-port bindings:
+
+```json
+{"applicant.context":"/internal/v1/applicants/context","record.facts":"/internal/v1/records/facts","applicant.ready":"/internal/v1/applicants/events/credentials-ready","record.ready":"/internal/v1/records/events/credentials-ready"}
+```
+
+Set that object as `BUSINESS_HTTP_BINDINGS_JSON`. Caller and downstream credentials remain
+separate per service; these are not public routes. The Gateway runtime must load the candidate
+38-operation catalog. New operations are review candidates, not a deployed registry claim.
+
+Applicant context returns its persisted seed, claim identity, private generation input and
+immutable revision to Credential only. Record POST facts returns the published authoritative
+projection to Credential/Rules. Record persists role, institutional game email, confirmation
+and a real SVG data-URI asset; these are fictional game data, not real university credentials.
+NOT_ENROLLED has no confirmation or courses and zero enrollment years. Existing GET facts and
+Moderation's separate answer-key operation retain their original permissions.
+
+Credential receives its seed-only ApplicantInitialized message with original event metadata.
+INITIALIZE/RECOVER delivery stages persist, recover404 returns to INITIALIZE without resetting
+the eight-attempt bound, and no per-request retry is added. Callbacks require matching parent
+causationId, unique nonzero credentialIds and an immutable callback eventId/content. They
+commit before acknowledgement, reject conflicts409/missing parent503 and never fan out.
+The callback digest uses length-prefixed UTF-8 fields: eventId, type, occurredAt normalized
+to UTC with nine fractional digits, producer, version, applicantId, causationId, then sorted
+credentialIds. The shared golden vector proves Java/Go agreement.
+
+A callback alone does not establish readiness. Both owned services require the other full
+peer's matching receipt, the local durable callback, and Credential's correlated READY status
+with pendingDeliveries=0. Credential outage makes readiness pending and withholds Session data.
+A seed-only initialization cannot invent sessionId/difficulty: use full generate/warmup first,
+including when Credential initiates. Context reads fail if that prerequisite is absent.
+
+[Reproducible evidence](owned-http-evidence.md) distinguishes actual owned/Gateway handlers
+from the test-only Credential protocol peer and historical Session membership image. No
+teammate application source, broker transport, deployment pins or architecture were changed.

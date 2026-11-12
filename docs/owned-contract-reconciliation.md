@@ -16,7 +16,7 @@ Reconciled against CPR dev `e21cdd9` (merged #132, including the rewritten
   invented studentId/revision fields or a POST history binding.
 - Applicant/Record's exact profile/claims/facts schemas, session-bound envelopes,
   hashes, receipts and readiness are now imported into the canonical catalog.
-  Missing schemas are no longer the blocker; owned implementation adapters are.
+  The owned Credential compatibility adapters are now implemented as review candidates; actual current private-peer acceptance remains outstanding.
 - Session now publishes `session-state.get`, accepts Credential/Rules membership
   calls, and adopts Rules' immutable bind/read contract with shiftId=sessionId.
   This establishes the reviewed candidate contract, not a live integration result.
@@ -48,26 +48,39 @@ and the additional `owned*` schemas in the single catalog. The remaining legacy
 entries are **not** Gateway registry entries or approved team contracts. The duplicate
 `contracts/business-http/` catalog has been removed.
 
-## Initialization is NOT compatible yet
+## Explicit Credential compatibility adapters
 
-The earlier owned implementation uses a seed-only initialization payload and
-CredentialsReady acknowledgements. #126 instead requires the full
-ApplicantInitialized identity/deception payload including immutable sessionId,
-length-prefixed canonical hashing with sessionId as its final field,
-matching `{applicantId,eventId,eventHash,status:INITIALIZED}` receipts, origin-only
-fanout, bounded leased delivery and nonrecursive aggregate readiness.
+Applicant PR #23 and Record PR #25 now preserve their full session-bound envelopes
+and matching hashes while explicitly speaking Credential's receiver-published
+seed/status/callback protocol. The two protocols remain separate schemas; a
+Status is never fabricated into an INITIALIZED receipt. New canonical operations
+cover initialize/recover/status, Credential-only Applicant context and both
+CredentialsReady receivers, plus the Credential/Rules authoritative Record projection.
 
-Do not wire the earlier callbacks to #126: a path binding alone cannot reconcile
-those different protocols. Credential must adopt the agreed envelope/receipt and
-generation protocol. Rules must adapt its earlier POST context ports to the now
-published Session state and Applicant/Record GET schemas and verify Session's
-shift binding in a real multi-owner run. Pending work stays explicit
-in the public coordination issue and the owned parent issues, not hidden behind
-a READY claim.
+The initializer projects only `{applicantId,seed}` with the original event metadata.
+It persists INITIALIZE/RECOVER progress and resumes bounded delivery after restart.
+Each receiving owner commits a correlated immutable CredentialsReady receipt before
+acknowledging. Aggregate readiness requires the full peer hash receipt, a local
+durable callback, and Credential status matching eventId/applicantId with READY
+and pendingDeliveries=0. Outages fail closed.
 
-The safe publication is draft PRs to dev containing the implemented owned work,
+Credential must use the exact `BUSINESS_HTTP_BINDINGS_JSON` mapping in the
+[owned integration guide](owned-real-integrations.md#credential-compatibility-configuration).
+This is deployment configuration; no Credential source was changed. The shared
+Gateway registry must load the candidate operation catalog. A seed-only message
+cannot supply unknown Session context: generate/warmup with sessionId/difficulty
+first. Credential may initiate those owned operations; context reads never
+create a guessed applicant.
+
+The reproducible network suite uses actual owned services and unmodified Gateway
+source, with a labeled test-only Credential protocol peer. It proves adapter
+wire compatibility and durable callbacks, not current private Credential document
+generation/validation. Current Credential/Session source/images and full-game
+acceptance remain unverified. Rules' other consumer adapters remain its owner's scope.
+
+The safe publication is reviewable PRs to dev containing the implemented owned work,
 canonical receiver compatibility, tests and this handoff. No release, image
 publication, protected-branch push or submodule/image-pin promotion is requested.
-Do not merge independently until contract reconciliation and real cross-owner
-acceptance are complete. Service Discovery's latest dev remains verified and
+Do not merge independently until real cross-owner
+acceptance and required reviews are complete. Service Discovery's latest dev remains verified and
 needs no domain-call changes for this baseline.

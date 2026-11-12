@@ -1,3 +1,65 @@
+# Credential compatibility adapter evidence - 2026-11-12
+
+Applicant and Record now explicitly adapt to Credential's published seed/status/callback
+protocol while keeping their full immutable session-bound protocol between each other.
+No teammate application code or broker transport was changed.
+
+| Check | Result |
+| --- | --- |
+| Applicant Java/PostgreSQL verification | 42 tests, zero failures/errors; 96.41% line coverage |
+| Record PostgreSQL race suite | passed; 80.6% instrumented-line / 79.9% statement coverage |
+| Canonical catalog, OpenAPI and examples | 38 operations / 38 examples valid |
+| Catalog/vector/reconciliation suite | 16 tests passed; 94% validator coverage |
+| Gateway network suite | 113 checks passed; actual Applicant, Record and unchanged Gateway; Credential protocol TEST DOUBLE |
+
+Exact runtime source/image provenance:
+
+| Component | Source revision | Local image ID |
+| --- | --- | --- |
+| Applicant | `5f9d5cf96f9ef1c60a01e9510edb457f66eb7c48` | `sha256:a4715f336735e9e8b9b3707c1f5eea1fc9d9eb8c20fb3aa4635a75394f10817d` |
+| Record | `aa95f5af5c269738e00858898050240eee2442bd` | `sha256:79e273c98aa9e49e1baf4196595fa384a8f1b71abbd76bea23809404279f06b6` |
+| Gateway | `0a6d49649e0dd3610e206e8afc4ffbf76b34ba87` | `sha256:c80be656273ffee565a1cd14e9daaa7a7a5ea9dd5cd64b62c0ec5d8346e0a133` |
+
+The driver mounts the candidate catalog as Gateway runtime configuration. Gateway source
+and image are unchanged; its bundled older catalog alone does not contain the new routes.
+These are local candidate images, not published stable releases. The subsequent Applicant
+driver/CI-only commit adds schema/outage checks without changing the tested application artifact.
+
+The Credential protocol peer lives only under Applicant test resources. It reads actual
+persisted Applicant context and Record facts through Gateway, stores synthetic test jobs and
+callbacks in SQLite, then sends the exact published callbacks to both actual owned receivers.
+Its READY status requires both durable acknowledgements. It does not implement or prove
+Credential's production document generation, provenance or validation. Reports explicitly
+say CONTRACT_PEER_ONLY and fullSystemReady=false. No test peer is wired into production.
+
+The suite proves both initialization directions, separate claim/truth (including negative
+enrollment), correct private facts/context schemas, pending Session data before callbacks,
+ready profiles after callbacks, unauthorized/wrong-causation/conflicting callback denial,
+identical callback replay, Credential-status outage denial, restart recovery, actual owned
+process restarts, second-replica receipts and credential-free correlated traces. DB tests
+also prove persisted delivery stages and that READY status without a callback is insufficient.
+
+Session is the historical membership-only image
+`sha256:f3ac52d0fb68368221dc120602b433e930785247575b11c5bc1751871222aa4e`.
+Persisted grants, JWT-subject binding, spoof denial, outage/recovery were exercised; current
+Session gameplay was not. Player JWTs come from an isolated signer, not a live Player login.
+All disposable network-test containers, networks and volumes were removed. Runtime credentials,
+private source and full local traces remain ignored, outside the public CPR.
+
+Reproduce with Applicant's `scripts/verify_gateway_integrations.py` and
+`--credential-contract-peer`, following its `docs/gateway-network-tests.md`.
+[Required deployment bindings](owned-real-integrations.md#credential-compatibility-configuration)
+and the exact candidate operation catalog must be configured for a real Credential run.
+First initialize full Session context; unknown context cannot be inferred from seed alone.
+
+Remaining gates: actual current private Credential implementation and current Session
+queue/gameplay acceptance; candidate registry/bindings deployed together; required two
+approvals/code-owner review and passing CI; reviewed releases/pins. This is owned adapter
+readiness, not whole-system readiness or broker migration. The earlier reports below are
+historical baselines and their protocol-gap statements are superseded by this adapter.
+
+---
+
 # Owned Gateway communication evidence ? 2026-11-12
 
 The requested pre-migration Gateway baseline is implemented in the owned candidates below.

@@ -449,9 +449,9 @@ through Gateway, plus persisted generation/provenance, recoverable initializatio
 and ID-based Rules evaluation consumers. It is not deployed or integration-ready:
 peer consumer-port agreement, exact Gateway bindings and real multi-service
 acceptance remain outstanding. Discovery's current dev needs no domain calls.
-For the latest merged catalog and the incompatible Applicant/Record initialization
-draft, read the [owned contract reconciliation](docs/owned-contract-reconciliation.md)
-before connecting these candidates. The private service PRs remain draft.
+For the latest catalog and explicit Applicant/Record adapters to Credential's
+seed/status/callback protocol, read the [owned contract reconciliation](docs/owned-contract-reconciliation.md)
+before connecting these candidates. Actual current private-peer acceptance and reviews remain required.
 
 A prefix matches only on a segment boundary. The method, path, query string, body and
 headers reach the service with the credential/identity handling described below,
