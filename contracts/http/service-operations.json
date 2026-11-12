@@ -5,7 +5,7 @@
     "callerSends": "POST|GET <BROKER_URL><path> with Authorization: Bearer <caller credential> and X-Trace-Id",
     "brokerForwards": "the same method, path and query to one target instance chosen by round robin among the Discovery instances whose circuit admits traffic, with Authorization: Bearer <target credential>, X-Service-Name: <authenticated caller>, X-Trace-Id and Content-Type only",
     "loadBalancing": "per target service, round robin over Discovery's fresh instance list (moved from the Gateway)",
-    "circuitBreaker": "per instance: 3 failures (5xx, timeout, unreachable) within 3.5x the operation timeout trip it; the instance is skipped until a cooldown elapses, then probed once (half-open), and is submitted for removal from Discovery (moved from the Gateway)",
+    "circuitBreaker": "per backend registration, aggregating public and internal endpoints: 3 failures (5xx, timeout, unreachable) within TASK_TIMEOUT_SECONDS * 3.5 trip it; open instances are skipped, one half-open probe is admitted after cooldown, and failed registrations are submitted for removal from Discovery. Shorter per-call deadlines do not create separate failure windows.",
     "failover": "only a connection never established (refused or connect timeout) is retried, once, on another instance; replies, 5xx and timeouts are never retried by the broker",
     "credentials": "Every caller and every target has its own secret of 32-256 visible ASCII characters. No universal service token, no Discovery-token reuse, no player JWT on service routes. Secrets live only in deployment environments, never in Git.",
     "noGenericForwarding": "The broker routes only the operations listed here; any other /internal path is 404. No caller-chosen target URL.",
@@ -35,7 +35,58 @@
       "503 SERVICE_AUTH_NOT_CONFIGURED | DISCOVERY_NOT_CONFIGURED | DISCOVERY_UNAVAILABLE | NO_SERVICE_INSTANCES | CIRCUIT_OPEN | UPSTREAM_UNAVAILABLE": "the broker or every target instance cannot serve",
       "504 TASK_TIMEOUT": "the operation's broker budget was exceeded"
     },
-    "legacyGatewayRoute": "Deprecated for service-to-service calls (Gateway #51). Until every caller has moved to BROKER_URL, the Gateway's authenticated service route may still route these operations with the same allowlists and budgetsMs.gateway. Moderation and Discord DMs call only the broker."
+    "legacyGatewayRoute": "Retired in the Gateway lab4-2.0.0 / Broker 0.3.0 handoff candidate. Deploy only after every business caller uses BROKER_URL. Gateway exposes no internal business operations, backend selection or breaker state; it authenticates public requests and delegates delivery to Broker.",
+    "gatewayDelivery": {
+      "status": "candidate; CPR issue140, Gateway issue55, Broker issue11; coordinated release required",
+      "caller": "gateway-service",
+      "gatewaySettings": [
+        "BROKER_URL",
+        "BROKER_SERVICE_TOKEN",
+        "GATEWAY_JWT_PUBLIC_KEY_B64",
+        "DMS_PUBLIC_WS_ORIGINS"
+      ],
+      "authentication": "Gateway caller bearer from BROKER_CALLER_TOKENS_JSON; a service caller or player JWT cannot use public delivery",
+      "identity": "Gateway strips the user bearer and sends one verified X-Player-Id for protected public routes; Broker presents the target credential and X-Service-Name=gateway-service to the backend. Resource permissions remain receiver-owned.",
+      "publicPathOwners": {
+        "players": "player-service",
+        "teams": "player-service",
+        "sessions": "session-service",
+        "credentials": "credential-service",
+        "rules": "rules-service",
+        "applicants": "applicant-service",
+        "records": "university-record-service",
+        "university-records": "university-record-service",
+        "decisions": "moderation-service",
+        "penalty-policies": "moderation-service",
+        "channels": "discord-dms-service",
+        "messages": "discord-dms-service"
+      },
+      "anonymous": [
+        "POST /api/v1/players/register",
+        "POST /api/v1/players/login",
+        "POST /api/v1/players/refresh",
+        "OPTIONS on public routes",
+        "GET /api/v1/health/{canonical-service}"
+      ],
+      "maxRequestBytes": 65536,
+      "maxBufferedReplyBytes": 1048576,
+      "webSocketSelection": {
+        "method": "GET",
+        "path": "/internal/v1/gateway/ws-target",
+        "requires": [
+          "Gateway caller credential",
+          "X-Player-Id: nonzero UUID"
+        ],
+        "response": {
+          "serviceName": "discord-dms-service",
+          "instanceId": "UUID",
+          "baseUrl": "registered private HTTP(S) origin"
+        },
+        "gatewayBehavior": "Map the exact selected origin through DMS_PUBLIC_WS_ORIGINS, then construct the existing direct DMs URL. No user JWT is sent to Broker."
+      },
+      "limits": "Broker public delivery defaults to 4s, internal delivery 750ms, SSE lifetime/capacity 1800s/64. Public, per-operation and WS selection admission pools are independently bounded; Gateway keeps 5s/16 tasks and 1800s/64 streams.",
+      "reference": "docs/gateway-broker-handoff.md in CPR; no business operation request/response schema changes"
+    }
   },
   "targets": {
     "session-service": {
