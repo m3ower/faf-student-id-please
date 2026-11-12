@@ -68,11 +68,47 @@ services:
     environment: *owned-record-env
 
   gateway-service:
+    image: ${OWNED_GATEWAY_IMAGE:?set a published Lab 4 subscriber-queue Gateway image; the latest public Lab 3 tag is not compatible}
     environment:
-      # Public backend authentication remains Gateway's responsibility. Record's
-      # receiver token must match its entry; this is not a Broker caller map.
-      GATEWAY_TARGET_TOKENS_JSON: ${GATEWAY_TARGET_TOKENS_JSON:?configure the actual public receiver credentials}
+      BROKER_URL: http://message-broker:8093
+      BROKER_SERVICE_TOKEN: ${GATEWAY_BROKER_SERVICE_TOKEN:?match gateway-service in BROKER_CALLER_TOKENS_JSON}
+      GATEWAY_JWT_PUBLIC_KEY_B64: ${GATEWAY_JWT_PUBLIC_KEY_B64:?set the public key matching Player signing}
+      DISCOVERY_URL: ""
+      DISCOVERY_REGISTRATION_TOKEN: ""
+    depends_on:
+      message-broker:
+        condition: service_healthy
 
+  player-service: &owned-player
+    image: ${OWNED_PLAYER_IMAGE:-vasiok11/student-id-player-service:lab4-1.3.0-build.31}
+    environment: &owned-player-env
+      PLAYER_JWT_PRIVATE_KEY_B64: ${PLAYER_JWT_PRIVATE_KEY_B64:?set the private Player signing key locally}
+      PLAYER_INTERNAL_TOKEN: ${PLAYER_INTERNAL_TOKEN:?match the Player receiver credential}
+      BROKER_SERVICE_TOKEN: ${PLAYER_BROKER_SERVICE_TOKEN:?match player-service in BROKER_CALLER_TOKENS_JSON}
+      BROKER_GRPC_TARGET: message-broker:9093
+    depends_on:
+      message-broker:
+        condition: service_healthy
+
+  player-service-2:
+    <<: *owned-player
+    profiles: [replicas]
+    environment: *owned-player-env
+
+  session-service: &owned-session
+    image: ${OWNED_SESSION_IMAGE:-vasiok11/student-id-session-service:lab4-1.3.0-build.37}
+    environment: &owned-session-env
+      SESSION_INTERNAL_TOKEN: ${SESSION_INTERNAL_TOKEN:?match the Session receiver credential}
+      BROKER_SERVICE_TOKEN: ${SESSION_BROKER_SERVICE_TOKEN:?match session-service in BROKER_CALLER_TOKENS_JSON}
+      BROKER_GRPC_TARGET: message-broker:9093
+    depends_on:
+      message-broker:
+        condition: service_healthy
+
+  session-service-2:
+    <<: *owned-session
+    profiles: [replicas]
+    environment: *owned-session-env
   # Credential/Rules: gRPC publishers and consumers. Requires the matching Broker
   # release with the identical reviewed per-group transport catalog.
   credential-service: &owned-credential

@@ -1,0 +1,75 @@
+{
+  "verifiedOn": "2026-11-12",
+  "verification": "Public DockerHub tag digests and Linux amd64 OCI image source labels; no containers or tests were run for this refresh.",
+  "services": {
+    "applicant-service": {
+      "image": "andreiisthebest/student-id-applicant-service:lab3-1.2.0",
+      "digest": "sha256:c8c9fc71efcaa28f08a0a8f10ced2335fe123b9039f49abfbadffc3447f3e9bf",
+      "sourceCommit": "92e7b9f0f3d3be3e7bdb5854a7b943e920edc909"
+    },
+    "credential-service": {
+      "image": "cmmarin/student-id-credential-service:lab4-1.1.0",
+      "digest": "sha256:cc0ef68a3632768ef69c7c2d0d7a4cd36957709f46dec06c08d5cc970fb141fc",
+      "sourceCommit": "ec6016ed8dc3d0a9f936382fda7fcbbfdcfeafb2"
+    },
+    "discord-dms-service": {
+      "image": "meow3r/student-id-discord-dms-service:lab3-0.8.0",
+      "digest": "sha256:dcd893cc6615783927c8aea0c4bdab7c309d59d15d4e1765338cc6e901c98d3f",
+      "sourceCommit": "58a51f407132bdee4f340d12429ade2b398aaee4"
+    },
+    "gateway-service": {
+      "image": "vasiok11/student-id-gateway-service:lab3-0.7.0-build.43",
+      "digest": "sha256:ce8e173168a0741cafd93fb8f5d30fe13f4fc144fb7cb920f68709c689fec4b8",
+      "sourceCommit": "b3fa3453955d534ad57fa88f3160cecd0a6ad31e",
+      "limitation": "Latest public tag is the legacy Lab 3 Gateway. Lab 4 subscriber-queue Gateway source is merged on dev but requires owner release/publication. Do not use this image as the Lab 4 overlay Gateway."
+    },
+    "message-broker": {
+      "image": "andreiisthebest/student-id-message-broker:lab4-0.6.0",
+      "digest": "sha256:29c9bdef6f6af8ff45c0b97d40dcc8d9ab0384ba8b4c2e78f702a5d11e7f4c71",
+      "sourceCommit": "6e5c2327dae01e914c04d303bd76013eefa02da3",
+      "limitation": "This published image supports gRPC but bundles HTTP delivery for every group. The activation overlay requires the separately reviewed eight-group 0.6.4 release."
+    },
+    "moderation-service": {
+      "image": "meow3r/student-id-moderation-service:lab3-0.8.0",
+      "digest": "sha256:2d539f5ce3f2f067c05ebff3c325bd11209e28eebf8cff51ff2fd30ec288246c",
+      "sourceCommit": "3e49b9be5a07667a23d292517a673bf921c8a374"
+    },
+    "player-service": {
+      "image": "vasiok11/student-id-player-service:lab4-1.3.0-build.31",
+      "digest": "sha256:763900c6aa4e558577109533085ee5f17e18039c67729e69ed9312613a134ab0",
+      "sourceCommit": "343eac9d3dd117ba0b7c9286c6a18dcd94fbd835"
+    },
+    "rules-service": {
+      "image": "cmmarin/student-id-rules-service:lab4-1.1.0",
+      "digest": "sha256:e5efb983211ffdf74b75372af6a753368d07888108dc0a7397303ea7acfe53a1",
+      "sourceCommit": "8d1ed489bdb2f2e22cd9d72dc2db416dbd20c77f"
+    },
+    "service-discovery": {
+      "image": "cmmarin/student-id-service-discovery:lab4-0.8.0",
+      "digest": "sha256:e0e42009afe72b55331fbfa62cf117a1805c218f1f1fee7e9a4c530851d51d87",
+      "sourceCommit": "a4e2688ed9b135b80fccd227cae22b4804ed270f"
+    },
+    "session-service": {
+      "image": "vasiok11/student-id-session-service:lab4-1.3.0-build.37",
+      "digest": "sha256:0f665df586476dbefcb682c6e72b612db8567f1e9af02bcda8662b3073808dc2",
+      "sourceCommit": "28d9a794e40cbd5db87cdef3556032a9ef4f9bef"
+    },
+    "university-record-service": {
+      "image": "andreiisthebest/student-id-university-record-service:lab3-1.2.0",
+      "digest": "sha256:ef316f3ed3058fc2ad5a33ed82112e91d9a03dace78bccc6c7bae590734bf0f6",
+      "sourceCommit": "76e831c19d3937d7aa1260bb94430ef3dc9567ee"
+    }
+  },
+  "activationDependencies": {
+    "broker": {
+      "image": "andreiisthebest/student-id-message-broker:lab4-0.6.4",
+      "publishedAtVerification": false,
+      "pr": "https://github.com/Andreiisthebest/student-id-message-broker/pull/34"
+    },
+    "gateway": {
+      "image": null,
+      "publishedAtVerification": false,
+      "requiredCapability": "HTTP subscriber queues through Broker; owner must supply the published version and source revision"
+    }
+  }
+}

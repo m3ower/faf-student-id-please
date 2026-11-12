@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "Student ID, please — Lab 1",
-    "description": "Owned Applicant/University Record CRUD and error regressions. Run in order with a private accessToken accepted by Gateway; no stored credentials. Both folders generate and delete their own disposable records. Session membership is a local Record mock. Internal status and full Lab 3 acceptance remain separate. Source gitlinks are 0.4.0; deployed image pins may be older.",
+    "description": "Combined historical Applicant/University Record public CRUD and error regression requests, retained for the current lab3-1.2.0 releases. Both service URLs point to Gateway http://localhost:8090. Use a real player access token and actual permitted Session context; Record membership is not a mock. Run in order and delete only the generated records. This collection does not validate internal gRPC, image provenance, full gameplay or Broker processing acknowledgments.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {

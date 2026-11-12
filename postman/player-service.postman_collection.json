@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "Student ID - Player Service",
-    "description": "Real Player CRUD/login/teams through Gateway at localhost:8090. Run in order against the new baseline source/reviewed image, not the old pinned Lab 3 image. Player and Gateway require matching RSA private/public keys and distinct machine target credentials. Login supplies real access/refresh tokens in transient runner variables; never export populated secrets. Backend identity is bound to verified JWT sub. Synthetic accounts are deleted at the end; no internal operations or fabricated JWTs are used.",
+    "description": "Player lab4-1.3.0-build.31 public registration, login, CRUD and team requests through Gateway at http://localhost:8090. Configure matching Player signing/Gateway verification keys privately. Run in order: login provides real access/refresh tokens in transient variables. Never export populated secrets. Internal business messaging uses Broker gRPC, not Gateway service routes. These requests require a published Lab 4 queue-capable Gateway; see deployment/releases.json.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
