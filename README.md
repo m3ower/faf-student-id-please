@@ -489,8 +489,11 @@ verified player JWT subject. Session adds host-only
 `PUT /api/v1/sessions/{sessionId}/access` for explicit stored record/channel
 assignments. This is a candidate contract and verification harness: the existing
 shared image pins and Compose deployment still select the previous releases.
-Discovery registration stays direct. Broker routing, queues, load-balancer and
-circuit-breaker migration require subsequent implementation and confirmation.
+Discovery registration stays direct. The [Applicant/Record migration](docs/applicant-record-broker-migration.md)
+now routes their business and membership calls through Message Broker, with unchanged
+wire contracts and an opt-in deployment overlay. Gateway retains public routing.
+The matching broker catalog/image and actual current-peer acceptance remain required;
+queue/topic delivery is later work.
 
 Lab 4 Grade 5 then moved every service operation, together with load balancing and circuit
 breaking, from the Gateway to the message broker; the [HTTP operation catalog](docs/http-operation-catalog.md)
