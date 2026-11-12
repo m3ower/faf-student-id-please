@@ -1,0 +1,203 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:studentid:messaging:envelope:v1",
+  "title": "Broker messaging envelope v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "messageId",
+    "schemaVersion",
+    "kind",
+    "traceId",
+    "correlationId",
+    "deadlineAt"
+  ],
+  "properties": {
+    "messageId": {
+      "type": "string",
+      "format": "uuid",
+      "minLength": 36,
+      "maxLength": 36,
+      "not": {
+        "const": "00000000-0000-0000-0000-000000000000"
+      }
+    },
+    "schemaVersion": {
+      "type": "integer",
+      "const": 1
+    },
+    "kind": {
+      "enum": [
+        "request",
+        "event"
+      ]
+    },
+    "traceId": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9._-]{1,64}$"
+    },
+    "correlationId": {
+      "type": "string",
+      "format": "uuid",
+      "minLength": 36,
+      "maxLength": 36,
+      "not": {
+        "const": "00000000-0000-0000-0000-000000000000"
+      }
+    },
+    "causationId": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 36,
+          "maxLength": 36,
+          "not": {
+            "const": "00000000-0000-0000-0000-000000000000"
+          }
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "deadlineAt": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "(Z|[+]00:00)$"
+    },
+    "topic": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 128
+    },
+    "queue": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 128
+    },
+    "arguments": {
+      "type": "object",
+      "maxProperties": 8,
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "payload": {}
+  },
+  "oneOf": [
+    {
+      "required": [
+        "topic"
+      ],
+      "properties": {
+        "topic": {
+          "type": "string",
+          "minLength": 1
+        },
+        "queue": {
+          "type": "null"
+        }
+      }
+    },
+    {
+      "required": [
+        "queue",
+        "payload"
+      ],
+      "properties": {
+        "queue": {
+          "type": "string",
+          "minLength": 1
+        },
+        "topic": {
+          "type": "null"
+        },
+        "kind": {
+          "const": "request"
+        },
+        "payload": {
+          "$ref": "#/$defs/publicRequest"
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "publicRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "method",
+        "path"
+      ],
+      "properties": {
+        "method": {
+          "enum": [
+            "GET",
+            "POST",
+            "PUT",
+            "PATCH",
+            "DELETE",
+            "HEAD",
+            "OPTIONS"
+          ]
+        },
+        "path": {
+          "type": "string",
+          "pattern": "^/api/v1/",
+          "maxLength": 2048
+        },
+        "query": {
+          "type": "string",
+          "maxLength": 4096,
+          "default": ""
+        },
+        "bodyBase64": {
+          "type": "string",
+          "contentEncoding": "base64",
+          "maxLength": 87384,
+          "default": ""
+        },
+        "headers": {
+          "type": "array",
+          "maxItems": 64,
+          "items": {
+            "type": "array",
+            "prefixItems": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "items": false,
+            "minItems": 2,
+            "maxItems": 2
+          }
+        },
+        "playerId": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "uuid",
+              "minLength": 36,
+              "maxLength": 36,
+              "not": {
+                "const": "00000000-0000-0000-0000-000000000000"
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    }
+  },
+  "description": "Wire maximum 96 KiB. Runtime also enforces catalog authorization, finite/unique-key JSON, URI projection, header bytes, nonzero IDs and UTC. Business payload schemas remain in the HTTP catalog."
+}

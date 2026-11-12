@@ -1,0 +1,13 @@
+{
+  "messageId": "10000000-0000-0000-0000-000000000001",
+  "schemaVersion": 1,
+  "kind": "request",
+  "topic": "operation.applicant.getDeception.v1",
+  "traceId": "messaging.example",
+  "correlationId": "10000000-0000-0000-0000-000000000002",
+  "deadlineAt": "2030-01-01T00:00:01Z",
+  "payload": {
+    "applicantId": "a0000000-0000-0000-0000-000000000001",
+    "sessionId": "55555555-5555-5555-5555-555555555555"
+  }
+}

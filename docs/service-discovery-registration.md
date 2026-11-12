@@ -35,7 +35,11 @@ them to Gateway's public route map. Use TLS outside a trusted private network.
   callers advertise a reachable container/network address, not `0.0.0.0` or
   `localhost` pointing to the wrong container.
 - `readinessPath`: `/health/ready` (also the default when omitted).
-- No extra fields. Maximum request body is 4096 bytes.
+- Optional `subscriptions:[{topic,group}]` is the additive Lab 4 Task 6 field.
+  Omitted means `[]`; max 64 unique pairs, group must equal serviceName. Topic
+  syntax is `operation.<name>.vN` or `event.<name>.vN` (N>=1). Broker policy, not
+  registration, authorizes delivery. No other extra fields. Maximum body 4096 bytes.
+  See [queue/topic contract](messaging-queues.md) and its generated per-owner lists.
 
 The response repeats the normalized registration and adds `registeredAt`
 (ISO-8601 UTC). New `(serviceName, instanceId)` keys return `201`; the same key
@@ -45,7 +49,12 @@ of health**. Registry writes log service name and instance UUID, not the token.
 ### Inspect registrations
 
 `GET /internal/v1/instances` returns `{"instances":[...]}`, sorted by service
-name and UUID. Optional `?serviceName=rules-service` filters the list. It is an
+name and UUID. Each entry includes subscriptions and server-owned
+`readiness:{ready,checkedAt,validUntil}` from bounded `/health/ready` polling.
+No observation means false/null/null. Registration cannot submit readiness.
+Re-registration clears the observation; stale in-flight samples cannot mark a
+replacement ready. Broker requires fresh readiness and the reviewed topic/group
+subscription. Optional `?serviceName=rules-service` filters the list. It is an
 internal control-plane endpoint. The scaled Gateway uses its service-name filter;
 see [scaled integration](service-discovery-scaled.md).
 
