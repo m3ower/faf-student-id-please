@@ -179,7 +179,6 @@
       "callers": [
         "applicant-service",
         "credential-service",
-        "moderation-service",
         "rules-service"
       ],
       "budgetMs": 750
@@ -403,7 +402,6 @@
       "bodySchema": null,
       "callers": [
         "credential-service",
-        "moderation-service",
         "rules-service",
         "session-service"
       ],
@@ -421,7 +419,6 @@
       "bodySchema": null,
       "callers": [
         "credential-service",
-        "moderation-service",
         "rules-service",
         "session-service"
       ],
@@ -465,7 +462,6 @@
       ],
       "bodySchema": null,
       "callers": [
-        "moderation-service",
         "session-service"
       ],
       "budgetMs": 750
@@ -579,7 +575,6 @@
       "arguments": [],
       "bodySchema": "ownedApplicantOnly",
       "callers": [
-        "moderation-service",
         "rules-service"
       ],
       "budgetMs": 750
