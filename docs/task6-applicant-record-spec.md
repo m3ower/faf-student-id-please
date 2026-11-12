@@ -275,9 +275,9 @@ cannot acknowledge unrelated/replaced work.
 | Record initialization/status/receipt outbound | 400 ms HTTP timeout; parent Go context can shorten it; parallel readiness uses the parent context |
 | Record Session membership | 1 second HTTP timeout, shortened by parent context; no in-request retry |
 | Owned internal handler | 500 ms task/context budget, also limited by configured task budget; generation/readiness/callback receivers use this budget |
-| Broker operation | Current shared 750ms default; membership chain is caller1s/Broker750ms/Session500 ms. Owned400 ms child calls are deliberately tighter, not a request to expand them. |
+| Broker operation | Current shared 750 ms default; membership chain is caller 1 s / Broker 750 ms / Session 500 ms. Owned 400 ms child calls are deliberately tighter, not a request to expand them. |
 | Owned DB initialization/callback transaction | 450 ms PostgreSQL statement timeout inside the receiver budget |
-| Record background delivery | 1200 ms parent context per leased job; HTTP child remains400 ms |
+| Record background delivery | 1200 ms parent context per leased job; HTTP child remains 400 ms |
 | Other owned task handlers | TASK_TIMEOUT_MS default 2000 ms; not a substitute for the stricter 500 ms internal-operation budget |
 | Direct Discovery registration | Both clients use 2 s HTTP limits, at most 3 attempts with 1 s / 2 s backoff; this is control-plane traffic, not a business operation/event topic |
 
