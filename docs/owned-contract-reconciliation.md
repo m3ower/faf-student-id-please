@@ -81,6 +81,5 @@ acceptance remain unverified. Rules' other consumer adapters remain its owner's 
 The safe publication is reviewable PRs to dev containing the implemented owned work,
 canonical receiver compatibility, tests and this handoff. No release, image
 publication, protected-branch push or submodule/image-pin promotion is requested.
-Do not merge independently until real cross-owner
-acceptance and required reviews are complete. Service Discovery's latest dev remains verified and
+Applicant/Record are now merged into dev; exact commits and remaining publication/acceptance gates are in the [current handoff](owned-credential-integration-handoff.md). Do not promote shared deployment pins or stable releases until real cross-owner acceptance and the applicable review gates are complete. Service Discovery's latest dev remains verified and
 needs no domain-call changes for this baseline.

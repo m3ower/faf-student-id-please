@@ -173,8 +173,7 @@ Session's owner must accept the warmup/generate/poll-ready protocol; no unagreed
 is labeled implemented. The 7 golden vectors are identical in both owned test suites and cover
 the immutable session binding and all scenario types. These are test inputs, not production IDs.
 
-Both owned repositories now have active two-review, code-owner, strict verify-CI and no-bypass
-rules on dev/main. Source candidates are 1.0.0 because authentication/configuration changes
+The owned repositories retain strict verify-CI and other protection rules on dev/main. At the owner's subsequent request, mandatory approvals were removed only from Applicant/Record; CPR and Message Broker review requirements remain. Source candidates are 1.0.0 because authentication/configuration changes
 are breaking. No stable release or shared image-pin update is part of these feature PRs.
 
 
@@ -227,3 +226,5 @@ including when Credential initiates. Context reads fail if that prerequisite is 
 [Reproducible evidence](owned-http-evidence.md) distinguishes actual owned/Gateway handlers
 from the test-only Credential protocol peer and historical Session membership image. No
 teammate application source, broker transport, deployment pins or architecture were changed.
+
+The [current Credential/Rules integration handoff](owned-credential-integration-handoff.md) lists merged owned commit SHAs, image publication status, exact configuration and the joint real-service acceptance checks.

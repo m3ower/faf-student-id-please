@@ -4,6 +4,8 @@ Applicant and Record now explicitly adapt to Credential's published seed/status/
 protocol while keeping their full immutable session-bound protocol between each other.
 No teammate application code or broker transport was changed.
 
+The private PRs are now merged into dev. See the [current integration handoff](owned-credential-integration-handoff.md) for merged source SHAs, required configuration, unpublished image status and the remaining real-peer acceptance checklist. Mandatory approvals were subsequently disabled only for Applicant/Record at the owner's request; CPR and Message Broker requirements remain unchanged.
+
 | Check | Result |
 | --- | --- |
 | Applicant Java/PostgreSQL verification | 42 tests, zero failures/errors; 96.41% line coverage |
@@ -53,7 +55,7 @@ and the exact candidate operation catalog must be configured for a real Credenti
 First initialize full Session context; unknown context cannot be inferred from seed alone.
 
 Remaining gates: actual current private Credential implementation and current Session
-queue/gameplay acceptance; candidate registry/bindings deployed together; required two
+queue/gameplay acceptance; candidate registry/bindings deployed together; required CPR
 approvals/code-owner review and passing CI; reviewed releases/pins. This is owned adapter
 readiness, not whole-system readiness or broker migration. The earlier reports below are
 historical baselines and their protocol-gap statements are superseded by this adapter.
