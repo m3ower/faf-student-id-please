@@ -1,0 +1,76 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:studentid:messaging:topics:v1",
+  "title": "Broker topic listing v1",
+  "description": "GET /internal/v1/messaging/topics[?kind=request|event] on BROKER_URL, any authenticated Broker caller (401 otherwise, 400 INVALID_QUERY for any other parameter). Topics come from the Broker's bundled reviewed messaging catalog, sorted by name; Gateway queues are not topics. canPublish is for the authenticated caller. subscribers is per group from a Discovery listing at most BROKER_DISCOVERY_CACHE_MS old, or null with discovery UNAVAILABLE. No instance addresses, credentials or bodies.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["catalogVersion", "messagingVersion", "discovery", "topics"],
+  "properties": {
+    "catalogVersion": {"type": "string"},
+    "messagingVersion": {"type": "integer"},
+    "discovery": {"enum": ["UP", "UNAVAILABLE"]},
+    "topics": {"type": "array", "items": {"$ref": "topic"}}
+  },
+  "$defs": {
+    "topic": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["topic", "kind", "groups", "publishers", "canPublish", "subscribers"],
+      "properties": {
+        "topic": {"type": "string", "pattern": "^(operation|event)\\.[A-Za-z0-9_.-]{1,110}\\.v[1-9][0-9]*$"},
+        "kind": {"enum": ["request", "event"]},
+        "operation": {"type": "string"},
+        "eventType": {"type": "string"},
+        "groups": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "pattern": "^[a-z][a-z0-9-]{0,62}$"}},
+        "publishers": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "pattern": "^[a-z][a-z0-9-]{0,62}$"}},
+        "canPublish": {"type": "boolean"},
+        "budgetMs": {"type": "integer", "minimum": 1},
+        "subscribers": {
+          "type": ["object", "null"],
+          "additionalProperties": {"$ref": "subscriberCount"}
+        }
+      }
+    },
+    "subscriberCount": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["registered", "ready"],
+      "properties": {
+        "registered": {"type": "integer", "minimum": 0},
+        "ready": {"type": "integer", "minimum": 0}
+      }
+    }
+  },
+  "examples": [
+    {
+      "catalogVersion": "0.3.0",
+      "messagingVersion": 1,
+      "discovery": "UP",
+      "topics": [
+        {
+          "topic": "event.DecisionRecorded.v1",
+          "kind": "event",
+          "eventType": "DecisionRecorded",
+          "groups": ["discord-dms-service", "session-service"],
+          "publishers": ["moderation-service"],
+          "canPublish": true,
+          "subscribers": {
+            "discord-dms-service": {"registered": 2, "ready": 2},
+            "session-service": {"registered": 1, "ready": 1}
+          }
+        },
+        {
+          "topic": "operation.moderation.applicantDecisionFacts.v1",
+          "kind": "request",
+          "operation": "moderation.applicantDecisionFacts",
+          "groups": ["moderation-service"],
+          "publishers": ["rules-service"],
+          "canPublish": false,
+          "budgetMs": 750,
+          "subscribers": {"moderation-service": {"registered": 2, "ready": 2}}
+        }
+      ]
+    }
+  ]
+}

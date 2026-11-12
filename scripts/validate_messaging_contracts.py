@@ -133,6 +133,48 @@ def validate_examples(root=ROOT):
             raise ValueError(path.name + ": " + "; ".join(errors))
 
 
+def validate_topics(root=ROOT):
+    """The topic listing contract (Lab 4 Grade 7): its example matches the schema and
+    every listed topic agrees with the generated bindings."""
+    schema = json.loads((root / "contracts/messaging/topics.schema.json").read_text(encoding="utf-8"))
+    policy = generate(json.loads((root / "contracts/http/service-operations.json").read_text(encoding="utf-8")))
+    examples = schema.get("examples") or []
+    if not examples:
+        raise ValueError("topics.schema.json: an example is required")
+    for listing in examples:
+        errors = validate(listing, schema, schema["$defs"])
+        names = [t["topic"] for t in listing.get("topics", [])]
+        if names != sorted(names):
+            errors.append("topics must be sorted by name")
+        for topic in listing.get("topics", []):
+            name = topic["topic"]
+            if topic["kind"] == "request":
+                binding = policy["operations"].get(name)
+                if (binding is None or topic.get("operation") != binding["operation"]
+                        or topic["groups"] != [binding["group"]] or topic["publishers"] != binding["callers"]
+                        or topic.get("budgetMs") != binding["budgetMs"] or "eventType" in topic):
+                    errors.append(name + " disagrees with its operation binding")
+            else:
+                event = policy["events"].get(name)
+                if (event is None or topic.get("eventType") != event["eventType"]
+                        or topic["groups"] != sorted(event["groups"]) or topic["publishers"] != [event["publisher"]]
+                        or "operation" in topic or "budgetMs" in topic):
+                    errors.append(name + " disagrees with its event binding")
+            subscribers = topic.get("subscribers")
+            if subscribers is not None:
+                if sorted(subscribers) != sorted(topic["groups"]):
+                    errors.append(name + " subscribers must name exactly its groups")
+                for count in subscribers.values():
+                    errors += validate(count, schema["$defs"]["subscriberCount"], schema["$defs"], name)
+                    if count.get("ready", 0) > count.get("registered", 0):
+                        errors.append(name + " cannot have more ready than registered subscribers")
+        if listing.get("discovery") == "UNAVAILABLE" and any(t["subscribers"] is not None for t in listing["topics"]):
+            errors.append("subscribers must be null while Discovery is unavailable")
+        if errors:
+            raise ValueError("topics.schema.json: " + "; ".join(errors))
+    return len(examples)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--write", action="store_true")
@@ -146,7 +188,8 @@ def main():
             json.dumps(subscriptions(value), indent=2) + "\n", encoding="utf-8")
     operations, events, queues = check(broker_root=args.broker_root)
     validate_examples()
-    print(f"Messaging bindings passed: {operations} operations, {events} events, {queues} queues")
+    validate_topics()
+    print(f"Messaging bindings passed: {operations} operations, {events} events, {queues} queues; topic listing example OK")
 
 
 if __name__ == "__main__":

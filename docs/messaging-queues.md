@@ -18,8 +18,10 @@ or adoption by the eight individual services. No Compose/image pins change here.
 This is a custom Python Broker, not RabbitMQ/Kafka. Existing business HTTP routes
 remain available on Broker during this migration; topic clients never fall back
 to them. Gateway exposes no internal business routes, balancing or circuit state.
-Durability, dead letters, gRPC, load-based routing and thread-per-request are
-separate tasks. Queues/results/deduplication are in memory in one Broker process.
+Durability, dead letters, gRPC and load-based routing are separate tasks.
+Thread-per-request and the topic listing are Lab 4 Grade 7: see
+[messaging-grade7.md](messaging-grade7.md). Queues/results/deduplication are in
+memory in one Broker process.
 
 ## APIs and trust
 
@@ -191,10 +193,11 @@ claimed.
 Default per `(topic or queue,group)` waiting capacity256, global queued deliveries
 4096, retained result records4096, reserved message/result memory64 MiB,
 admission/waiters4096; each lane admits at most256 concurrent submissions.
-One async worker per lane by default (`BROKER_GROUP_WORKERS`, max 16). These are
-fixed bounded workers, **not** the later thread-per-request implementation.
-Different operations have independent workers so a parent awaiting a nested
-operation does not hold its child's only worker. Avoid synchronous self-cycles.
+Before Grade 7: one async worker per lane (`BROKER_GROUP_WORKERS`). With Grade 7
+each delivery runs on its own new thread, up to `BROKER_LANE_THREADS` per lane
+([messaging-grade7.md](messaging-grade7.md)). Different operations have independent
+lanes so a parent awaiting a nested operation does not hold its child's delivery
+capacity. Avoid synchronous self-cycles.
 
 Broker's absolute deadline covers preflight Discovery lookup, queue waiting and
 delivery. It is capped by `BROKER_OPERATION_TIMEOUT_SECONDS`/catalog budget
