@@ -3,6 +3,9 @@
 # Requires matching images and private configuration; does not change the default
 # deployment/release pins or peer services that have not migrated.
 services:
+  service-discovery:
+    image: ${OWNED_DISCOVERY_IMAGE:-cmmarin/student-id-service-discovery:lab4-0.8.0}
+
   message-broker:
     image: ${OWNED_BROKER_IMAGE:?set a published Broker image bundling the reviewed owned grpc delivery choices}
     networks: [default, applicant-net, record-net]
@@ -70,8 +73,8 @@ services:
       # receiver token must match its entry; this is not a Broker caller map.
       GATEWAY_TARGET_TOKENS_JSON: ${GATEWAY_TARGET_TOKENS_JSON:?configure the actual public receiver credentials}
 
-  # Credential/Rules: published opt-in gRPC-capable images. Keep HTTP publication
-  # and delivery until the real-peer acceptance gate and reviewed group flips.
+  # Credential/Rules: gRPC publishers and consumers. Requires the matching Broker
+  # release with the identical reviewed per-group transport catalog.
   credential-service: &owned-credential
     image: ${OWNED_CREDENTIAL_IMAGE:-cmmarin/student-id-credential-service:lab4-1.1.0}
     environment: &owned-credential-env
@@ -79,9 +82,9 @@ services:
       BROKER_SERVICE_TOKEN: ${CREDENTIAL_BROKER_SERVICE_TOKEN:?match credential-service in BROKER_CALLER_TOKENS_JSON}
       CREDENTIAL_INTERNAL_TOKEN: ${CREDENTIAL_INTERNAL_TOKEN:?match the Credential receiver credential}
       BUSINESS_HTTP_BINDINGS_JSON: '{"applicant.context":"/internal/v1/applicants/context","record.facts":"/internal/v1/records/facts","applicant.ready":"/internal/v1/applicants/events/credentials-ready","record.ready":"/internal/v1/records/events/credentials-ready"}'
-      BROKER_TRANSPORT: ${OWNED_CREDENTIAL_BROKER_TRANSPORT:-http}
+      BROKER_TRANSPORT: grpc
       BROKER_GRPC_TARGET: message-broker:9093
-      GRPC_ENABLED: ${OWNED_CREDENTIAL_GRPC_ENABLED:-false}
+      GRPC_ENABLED: "true"
       GRPC_BIND_ADDRESS: 0.0.0.0
       GRPC_PORT: "9080"
       GRPC_ALLOW_PLAINTEXT: "true"
@@ -101,9 +104,9 @@ services:
       BROKER_SERVICE_TOKEN: ${RULES_BROKER_SERVICE_TOKEN:?match rules-service in BROKER_CALLER_TOKENS_JSON}
       RULES_INTERNAL_TOKEN: ${RULES_INTERNAL_TOKEN:?match the Rules receiver credential}
       BUSINESS_HTTP_BINDINGS_JSON: '{"session.context":"/internal/v1/session-state/get","record.facts":"/internal/v1/records/facts"}'
-      BROKER_TRANSPORT: ${OWNED_RULES_BROKER_TRANSPORT:-http}
+      BROKER_TRANSPORT: grpc
       BROKER_GRPC_TARGET: message-broker:9093
-      GRPC_ENABLED: ${OWNED_RULES_GRPC_ENABLED:-false}
+      GRPC_ENABLED: "true"
       GRPC_BIND_ADDRESS: 0.0.0.0
       GRPC_PORT: "9081"
       GRPC_ALLOW_PLAINTEXT: "true"

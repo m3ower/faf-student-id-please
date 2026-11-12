@@ -92,7 +92,7 @@ class GrpcContractTests(unittest.TestCase):
             shutil.copyfile(ROOT / TRANSPORTS, broker / "contracts/transports.json")
             check(broker_root=broker)
             changed = copy.deepcopy(self.transports)
-            changed["delivery"]["rules-service"] = "grpc"
+            changed["delivery"]["rules-service"] = "http" if self.transports["delivery"]["rules-service"] == "grpc" else "grpc"
             (broker / "contracts/transports.json").write_text(json.dumps(changed), encoding="utf-8")
             with self.assertRaisesRegex(ValueError, "transports copy"):
                 check(broker_root=broker)
