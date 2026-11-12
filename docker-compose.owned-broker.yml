@@ -1,5 +1,7 @@
-# Opt-in Applicant/Record migration candidate. Requires matching images and private
-# configuration; does not change default deployment/release pins or peer services.
+# Opt-in Lab 4 Broker deployment: the Message Broker plus the services migrated to it
+# (Applicant/Record candidates; Moderation and Discord DMs lab3-0.8.0 over gRPC).
+# Requires matching images and private configuration; does not change the default
+# deployment/release pins or peer services that have not migrated.
 services:
   message-broker:
     image: ${OWNED_BROKER_IMAGE:?set the broker image bundling the agreed 39-operation catalog}
@@ -65,3 +67,48 @@ services:
       # Public backend authentication remains Gateway's responsibility. Record's
       # receiver token must match its entry; this is not a Broker caller map.
       GATEWAY_TARGET_TOKENS_JSON: ${GATEWAY_TARGET_TOKENS_JSON:?configure the actual public receiver credentials}
+
+  # ---- Moderation and Discord DMs on the Broker (Lab 4 Tasks 5-8) ----
+  # Released lab3-0.8.0 images: every business call is published to the Broker over gRPC
+  # (MessageBroker at message-broker:9093) and the Broker delivers to them over gRPC
+  # (MessageConsumer on the advertised port + 1000 = 9080) once transports.json names
+  # their groups grpc. gRPC ports stay on the private network: none is published.
+  moderation-service: &owned-moderation
+    image: ${DOCKERHUB_USER:-meow3r}/student-id-moderation-service:${OWNED_MODERATION_VERSION:-lab3-0.8.0}
+    environment: &owned-moderation-env
+      BROKER_TRANSPORT: grpc
+      BROKER_GRPC_TARGET: message-broker:9093
+      BROKER_URL: http://message-broker:8093
+      GRPC_PORT: "9080"
+      BROKER_SERVICE_TOKEN: ${MODERATION_BROKER_SERVICE_TOKEN:?match moderation-service in BROKER_CALLER_TOKENS_JSON}
+      MODERATION_INTERNAL_TOKEN: ${MODERATION_INTERNAL_TOKEN:?set the Moderation receiver credential}
+      MODERATION_POLICY_ADMINS: ${MODERATION_POLICY_ADMINS:-}
+    depends_on:
+      message-broker:
+        condition: service_healthy
+
+  moderation-service-2:
+    <<: *owned-moderation
+    profiles: [replicas]
+    environment: *owned-moderation-env
+
+  discord-dms-service: &owned-dms
+    image: ${DOCKERHUB_USER:-meow3r}/student-id-discord-dms-service:${OWNED_DMS_VERSION:-lab3-0.8.0}
+    environment: &owned-dms-env
+      SESSION_CLIENT: broker
+      BROKER_TRANSPORT: grpc
+      BROKER_GRPC_TARGET: message-broker:9093
+      BROKER_URL: http://message-broker:8093
+      GRPC_PORT: "9080"
+      BROKER_SERVICE_TOKEN: ${DMS_BROKER_SERVICE_TOKEN:?match discord-dms-service in BROKER_CALLER_TOKENS_JSON}
+      DMS_INTERNAL_TOKEN: ${DMS_INTERNAL_TOKEN:?set the DMs receiver credential}
+      # The Player Service RS256 public key, the same value the Gateway verifies with.
+      PLAYER_JWT_PUBLIC_KEY_B64: ${GATEWAY_JWT_PUBLIC_KEY_B64:?set the Player public key}
+    depends_on:
+      message-broker:
+        condition: service_healthy
+
+  discord-dms-service-2:
+    <<: *owned-dms
+    profiles: [replicas]
+    environment: *owned-dms-env
