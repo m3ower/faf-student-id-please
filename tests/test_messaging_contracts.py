@@ -4,12 +4,38 @@ from pathlib import Path
 import tempfile
 import unittest
 
-from scripts.validate_messaging_contracts import ROOT, check, generate, subscriptions, validate_examples
+from scripts.validate_messaging_contracts import ROOT, check, generate, subscriptions, validate_examples, validate_topics
 
 
 class MessagingContractsTests(unittest.TestCase):
     def setUp(self):
         self.http = json.loads((ROOT / "contracts/http/service-operations.json").read_text(encoding="utf-8"))
+
+    def test_topic_listing_contract_matches_the_bindings(self):
+        self.assertEqual(validate_topics(), 1)
+        schema_path = ROOT / "contracts/messaging/topics.schema.json"
+        original = json.loads(schema_path.read_text(encoding="utf-8"))
+        cases = [
+            lambda t: t["topics"].reverse(),
+            lambda t: t["topics"][0].update(publishers=["session-service"]),
+            lambda t: t["topics"][1].update(budgetMs=1),
+            lambda t: t["topics"][1]["subscribers"].update({"rules-service": {"registered": 1, "ready": 1}}),
+            lambda t: t["topics"][1]["subscribers"]["moderation-service"].update(ready=3),
+            lambda t: t.update(discovery="UNAVAILABLE"),
+            lambda t: t["topics"][0].update(target="http://instance"),
+        ]
+        for change in cases:
+            broken = copy.deepcopy(original)
+            change(broken["examples"][0])
+            with tempfile.TemporaryDirectory() as tmp:
+                root = Path(tmp)
+                (root / "contracts/messaging").mkdir(parents=True)
+                (root / "contracts/http").mkdir(parents=True)
+                (root / "contracts/messaging/topics.schema.json").write_text(json.dumps(broken), encoding="utf-8")
+                (root / "contracts/http/service-operations.json").write_text(
+                    (ROOT / "contracts/http/service-operations.json").read_text(encoding="utf-8"), encoding="utf-8")
+                with self.assertRaises(ValueError):
+                    validate_topics(root)
 
     def test_current_catalog_and_per_owner_subscriptions(self):
         self.assertEqual(check(), (39, 5, 8))
