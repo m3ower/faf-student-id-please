@@ -1,0 +1,154 @@
+// Lab 4 Grade 8: service-to-service messaging over gRPC.
+//
+// One transport contract for every service. It replaces the internal REST legs of the
+// Task 6 messaging contract and changes nothing else: business payloads remain the
+// reviewed JSON documents named by each binding's bodySchema
+// (contracts/messaging/catalog.json), and topics, groups, caller grants, budgets, result
+// states, receipt rules and error codes are those of contracts/messaging/. See
+// docs/messaging-grpc.md.
+//
+// Authentication: metadata "authorization: Bearer <token>", the same per-service
+// credentials as the REST contract: the publisher's own Broker credential on
+// MessageBroker, the receiver's credential from the Broker on MessageConsumer.
+//
+// Failures that are not business outcomes (authentication, authorization, a malformed
+// message, an unknown operation, an expired deadline, capacity) end the call with a
+// gRPC status and the existing error code in trailing metadata "error-code":
+//   400 INVALID_ARGUMENT, 401 UNAUTHENTICATED, 403 PERMISSION_DENIED, 404 NOT_FOUND,
+//   413/429 RESOURCE_EXHAUSTED, 503 UNAVAILABLE, 504 DEADLINE_EXCEEDED.
+// A business outcome (any status a handler returns today, success or not) is a normal
+// response.
+
+syntax = "proto3";
+
+package studentid.messaging.v1;
+
+option java_multiple_files = true;
+option java_package = "studentid.messaging.v1";
+option java_outer_classname = "MessagingProto";
+// Go services generate into their own module with
+// --go_opt=Mstudentid/messaging/v1/messaging.proto=<their import path>.
+option go_package = "studentid/messaging/v1;messagingv1";
+
+// Served by the Message Broker, on its HTTP port + 1000.
+service MessageBroker {
+  // Admits one publication. A request-topic publication waits for its terminal result
+  // within its budget and returns it (state PENDING if the budget ran out first, to be
+  // polled). An event publication returns PENDING at once, to be polled.
+  rpc Publish(Envelope) returns (Result);
+  // The current result of a message the caller published. NOT_FOUND once retention ends.
+  rpc GetResult(ResultRequest) returns (Result);
+  // The topics the Broker routes, as GET /internal/v1/messaging/topics.
+  rpc ListTopics(ListTopicsRequest) returns (TopicList);
+}
+
+// Served by every service that receives topics, on its HTTP port + 1000 (the host it
+// registered with Discovery). The Broker is the only caller.
+service MessageConsumer {
+  rpc Deliver(Delivery) returns (Reply);
+}
+
+enum Kind {
+  KIND_UNSPECIFIED = 0;
+  REQUEST = 1;
+  EVENT = 2;
+}
+
+// The Task 6 envelope (contracts/messaging/envelope.schema.json), schemaVersion 1,
+// minus the Gateway-only "queue" (user requests stay HTTP).
+message Envelope {
+  string message_id = 1;                // nonzero UUID
+  int32 schema_version = 2;             // 1
+  Kind kind = 3;
+  string topic = 4;                     // operation.<name>.v1 or event.<Type>.v1
+  string trace_id = 5;                  // ^[A-Za-z0-9._-]{1,64}$
+  string correlation_id = 6;            // nonzero UUID
+  string causation_id = 7;              // nonzero UUID, or empty for none
+  string deadline_at = 8;               // UTC ISO-8601, ending in Z or +00:00
+  map<string, string> arguments = 9;    // at most 8, as the catalog binding names them
+  bytes payload_json = 10;              // one JSON document; empty means null
+}
+
+message ResultRequest {
+  string message_id = 1;
+}
+
+enum State {
+  STATE_UNSPECIFIED = 0;
+  PENDING = 1;
+  COMPLETED = 2;   // message: every group finished and acknowledged
+  FAILED = 3;      // message: some group finished without acknowledging
+  SUCCEEDED = 4;   // group only
+}
+
+message Header {
+  string name = 1;
+  string value = 2;
+}
+
+// contracts/messaging/result.schema.json, with the body as bytes instead of base64.
+message GroupResult {
+  State state = 1;                       // PENDING, SUCCEEDED or FAILED
+  bool acknowledged = 2;
+  int32 status = 3;                      // absent (0) while PENDING
+  bytes body = 4;
+  repeated Header headers = 5;
+}
+
+message Result {
+  string message_id = 1;
+  string correlation_id = 2;
+  State state = 3;                       // PENDING, COMPLETED or FAILED
+  map<string, GroupResult> groups = 4;
+}
+
+message ListTopicsRequest {
+  Kind kind = 1;                         // KIND_UNSPECIFIED lists both kinds
+}
+
+message SubscriberCount {
+  int32 registered = 1;
+  int32 ready = 2;
+}
+
+message Topic {
+  string topic = 1;
+  Kind kind = 2;
+  string operation = 3;                  // request topics
+  string event_type = 4;                 // event topics
+  repeated string groups = 5;
+  repeated string publishers = 6;
+  bool can_publish = 7;
+  int32 budget_ms = 8;                   // request topics
+  map<string, SubscriberCount> subscribers = 9;  // empty while Discovery is unavailable
+}
+
+message TopicList {
+  string catalog_version = 1;
+  int32 messaging_version = 2;
+  bool discovery_available = 3;
+  repeated Topic topics = 4;
+}
+
+// One message for one consumer group, from the Broker.
+message Delivery {
+  string message_id = 1;
+  Kind kind = 2;
+  string topic = 3;
+  string group = 4;                      // the receiving service's own group
+  string operation = 5;                  // the binding this group handles, e.g. dms.decisionRecorded
+  string publisher = 6;                  // authenticated publishing service
+  string trace_id = 7;
+  string correlation_id = 8;
+  string causation_id = 9;               // empty for none
+  string deadline_at = 10;               // absolute UTC deadline of this delivery
+  map<string, string> arguments = 11;    // path/query arguments of a request binding
+  bytes payload_json = 12;               // the body the HTTP binding would have received; empty for none
+}
+
+// The handler's outcome, exactly as the HTTP binding returns it today.
+message Reply {
+  int32 status = 1;                      // 200..599
+  bytes body_json = 2;
+  string content_type = 3;               // application/json unless the handler says otherwise
+}

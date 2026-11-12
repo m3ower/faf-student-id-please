@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "proto": "contracts/proto/studentid/messaging/v1/messaging.proto",
+  "grpcPortOffset": 1000,
+  "broker": {
+    "service": "message-broker",
+    "httpPort": 8093,
+    "grpcPort": 9093
+  },
+  "delivery": {
+    "applicant-service": "http",
+    "credential-service": "http",
+    "discord-dms-service": "http",
+    "moderation-service": "http",
+    "player-service": "http",
+    "rules-service": "http",
+    "session-service": "http",
+    "university-record-service": "http"
+  }
+}
