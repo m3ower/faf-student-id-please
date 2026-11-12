@@ -1978,6 +1978,12 @@ volume and start Compose again.
 
 ### Credential and Server Rules mock contract
 
+For the newer Lab 4 Broker/gRPC-capable releases and the opt-in deployment,
+see [Credential and Rules Task 8 rollout](docs/owned-grpc-rollout.md).
+The Lab 1 in-process examples below are historical, not the production Lab 4
+service-to-service implementation. The base Lab 3 deployment is not promoted
+by the opt-in overlay.
+
 The following describes released Lab 3 behavior and test fixture expectations,
 not the unreleased production-baseline implementation. In the candidate branches
 the legacy fixture code is test-only, and protected reads use the real candidate
