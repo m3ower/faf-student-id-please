@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "Student ID - Moderation Service",
-    "description": "Moderation Service (Java), reached through the Gateway on {{baseUrl}} as the communication contract requires: no request here talks to the service's own port. Lab 4: there are no mocks. Decisions are scored from the real Session, Applicant, Credential and Rules owners through the Message Broker (Lab 4: topic publications, over gRPC from Task 8; see docs/messaging-grpc.md), so this collection needs a real session ({{sessionId}}) in which the moderator, junior and outsider tokens hold those roles, and real applicants of that session whose owners generated the stated deceptions ({{applicantBanned}}, {{applicantRuleBreaker}}, {{applicantInconsistent}}, {{applicantExpiredDocument}}). Until every operation marked requested in the catalog is implemented by its owner, submit requests fail closed with 503 <DEPENDENCY>_UNAVAILABLE, which is the expected behaviour, not a pass.\n\nAuthentication: every request sends Bearer {{<player>Token}}, a real access JWT of that player (Player login, or a disposable local test signer whose public key the Gateway and DMs are configured with). The Gateway verifies it and sets X-Player-Id from its subject, so this collection sends no X-Player-Id: identity cannot be chosen by the client. Keep tokens in a private Postman environment, never in tracked files. The health request uses no authentication. Penalty-policy writes use {{policyAdminToken}}, a player listed in MODERATION_POLICY_ADMINS. Lab 4 folders: Task 3 Gateway boundary, Task 4 operational logs (log-download endpoint), Tasks 5-8 Message Broker (topics, events, topic listing).",
+    "description": "Moderation Service (Java), reached through the Gateway on {{baseUrl}} as the communication contract requires: no request here talks to the service's own port. Lab 4: there are no mocks. Decisions are scored from the real Session, Applicant, Credential and Rules owners through the Message Broker (Lab 4: topic publications, over gRPC from Task 8; see docs/messaging-grpc.md), so this collection needs a real session ({{sessionId}}) in which the moderator, junior and outsider tokens hold those roles, and real applicants of that session whose owners generated the stated deceptions ({{applicantBanned}}, {{applicantRuleBreaker}}, {{applicantInconsistent}}, {{applicantExpiredDocument}}). Until every operation marked requested in the catalog is implemented by its owner, submit requests fail closed with 503 <DEPENDENCY>_UNAVAILABLE, which is the expected behaviour, not a pass.\n\nAuthentication: every request sends Bearer the appropriate private player token, a real access JWT of that player (Player login, or a disposable local test signer whose public key the Gateway and DMs are configured with). The Gateway verifies it and sets X-Player-Id from its subject, so this collection sends no X-Player-Id: identity cannot be chosen by the client. Keep tokens in a private Postman environment, never in tracked files. The health request uses no authentication. Penalty-policy writes use {{policyAdminToken}}, a player listed in MODERATION_POLICY_ADMINS. Lab 4 folders: Task 3 Gateway boundary, Task 4 operational logs (log-download endpoint), Tasks 5-8 Message Broker (topics, events, topic listing). HTTP topic publication tests exercise the Broker compatibility ingress; native gRPC publication uses messaging.proto. Broker-to-service gRPC delivery requires a matching transport catalog and healthy receivers.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
@@ -90,6 +90,21 @@
     {
       "key": "dmsBrokerToken",
       "value": ""
+    },
+    {
+      "key": "envelope",
+      "value": "",
+      "description": "Transient test state or private prerequisite. Keep exported values empty."
+    },
+    {
+      "key": "messageId",
+      "value": "",
+      "description": "Transient test state or private prerequisite. Keep exported values empty."
+    },
+    {
+      "key": "traceId",
+      "value": "",
+      "description": "Transient test state or private prerequisite. Keep exported values empty."
     }
   ],
   "item": [

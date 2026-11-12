@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "Student ID - Player Service",
-    "description": "Player lab4-1.3.0-build.31 public registration, login, CRUD and team requests through Gateway at http://localhost:8090. Configure matching Player signing/Gateway verification keys privately. Run in order: login provides real access/refresh tokens in transient variables. Never export populated secrets. Internal business messaging uses Broker gRPC, not Gateway service routes. These requests require a published Lab 4 queue-capable Gateway; see deployment/releases.json.",
+    "description": "Real Player CRUD/login/teams through Gateway at localhost:8090. Run in order against the new baseline source/reviewed image, not the old pinned Lab 3 image. Player and Gateway require matching RSA private/public keys and distinct machine target credentials. Login supplies real access/refresh tokens in transient runner variables; never export populated secrets. Backend identity is bound to verified JWT sub. Synthetic accounts are deleted at the end; no internal operations or fabricated JWTs are used. Refreshed 2026-11-12 from shared dev bdf7190. Gateway boundary and separate operational log checks are included. Current private service source was not accessible during this review; public shared contracts do not establish runtime acceptance. See ../docs/lab4-configuration-review.md.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
@@ -56,9 +56,125 @@
     {
       "key": "teamId",
       "value": ""
+    },
+    {
+      "key": "logDownloadUrl",
+      "value": "http://127.0.0.1:8092",
+      "description": "Local operational log endpoint; independent of Gateway baseUrl."
+    },
+    {
+      "key": "logDownloadToken",
+      "value": "",
+      "type": "string",
+      "description": "Separate operations secret. Set only in a private local environment; never commit it."
     }
   ],
   "item": [
+    {
+      "name": "Lab 4 Task 3 - Gateway boundary",
+      "description": "Public Gateway health, JWT and internal-route boundary checks. Run with the current Lab 4 subscriber-queue Gateway/Broker deployment.",
+      "item": [
+        {
+          "name": "Owned service health through Gateway",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "noauth"
+            },
+            "url": "{{baseUrl}}/api/v1/health/player-service",
+            "description": "Public Gateway relay for this service's existing health/readiness endpoint. Requires a running, healthy service and its database; this does not probe the custom broker.",
+            "header": []
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Service health through Gateway: HTTP 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Missing bearer token is rejected",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "noauth"
+            },
+            "url": "{{baseUrl}}/api/v1/players",
+            "description": "Explicit No Auth overrides the collection bearer token. Gateway must reject this request before forwarding it to the owned service.",
+            "header": []
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Gateway rejects unauthorized access: HTTP 401', () => pm.response.to.have.status(401));",
+                  "pm.test('Gateway uses the existing authentication error contract', () => { const error = pm.response.json().error; pm.expect(error.code).to.eql('UNAUTHENTICATED'); pm.expect(error.service).to.eql('gateway-service'); pm.expect(pm.response.headers.get('WWW-Authenticate')).to.eql('Bearer'); });",
+                  "pm.test('Authentication error matches the response trace ID', () => { const traceId = pm.response.headers.get('X-Trace-Id'); pm.expect(traceId).to.be.a('string').and.not.empty; pm.expect(pm.response.json().error.traceId).to.eql(traceId); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Malformed bearer header is rejected",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/players",
+            "description": "No Auth disables inherited authorization; the deliberately incomplete Bearer header contains no token. Gateway must return its existing 401 error."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Gateway rejects unauthorized access: HTTP 401', () => pm.response.to.have.status(401));",
+                  "pm.test('Gateway uses the existing authentication error contract', () => { const error = pm.response.json().error; pm.expect(error.code).to.eql('UNAUTHENTICATED'); pm.expect(error.service).to.eql('gateway-service'); pm.expect(pm.response.headers.get('WWW-Authenticate')).to.eql('Bearer'); });",
+                  "pm.test('Authentication error matches the response trace ID', () => { const traceId = pm.response.headers.get('X-Trace-Id'); pm.expect(traceId).to.be.a('string').and.not.empty; pm.expect(pm.response.json().error.traceId).to.eql(traceId); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Gateway hides internal service routes",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "noauth"
+            },
+            "url": "{{baseUrl}}/internal/v1/applicants/00000000-0000-0000-0000-000000000001/readiness"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Internal route is not public', () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
     {
       "name": "Health and setup",
       "request": {
@@ -482,7 +598,7 @@
       ]
     },
     {
-      "name": "Logout refresh family (access token remains valid until expiry)",
+      "name": "Gateway currently blocks logout (known route gap)",
       "request": {
         "method": "POST",
         "header": [
@@ -511,7 +627,8 @@
               "language": "json"
             }
           }
-        }
+        },
+        "description": "The published Gateway lab4-2.1.1 allowlist omits POST /players/logout. This asserts the current 404 boundary, not successful logout/revocation. A future Gateway release must add this user-facing route before restoring the positive 204 logout check."
       },
       "event": [
         {
@@ -519,7 +636,8 @@
           "script": {
             "type": "text/javascript",
             "exec": [
-              "pm.test(\"status is 204\", () => pm.response.to.have.status(204));"
+              "pm.test('Gateway rejects this method/path: HTTP 404', () => pm.response.to.have.status(404));",
+              "pm.test('Gateway route boundary error', () => { const error = pm.response.json().error; pm.expect(error.code).to.eql('ROUTE_NOT_FOUND'); pm.expect(error.service).to.eql('gateway-service'); });"
             ]
           }
         }
@@ -583,6 +701,116 @@
               "pm.test(\"player not found\", () => pm.expect(pm.response.json().error.code).to.eql(\"PLAYER_NOT_FOUND\"));"
             ]
           }
+        }
+      ]
+    },
+    {
+      "name": "Lab 4 Task 4 - Operational logs",
+      "description": "Start the local log-download endpoint for the exact running Compose project. Set logDownloadUrl and a private logDownloadToken; this is a separate operations credential, not the collection's Player JWT. The download is limited to this owned service and its declared numeric replicas. To download the whole system, omit the service query on the same endpoint.",
+      "item": [
+        {
+          "name": "Log exporter health",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "noauth"
+            },
+            "url": "{{logDownloadUrl}}/health"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Log exporter health: HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Exporter is UP', () => { const body = pm.response.json(); pm.expect(body.service).to.eql('log-download-service'); pm.expect(body.status).to.eql('UP'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Download player-service logs",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{logDownloadToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{logDownloadUrl}}/internal/v1/logs?service=player-service&since=15m&tail=200",
+            "description": "A finite text attachment from the selected Compose project. A 503 means the local Docker/configuration source is unavailable; it is not a successful empty log export."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Log download: HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Private text attachment', () => { pm.expect(pm.response.headers.get('Content-Type')).to.eql('text/plain; charset=utf-8'); pm.expect(pm.response.headers.get('Content-Disposition')).to.match(/^attachment; filename=\"student-id-logs-\\d{8}T\\d{6}Z\\.log\"$/); pm.expect(pm.response.headers.get('Cache-Control')).to.eql('no-store'); });",
+                  "pm.test('Owned service snapshot includes the requested bounds', () => { const text = pm.response.text(); pm.expect(text).to.include('services=player-service'); pm.expect(text).to.include('since=15m; tail=200 per container'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Missing operations token is rejected",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "noauth"
+            },
+            "url": "{{logDownloadUrl}}/internal/v1/logs?service=player-service"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Missing operations token: HTTP 401', () => pm.response.to.have.status(401));",
+                  "pm.test('Operations authentication error is traceable', () => { const error = pm.response.json().error; pm.expect(error.code).to.eql('UNAUTHORIZED'); pm.expect(error.service).to.eql('log-download-service'); pm.expect(error.traceId).to.eql(pm.response.headers.get('X-Trace-Id')); pm.expect(pm.response.headers.get('WWW-Authenticate')).to.eql('Bearer'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Unbounded tail is rejected",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{logDownloadToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{logDownloadUrl}}/internal/v1/logs?service=player-service&tail=0"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Invalid tail: HTTP 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Invalid query uses the operations contract', () => { const error = pm.response.json().error; pm.expect(error.code).to.eql('INVALID_LOG_QUERY'); pm.expect(error.service).to.eql('log-download-service'); pm.expect(error.traceId).to.eql(pm.response.headers.get('X-Trace-Id')); });"
+                ]
+              }
+            }
+          ]
         }
       ]
     }

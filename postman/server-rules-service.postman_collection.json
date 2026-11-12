@@ -1,74 +1,505 @@
 {
   "info": {
     "name": "Student ID - Server Rules Service",
-    "description": "Server Rules lab4-1.1.0 public CRUD and authorization/error checks through Gateway at http://localhost:8090. Use a real Player token and persisted Session membership. Run in order with disposable rule IDs. Caller-supplied-facts evaluation remains retired (410 CALLER_FACTS_RETIRED); ID-based evaluation and shift binding are private Broker gRPC operations. No mock membership or player-supplied identity headers. See deployment/releases.json and postman/README.md for deployment prerequisites.",
+    "description": "UNRELEASED owned business HTTP candidate; not a live full-stack acceptance claim. Current reads require actual Session membership and Gateway target-credential/verified-player support. The old caller-facts evaluation is retired with 410 CALLER_FACTS_RETIRED; the service-only ID evaluation is invoked by Moderation using its own service identity, never public player tokens or service credentials in this collection. Credential generation/provenance and Rules authoritative HTTP consumers are implemented locally, but peer schema review, exact Gateway bindings and live integration remain pending. Published lab3 images predate these changes. Refreshed 2026-11-12 from shared dev bdf7190. Gateway boundary and separate operational log checks are included. Current private service source was not accessible during this review; public shared contracts do not establish runtime acceptance. See ../docs/lab4-configuration-review.md.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
     "type": "bearer",
-    "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }]
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{accessToken}}",
+        "type": "string"
+      }
+    ]
   },
-  "event": [{ "listen": "test", "script": { "exec": [
-    "pm.test('No server-side failure or false green', () => pm.expect(pm.response.code).to.be.below(500));",
-    "pm.test('Response has a valid trace', () => pm.expect(pm.response.headers.get('X-Trace-Id')).to.match(/^[A-Za-z0-9._-]{1,64}$/));"
-  ] } }],
+  "event": [
+    {
+      "listen": "test",
+      "script": {
+        "exec": [
+          "pm.test('No server-side failure or false green', () => pm.expect(pm.response.code).to.be.below(500));",
+          "pm.test('Response has a UUID trace', () => pm.expect(pm.response.headers.get('X-Trace-Id')).to.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i));"
+        ]
+      }
+    }
+  ],
   "variable": [
-    { "key": "accessToken", "value": "", "type": "string", "description": "Disposable local test JWT. Set in a private local environment; keep this collection value empty." },
-    { "key": "baseUrl", "value": "http://localhost:8090" },
-    { "key": "ruleId", "value": "" },
-    { "key": "ruleCode", "value": "" },
-    { "key": "sessionId", "value": "", "description": "UUID of a persisted Session containing the authenticated JWT subject; requires coordinated Gateway/Session candidate deployment." },
-    { "key": "applicantId", "value": "11111111-1111-1111-1111-111111111111" }
+    {
+      "key": "accessToken",
+      "value": "",
+      "type": "string",
+      "description": "Disposable local test JWT. Set in a private local environment; keep this collection value empty."
+    },
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8090"
+    },
+    {
+      "key": "ruleId",
+      "value": ""
+    },
+    {
+      "key": "ruleCode",
+      "value": ""
+    },
+    {
+      "key": "sessionId",
+      "value": "",
+      "description": "UUID of a persisted Session containing the authenticated JWT subject; requires coordinated Gateway/Session candidate deployment."
+    },
+    {
+      "key": "applicantId",
+      "value": "",
+      "description": "Real initialized applicant ID for this test session; set privately, never assume historical fixture IDs exist."
+    },
+    {
+      "key": "logDownloadUrl",
+      "value": "http://127.0.0.1:8092",
+      "description": "Local operational log endpoint; independent of Gateway baseUrl."
+    },
+    {
+      "key": "logDownloadToken",
+      "value": "",
+      "type": "string",
+      "description": "Separate operations secret. Set only in a private local environment; never commit it."
+    }
   ],
   "item": [
     {
+      "name": "Lab 4 Task 3 - Gateway boundary",
+      "description": "Public Gateway health, JWT and internal-route boundary checks. Run with the current Lab 4 subscriber-queue Gateway/Broker deployment.",
+      "item": [
+        {
+          "name": "Owned service health through Gateway",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "noauth"
+            },
+            "url": "{{baseUrl}}/api/v1/health/rules-service",
+            "description": "Public Gateway relay for this service's existing health/readiness endpoint. Requires a running, healthy service and its database; this does not probe the custom broker.",
+            "header": []
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Service health through Gateway: HTTP 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Missing bearer token is rejected",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "noauth"
+            },
+            "url": "{{baseUrl}}/api/v1/rules",
+            "description": "Explicit No Auth overrides the collection bearer token. Gateway must reject this request before forwarding it to the owned service.",
+            "header": []
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Gateway rejects unauthorized access: HTTP 401', () => pm.response.to.have.status(401));",
+                  "pm.test('Gateway uses the existing authentication error contract', () => { const error = pm.response.json().error; pm.expect(error.code).to.eql('UNAUTHENTICATED'); pm.expect(error.service).to.eql('gateway-service'); pm.expect(pm.response.headers.get('WWW-Authenticate')).to.eql('Bearer'); });",
+                  "pm.test('Authentication error matches the response trace ID', () => { const traceId = pm.response.headers.get('X-Trace-Id'); pm.expect(traceId).to.be.a('string').and.not.empty; pm.expect(pm.response.json().error.traceId).to.eql(traceId); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Malformed bearer header is rejected",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/rules",
+            "description": "No Auth disables inherited authorization; the deliberately incomplete Bearer header contains no token. Gateway must return its existing 401 error."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Gateway rejects unauthorized access: HTTP 401', () => pm.response.to.have.status(401));",
+                  "pm.test('Gateway uses the existing authentication error contract', () => { const error = pm.response.json().error; pm.expect(error.code).to.eql('UNAUTHENTICATED'); pm.expect(error.service).to.eql('gateway-service'); pm.expect(pm.response.headers.get('WWW-Authenticate')).to.eql('Bearer'); });",
+                  "pm.test('Authentication error matches the response trace ID', () => { const traceId = pm.response.headers.get('X-Trace-Id'); pm.expect(traceId).to.be.a('string').and.not.empty; pm.expect(pm.response.json().error.traceId).to.eql(traceId); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Gateway hides internal service routes",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "noauth"
+            },
+            "url": "{{baseUrl}}/internal/v1/applicants/00000000-0000-0000-0000-000000000001/readiness"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Internal route is not public', () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
       "name": "Create rule",
       "event": [
-        { "listen": "prerequest", "script": { "exec": ["pm.collectionVariables.unset('ruleId');", "pm.collectionVariables.set('ruleCode', 'LAB4_' + pm.variables.replaceIn('{{$guid}}').replace(/-/g, '').toUpperCase());"] } },
-        { "listen": "test", "script": { "exec": ["pm.test('Rule created with an ID', () => { pm.response.to.have.status(201); const id = pm.response.json().ruleId; pm.expect(id).to.be.a('string').and.not.empty; pm.collectionVariables.set('ruleId', id); });"] } }
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "pm.collectionVariables.unset('ruleId');",
+              "pm.collectionVariables.set('ruleCode', 'LAB3_' + pm.variables.replaceIn('{{$guid}}').replace(/-/g, '').toUpperCase());"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Rule created with an ID', () => { pm.response.to.have.status(201); const id = pm.response.json().ruleId; pm.expect(id).to.be.a('string').and.not.empty; pm.collectionVariables.set('ruleId', id); });"
+            ]
+          }
+        }
       ],
       "request": {
         "method": "POST",
-        "header": [{ "key": "Content-Type", "value": "application/json" }],
-        "body": { "mode": "raw", "raw": "{\n  \"code\": \"{{ruleCode}}\",\n  \"description\": \"Must be enrolled for at least 2 years\",\n  \"type\": \"MIN_ENROLLMENT_YEARS\",\n  \"severity\": \"MAJOR\",\n  \"active\": true,\n  \"minimumYears\": 2\n}" },
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"code\": \"{{ruleCode}}\",\n  \"description\": \"Must be enrolled for at least 2 years\",\n  \"type\": \"MIN_ENROLLMENT_YEARS\",\n  \"severity\": \"MAJOR\",\n  \"active\": true,\n  \"minimumYears\": 2\n}"
+        },
         "url": "{{baseUrl}}/api/v1/rules"
       }
     },
-    { "name": "List rules", "event": [{ "listen": "test", "script": { "exec": ["pm.test('Listing contains created rule', () => { pm.response.to.have.status(200); pm.expect(pm.response.json().rules.some(r => r.ruleId === pm.collectionVariables.get('ruleId'))).to.eql(true); });"] } }], "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/rules" } },
-    { "name": "Get rule", "event": [{ "listen": "test", "script": { "exec": ["pm.test('Created rule returned', () => { pm.response.to.have.status(200); pm.expect(pm.response.json().code).to.eql(pm.collectionVariables.get('ruleCode')); });"] } }], "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/rules/{{ruleId}}" } },
     {
-      "name": "Update rule",
-      "event": [{ "listen": "test", "script": { "exec": ["pm.test('Rule updated', () => { pm.response.to.have.status(200); pm.expect(pm.response.json().minimumYears).to.eql(3); pm.expect(pm.response.json().ruleId).to.eql(pm.collectionVariables.get('ruleId')); });"] } }],
+      "name": "List rules",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Listing contains created rule', () => { pm.response.to.have.status(200); pm.expect(pm.response.json().rules.some(r => r.ruleId === pm.collectionVariables.get('ruleId'))).to.eql(true); });"
+            ]
+          }
+        }
+      ],
       "request": {
-        "method": "PUT",
-        "header": [{ "key": "Content-Type", "value": "application/json" }],
-        "body": { "mode": "raw", "raw": "{\n  \"code\": \"{{ruleCode}}\",\n  \"description\": \"Must be enrolled for at least 2 years\",\n  \"type\": \"MIN_ENROLLMENT_YEARS\",\n  \"severity\": \"MAJOR\",\n  \"active\": true,\n  \"minimumYears\": 3\n}" },
+        "method": "GET",
+        "url": "{{baseUrl}}/api/v1/rules"
+      }
+    },
+    {
+      "name": "Get rule",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Created rule returned', () => { pm.response.to.have.status(200); pm.expect(pm.response.json().code).to.eql(pm.collectionVariables.get('ruleCode')); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
         "url": "{{baseUrl}}/api/v1/rules/{{ruleId}}"
       }
     },
-    { "name": "Current ruleset", "event": [{ "listen": "test", "script": { "exec": ["pm.test('Current snapshot contains created rule and a version', () => { pm.response.to.have.status(200); const body = pm.response.json(); pm.expect(body.rulesetVersion).to.be.a('number').and.at.least(1); pm.expect(body.rules.some(r => r.code === pm.collectionVariables.get('ruleCode'))).to.eql(true); });"] } }], "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/rules/current?sessionId={{sessionId}}" } },
+    {
+      "name": "Update rule",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Rule updated', () => { pm.response.to.have.status(200); pm.expect(pm.response.json().minimumYears).to.eql(3); pm.expect(pm.response.json().ruleId).to.eql(pm.collectionVariables.get('ruleId')); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"code\": \"{{ruleCode}}\",\n  \"description\": \"Must be enrolled for at least 2 years\",\n  \"type\": \"MIN_ENROLLMENT_YEARS\",\n  \"severity\": \"MAJOR\",\n  \"active\": true,\n  \"minimumYears\": 3\n}"
+        },
+        "url": "{{baseUrl}}/api/v1/rules/{{ruleId}}"
+      }
+    },
+    {
+      "name": "Current ruleset",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Current snapshot contains created rule and a version', () => { pm.response.to.have.status(200); const body = pm.response.json(); pm.expect(body.rulesetVersion).to.be.a('number').and.at.least(1); pm.expect(body.rules.some(r => r.code === pm.collectionVariables.get('ruleCode'))).to.eql(true); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/v1/rules/current?sessionId={{sessionId}}"
+      }
+    },
     {
       "name": "Caller-facts evaluation is retired",
-      "event": [{ "listen": "test", "script": { "exec": ["pm.test('Unverified caller facts are refused', () => { pm.response.to.have.status(410); pm.expect(pm.response.json().error.code).to.eql('CALLER_FACTS_RETIRED'); });"] } }],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Unverified caller facts are refused', () => { pm.response.to.have.status(410); pm.expect(pm.response.json().error.code).to.eql('CALLER_FACTS_RETIRED'); });"
+            ]
+          }
+        }
+      ],
       "request": {
         "method": "POST",
-        "header": [{ "key": "Content-Type", "value": "application/json" }],
-        "body": { "mode": "raw", "raw": "{\n  \"applicantId\": \"{{applicantId}}\",\n  \"major\": \"FAF\",\n  \"enrollmentYears\": 1,\n  \"role\": \"STUDENT\",\n  \"previouslyBanned\": false,\n  \"requestedChannel\": \"#general\"\n}" },
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"applicantId\": \"{{applicantId}}\",\n  \"major\": \"FAF\",\n  \"enrollmentYears\": 1,\n  \"role\": \"STUDENT\",\n  \"previouslyBanned\": false,\n  \"requestedChannel\": \"#general\"\n}"
+        },
         "url": "{{baseUrl}}/api/v1/rules/evaluate"
       }
     },
-    { "name": "Delete rule", "event": [{ "listen": "test", "script": { "exec": ["pm.test('Rule deleted', () => pm.response.to.have.status(204));"] } }], "request": { "method": "DELETE", "url": "{{baseUrl}}/api/v1/rules/{{ruleId}}" } },
-    { "name": "Deleted rule is absent", "event": [{ "listen": "test", "script": { "exec": ["pm.test('Deletion persisted', () => { pm.response.to.have.status(404); pm.expect(pm.response.json().error.code).to.eql('RULE_NOT_FOUND'); });"] } }], "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/rules/{{ruleId}}" } },
-    { "name": "Invalid rule ID", "event": [{ "listen": "test", "script": { "exec": ["pm.test('Invalid ID is rejected', () => { pm.response.to.have.status(400); pm.expect(pm.response.json().error.code).to.eql('INVALID_RULE_ID'); });"] } }], "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/rules/not-a-uuid" } },
+    {
+      "name": "Delete rule",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Rule deleted', () => pm.response.to.have.status(204));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "DELETE",
+        "url": "{{baseUrl}}/api/v1/rules/{{ruleId}}"
+      }
+    },
+    {
+      "name": "Deleted rule is absent",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Deletion persisted', () => { pm.response.to.have.status(404); pm.expect(pm.response.json().error.code).to.eql('RULE_NOT_FOUND'); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/v1/rules/{{ruleId}}"
+      }
+    },
+    {
+      "name": "Invalid rule ID",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Invalid ID is rejected', () => { pm.response.to.have.status(400); pm.expect(pm.response.json().error.code).to.eql('INVALID_RULE_ID'); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/v1/rules/not-a-uuid"
+      }
+    },
     {
       "name": "Invalid rule type",
-      "event": [{ "listen": "test", "script": { "exec": ["pm.test('Invalid type is rejected', () => { pm.response.to.have.status(422); pm.expect(pm.response.json().error.code).to.eql('INVALID_RULE'); });"] } }],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Invalid type is rejected', () => { pm.response.to.have.status(422); pm.expect(pm.response.json().error.code).to.eql('INVALID_RULE'); });"
+            ]
+          }
+        }
+      ],
       "request": {
         "method": "POST",
-        "header": [{ "key": "Content-Type", "value": "application/json" }],
-        "body": { "mode": "raw", "raw": "{\n  \"code\": \"INVALID_AUDIT\",\n  \"description\": \"Negative validation only\",\n  \"type\": \"INVALID_RULE_TYPE\",\n  \"severity\": \"MAJOR\",\n  \"active\": true\n}" },
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"code\": \"INVALID_AUDIT\",\n  \"description\": \"Negative validation only\",\n  \"type\": \"INVALID_RULE_TYPE\",\n  \"severity\": \"MAJOR\",\n  \"active\": true\n}"
+        },
         "url": "{{baseUrl}}/api/v1/rules"
       }
+    },
+    {
+      "name": "Lab 4 Task 4 - Operational logs",
+      "description": "Start the local log-download endpoint for the exact running Compose project. Set logDownloadUrl and a private logDownloadToken; this is a separate operations credential, not the collection's Player JWT. The download is limited to this owned service and its declared numeric replicas. To download the whole system, omit the service query on the same endpoint.",
+      "item": [
+        {
+          "name": "Log exporter health",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "noauth"
+            },
+            "url": "{{logDownloadUrl}}/health"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Log exporter health: HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Exporter is UP', () => { const body = pm.response.json(); pm.expect(body.service).to.eql('log-download-service'); pm.expect(body.status).to.eql('UP'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Download rules-service logs",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{logDownloadToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{logDownloadUrl}}/internal/v1/logs?service=rules-service&since=15m&tail=200",
+            "description": "A finite text attachment from the selected Compose project. A 503 means the local Docker/configuration source is unavailable; it is not a successful empty log export."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Log download: HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Private text attachment', () => { pm.expect(pm.response.headers.get('Content-Type')).to.eql('text/plain; charset=utf-8'); pm.expect(pm.response.headers.get('Content-Disposition')).to.match(/^attachment; filename=\"student-id-logs-\\d{8}T\\d{6}Z\\.log\"$/); pm.expect(pm.response.headers.get('Cache-Control')).to.eql('no-store'); });",
+                  "pm.test('Owned service snapshot includes the requested bounds', () => { const text = pm.response.text(); pm.expect(text).to.include('services=rules-service'); pm.expect(text).to.include('since=15m; tail=200 per container'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Missing operations token is rejected",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "noauth"
+            },
+            "url": "{{logDownloadUrl}}/internal/v1/logs?service=rules-service"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Missing operations token: HTTP 401', () => pm.response.to.have.status(401));",
+                  "pm.test('Operations authentication error is traceable', () => { const error = pm.response.json().error; pm.expect(error.code).to.eql('UNAUTHORIZED'); pm.expect(error.service).to.eql('log-download-service'); pm.expect(error.traceId).to.eql(pm.response.headers.get('X-Trace-Id')); pm.expect(pm.response.headers.get('WWW-Authenticate')).to.eql('Bearer'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Unbounded tail is rejected",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{logDownloadToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{logDownloadUrl}}/internal/v1/logs?service=rules-service&tail=0"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Invalid tail: HTTP 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Invalid query uses the operations contract', () => { const error = pm.response.json().error; pm.expect(error.code).to.eql('INVALID_LOG_QUERY'); pm.expect(error.service).to.eql('log-download-service'); pm.expect(error.traceId).to.eql(pm.response.headers.get('X-Trace-Id')); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
     }
   ]
 }

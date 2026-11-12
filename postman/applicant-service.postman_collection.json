@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "Student ID - Applicant Service",
-    "description": "Applicant lab3-1.2.0 public CRUD/error regressions through Gateway at http://localhost:8090. Requires a real player token and actual session context. The operational-log folder is a separate authenticated operations interface, not public business routing. Obsolete Task 5 internal HTTP examples are archived under postman/legacy and are not current Task 8 requests: internal operations now use the shared Broker gRPC contract. Tokens remain blank in Git. See postman/README.md and deployment/releases.json.",
+    "description": "Updated 2026-11-12 from CPR origin/dev bdf7190 and checked against the merged 1.2.0 applicant source. Public REST requests use Gateway baseUrl and a real player accessToken; management CRUD also requires managementToken. Run disposable CRUD in order; cleanup deletes only records created by this collection. Record player reads require a real Session membership and permission. Operational log checks require a separately configured exporter and logDownloadToken. Historical Task 5 internal HTTP adapters are archived under postman/legacy and excluded from current collections; current service-to-service checks use native gRPC. For native gRPC Postman setup and verification limits see postman/README-owned.md and the unchanged shared messaging.proto. Keep all credentials and private envelopes in a private local environment. Live execution is required to establish runtime acceptance.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
@@ -132,7 +132,7 @@
   "item": [
     {
       "name": "Lab 4 Task 3 - Gateway boundary",
-      "description": "Gateway public boundary checks. Keep baseUrl pointed at Gateway. The custom broker operational runtime does not yet transport these business calls.",
+      "description": "Public Gateway health and JWT boundary checks. Public HTTP remains supported while internal Applicant and Record messaging uses gRPC through the Message Broker.",
       "item": [
         {
           "name": "Owned service health through Gateway",
@@ -604,7 +604,7 @@
       ]
     },
     {
-      "name": "Unsupported method returns 405",
+      "name": "Gateway rejects an unsupported method",
       "request": {
         "method": "PATCH",
         "url": "{{baseUrl}}/api/v1/applicants/{{applicantId}}",
@@ -622,7 +622,8 @@
           "script": {
             "type": "text/javascript",
             "exec": [
-              "pm.test('Unsupported method returns 405: HTTP 405', () => pm.response.to.have.status(405));"
+              "pm.test('Gateway rejects this method/path: HTTP 404', () => pm.response.to.have.status(404));",
+              "pm.test('Gateway route boundary error', () => { const error = pm.response.json().error; pm.expect(error.code).to.eql('ROUTE_NOT_FOUND'); pm.expect(error.service).to.eql('gateway-service'); });"
             ]
           }
         }

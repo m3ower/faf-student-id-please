@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "Student ID - Discord DMs Service",
-    "description": "Discord DMs Service (Go), REST reached through the Gateway on {{baseUrl}}. Lab 4: no mocks. Every permission comes from the real Session Service through the Message Broker (session.verifyMembership, published over gRPC from Lab 4 Task 8), so {{sessionId}} must be a real session in which the moderator and junior tokens hold the listed channel assignments (junior 1: #enrollment-check and #general-mod-chat; junior 2: #faculty-check and #general-mod-chat), and its ShiftStarted must have been delivered to DMs through the Message Broker (event.ShiftStarted.v1) so the default channels exist. The old internal /api/v1/internal/... stand-ins are removed. WebSocket: negotiate through the Gateway with the same token and connect to the returned URL.\n\nAuthentication: every request sends Bearer {{<player>Token}}, a real access JWT of that player (Player login, or a disposable local test signer whose public key the Gateway and DMs are configured with). The Gateway verifies it and sets X-Player-Id from its subject, so this collection sends no X-Player-Id: identity cannot be chosen by the client. Keep tokens in a private Postman environment, never in tracked files. The health request uses no authentication. Lab 4 folders: Task 3 Gateway boundary, Task 4 operational logs (log-download endpoint), Tasks 5-8 Message Broker (topics, events, topic listing).",
+    "description": "Discord DMs Service (Go), REST reached through the Gateway on {{baseUrl}}. Lab 4: no mocks. Every permission comes from the real Session Service through the Message Broker (session.verifyMembership, published over gRPC from Lab 4 Task 8), so {{sessionId}} must be a real session in which the moderator and junior tokens hold the listed channel assignments (junior 1: #enrollment-check and #general-mod-chat; junior 2: #faculty-check and #general-mod-chat), and its ShiftStarted must have been delivered to DMs through the Message Broker (event.ShiftStarted.v1) so the default channels exist. The old internal /api/v1/internal/... stand-ins are removed. WebSocket: negotiate through the Gateway with the same token and connect to the returned URL.\n\nAuthentication: every request sends Bearer the appropriate private player token, a real access JWT of that player (Player login, or a disposable local test signer whose public key the Gateway and DMs are configured with). The Gateway verifies it and sets X-Player-Id from its subject, so this collection sends no X-Player-Id: identity cannot be chosen by the client. Keep tokens in a private Postman environment, never in tracked files. The health request uses no authentication. Lab 4 folders: Task 3 Gateway boundary, Task 4 operational logs (log-download endpoint), Tasks 5-8 Message Broker (topics, events, topic listing). HTTP topic publication tests exercise the Broker compatibility ingress; native gRPC publication uses messaging.proto. Broker-to-service gRPC delivery requires a matching transport catalog and healthy receivers.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
@@ -62,6 +62,36 @@
     {
       "key": "dmsBrokerToken",
       "value": ""
+    },
+    {
+      "key": "envelope",
+      "value": "",
+      "description": "Transient test state or private prerequisite. Keep exported values empty."
+    },
+    {
+      "key": "polls",
+      "value": "",
+      "description": "Transient test state or private prerequisite. Keep exported values empty."
+    },
+    {
+      "key": "resultId",
+      "value": "",
+      "description": "Transient test state or private prerequisite. Keep exported values empty."
+    },
+    {
+      "key": "shiftBusiness",
+      "value": "",
+      "description": "Transient test state or private prerequisite. Keep exported values empty."
+    },
+    {
+      "key": "shiftStartedEnvelope",
+      "value": "",
+      "description": "Transient test state or private prerequisite. Keep exported values empty."
+    },
+    {
+      "key": "traceId",
+      "value": "",
+      "description": "Transient test state or private prerequisite. Keep exported values empty."
     }
   ],
   "item": [
@@ -1506,9 +1536,8 @@
                   "    traceId: traceId, correlationId: correlationId || pm.variables.replaceIn('{{$guid}}'),",
                   "    deadlineAt: new Date(Date.now() + 5000).toISOString(), payload: payload});",
                   "}",
-                  "const business = {eventId: pm.variables.replaceIn('{{$guid}}'), type: 'ShiftStarted',",
-                  "  occurredAt: new Date().toISOString(), producer: 'session-service', version: 1,",
-                  "  payload: {sessionId: pm.variables.replaceIn('{{$guid}}'), players: [pm.variables.replaceIn('{{$guid}}')], rulesetVersion: 1}};",
+                  "const business = JSON.parse(pm.variables.get('shiftStartedEnvelope') || '{}');",
+                  "if (business.type !== 'ShiftStarted' || !business.eventId || !business.payload || business.payload.sessionId !== pm.variables.get('sessionId')) throw new Error('Supply a real correlated shiftStartedEnvelope for sessionId in a private environment.');",
                   "pm.variables.set('shiftBusiness', JSON.stringify(business));",
                   "pm.variables.set('envelope', envelope('event', 'event.ShiftStarted.v1', business, business.eventId));"
                 ]
@@ -1549,10 +1578,11 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "if (pm.response.code === 202 && Number(pm.variables.get('polls') || 0) < 10) { pm.variables.set('polls', Number(pm.variables.get('polls') || 0) + 1); setTimeout(() => {}, 300); postman.setNextRequest(pm.info.requestName); return; } pm.variables.set('polls', 0);",
+                  "if (pm.response.code === 202 && Number(pm.variables.get('polls') || 0) < 10) { pm.variables.set('polls', Number(pm.variables.get('polls') || 0) + 1); setTimeout(() => {}, 300); pm.execution.setNextRequest(pm.info.requestName); } else { pm.variables.set('polls', 0);",
                   "pm.test('Terminal result: HTTP 200 COMPLETED', () => { pm.response.to.have.status(200); pm.expect(pm.response.json().state).to.eql('COMPLETED'); });",
                   "function group(name) { const g = pm.response.json().groups[name]; return Object.assign({}, g, {body: g.bodyBase64 ? JSON.parse(atob(g.bodyBase64)) : null}); }",
-                  "pm.test('DMs acknowledged it after processing: PROCESSED', () => { const g = group('discord-dms-service'); pm.expect(g.acknowledged).to.eql(true); pm.expect(g.status).to.eql(200); pm.expect(g.body.status).to.eql('PROCESSED'); pm.expect(g.body.eventId).to.eql(JSON.parse(pm.variables.get('shiftBusiness')).eventId); });"
+                  "pm.test('DMs acknowledged it after processing: PROCESSED', () => { const g = group('discord-dms-service'); pm.expect(g.acknowledged).to.eql(true); pm.expect(g.status).to.eql(200); pm.expect(g.body.status).to.eql('PROCESSED'); pm.expect(g.body.eventId).to.eql(JSON.parse(pm.variables.get('shiftBusiness')).eventId); });",
+                  "}"
                 ]
               }
             }
@@ -1649,10 +1679,11 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "if (pm.response.code === 202 && Number(pm.variables.get('polls') || 0) < 10) { pm.variables.set('polls', Number(pm.variables.get('polls') || 0) + 1); setTimeout(() => {}, 300); postman.setNextRequest(pm.info.requestName); return; } pm.variables.set('polls', 0);",
+                  "if (pm.response.code === 202 && Number(pm.variables.get('polls') || 0) < 10) { pm.variables.set('polls', Number(pm.variables.get('polls') || 0) + 1); setTimeout(() => {}, 300); pm.execution.setNextRequest(pm.info.requestName); } else { pm.variables.set('polls', 0);",
                   "pm.test('Terminal result: HTTP 200 COMPLETED', () => { pm.response.to.have.status(200); pm.expect(pm.response.json().state).to.eql('COMPLETED'); });",
                   "function group(name) { const g = pm.response.json().groups[name]; return Object.assign({}, g, {body: g.bodyBase64 ? JSON.parse(atob(g.bodyBase64)) : null}); }",
-                  "pm.test('DMs acknowledged it after processing: DUPLICATE', () => { const g = group('discord-dms-service'); pm.expect(g.acknowledged).to.eql(true); pm.expect(g.status).to.eql(200); pm.expect(g.body.status).to.eql('DUPLICATE'); pm.expect(g.body.eventId).to.eql(JSON.parse(pm.variables.get('shiftBusiness')).eventId); });"
+                  "pm.test('DMs acknowledged it after processing: DUPLICATE', () => { const g = group('discord-dms-service'); pm.expect(g.acknowledged).to.eql(true); pm.expect(g.status).to.eql(200); pm.expect(g.body.status).to.eql('DUPLICATE'); pm.expect(g.body.eventId).to.eql(JSON.parse(pm.variables.get('shiftBusiness')).eventId); });",
+                  "}"
                 ]
               }
             }
