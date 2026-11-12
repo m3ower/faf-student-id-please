@@ -16,6 +16,16 @@ operational checklist, not another protocol.
   requiring the release-history CI fix in
   [PR #28](https://github.com/Andreiisthebest/student-id-message-broker/pull/28).
 
+Verified public artifacts (12 November 2026):
+
+| Owned service | Main source / image revision label | Pulled registry digest |
+| --- | --- | --- |
+| Credential | `ec6016ed8dc3d0a9f936382fda7fcbbfdcfeafb2` | `sha256:cc0ef68a3632768ef69c7c2d0d7a4cd36957709f46dec06c08d5cc970fb141fc` |
+| Rules | `8d1ed489bdb2f2e22cd9d72dc2db416dbd20c77f` | `sha256:e5efb983211ffdf74b75372af6a753368d07888108dc0a7397303ea7acfe53a1` |
+
+Both main publication workflows succeeded and both pulled images report
+`org.opencontainers.image.version=lab4-1.1.0` and their matching source revision.
+
 Release PRs and local images do not prove publication. Verify each tag's digest
 and `org.opencontainers.image.revision` against its main merge commit. Do not
 reuse the older published Broker `lab4-0.1.0-dev.84bd020c24e9`: it predates gRPC.
