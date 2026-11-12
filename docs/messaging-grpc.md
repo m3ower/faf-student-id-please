@@ -197,3 +197,51 @@ For a `grpc` group, HTTP readiness from Discovery is necessary but not sufficien
 - the pin matches;
 - `transports.json` covers exactly the catalog's consumer groups, with the agreed health settings;
 - with `--broker-root` and `--vendored`, the copies match the pin.
+
+## Deployment: Moderation and Discord DMs
+
+The opt-in overlay [`docker-compose.owned-broker.yml`](../docker-compose.owned-broker.yml) runs the Message Broker with Moderation and DMs `lab3-0.8.0`:
+- **Publishing:** they publish to `message-broker:9093` over gRPC.
+- **Receiving:** they serve `MessageConsumer` and gRPC health on 9080 (registered port + 1000). The port is never published.
+- **Default stack:** unchanged, for owners not yet migrated.
+
+Configure `.env.owned-broker.example` privately:
+- `MODERATION_BROKER_SERVICE_TOKEN` and `DMS_BROKER_SERVICE_TOKEN`, both mapped in `BROKER_CALLER_TOKENS_JSON`;
+- `MODERATION_INTERNAL_TOKEN` and `DMS_INTERNAL_TOKEN`.
+
+Then start it:
+
+```sh
+docker compose --env-file .env.private -f docker-compose.yml -f docker-compose.owned-broker.yml up -d
+```
+
+The Broker delivers to these groups over gRPC only after their reviewed flip in `contracts/proto/transports.json` and the Broker's identical bundled copy (section 11). Until then, their HTTP callbacks receive the deliveries.
+
+## Deployment: Applicant and University Record
+
+The opt-in overlay sends both primaries and replicas to
+`BROKER_GRPC_TARGET=message-broker:9093`. Their 1.2.0 clients always publish/poll
+through gRPC; there is no HTTP fallback. Applicant listens privately on 9080 and
+Record on 9081, each its advertised HTTP port +1000. No consumer gRPC port is
+published to the host. Public HTTP, health, registration and streaming are retained.
+
+The reviewed canonical choices are `applicant-service: grpc` and
+`university-record-service: grpc`; the paired Broker copy must be identical.
+The other owners' choices are preserved. A source JSON change alone does not
+change a running Broker: deploy an image containing the same reviewed choices.
+`lab4-0.6.0` bundles HTTP for these two groups and is not the flipped image.
+
+Before activating this rollout, publish the merged owned implementations through
+Applicant release PR #30 and Record release PR #32, verify standard gRPC health
+and current cross-owner scenarios, then merge/release the paired Broker change.
+Use the published `lab3-1.2.0` owned images (or their immutable source/digest tags)
+in the private environment. `.env.owned-broker.example` records the expected tags;
+they must not be assumed published before their release workflows succeed.
+
+The implementation's exact source-labelled images passed 199 isolated checks
+against merged Broker: real Java Applicant -> Broker -> Go Record calls, both
+consumer health services and database failures, strict authentication/trailers,
+true event fan-out/partial failure, queue deadlines, replicas and durable recovery.
+The Credential producer there was an explicit protocol fixture; this evidence
+must not be presented as current real Credential/Rules/full Session acceptance.
+Group flips stay review-gated until the publication and real-peer gates hold.
