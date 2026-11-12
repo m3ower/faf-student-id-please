@@ -197,3 +197,22 @@ For a `grpc` group, HTTP readiness from Discovery is necessary but not sufficien
 - the pin matches;
 - `transports.json` covers exactly the catalog's consumer groups, with the agreed health settings;
 - with `--broker-root` and `--vendored`, the copies match the pin.
+
+## Deployment: Moderation and Discord DMs
+
+The opt-in overlay [`docker-compose.owned-broker.yml`](../docker-compose.owned-broker.yml) runs the Message Broker with Moderation and DMs `lab3-0.8.0`:
+- **Publishing:** they publish to `message-broker:9093` over gRPC.
+- **Receiving:** they serve `MessageConsumer` and gRPC health on 9080 (registered port + 1000). The port is never published.
+- **Default stack:** unchanged, for owners not yet migrated.
+
+Configure `.env.owned-broker.example` privately:
+- `MODERATION_BROKER_SERVICE_TOKEN` and `DMS_BROKER_SERVICE_TOKEN`, both mapped in `BROKER_CALLER_TOKENS_JSON`;
+- `MODERATION_INTERNAL_TOKEN` and `DMS_INTERNAL_TOKEN`.
+
+Then start it:
+
+```sh
+docker compose --env-file .env.private -f docker-compose.yml -f docker-compose.owned-broker.yml up -d
+```
+
+The Broker delivers to these groups over gRPC only after their reviewed flip in `contracts/proto/transports.json` and the Broker's identical bundled copy (section 11). Until then, their HTTP callbacks receive the deliveries.
