@@ -14,11 +14,11 @@
   },
   "delivery": {
     "applicant-service": "http",
-    "credential-service": "http",
+    "credential-service": "grpc",
     "discord-dms-service": "http",
     "moderation-service": "http",
     "player-service": "http",
-    "rules-service": "http",
+    "rules-service": "grpc",
     "session-service": "http",
     "university-record-service": "http"
   }

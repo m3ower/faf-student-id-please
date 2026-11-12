@@ -1980,6 +1980,8 @@ volume and start Compose again.
 
 For the newer Lab 4 Broker/gRPC-capable releases and the opt-in deployment,
 see [Credential and Rules Task 8 rollout](docs/owned-grpc-rollout.md).
+The opt-in overlay activates both owned gRPC publishers/receivers; deploy it only
+with the matching Broker transport-catalog release described there.
 The Lab 1 in-process examples below are historical, not the production Lab 4
 service-to-service implementation. The base Lab 3 deployment is not promoted
 by the opt-in overlay.

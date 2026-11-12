@@ -32,12 +32,18 @@ reuse the older published Broker `lab4-0.1.0-dev.84bd020c24e9`: it predates gRPC
 Discovery must also include the merged subscription/readiness implementation
 (Discovery #39); the historical `lab3-0.7.0` image predates that change.
 
-## Safe deployment preparation
+## Activation candidate
 
 The [opt-in overlay](../docker-compose.owned-broker.yml) supplies both owned
 images, business bindings and private Broker configuration on both replicas.
-Its defaults deliberately remain `BROKER_TRANSPORT=http`, `GRPC_ENABLED=false`.
-The base Compose file and existing stack are unchanged.
+The overlay selects `BROKER_TRANSPORT=grpc`, `GRPC_ENABLED=true` on both owned
+replicas and gRPC delivery for their two groups in the shared transport catalog.
+It requires the matching Broker `lab4-0.6.1` release and published Discovery
+`lab4-0.8.0`. The base Compose file and existing running stack are unchanged.
+
+Broker `lab4-0.6.0` is published, but its bundled catalog still selects HTTP for
+these groups. Merge the coordinated Broker activation PR and publish `lab4-0.6.1`
+before deploying this overlay. Do not substitute the older image.
 
 Populate a private environment using [.env.owned-broker.example](../.env.owned-broker.example).
 Map `credential-service` and `rules-service` to their separate
@@ -59,10 +65,10 @@ unchanged; Broker additionally requires fresh standard gRPC health for
 ## Acceptance and activation gates
 
 1. Publish and verify compatible Broker, Discovery and owned images.
-2. In an isolated deployment, set `OWNED_CREDENTIAL_GRPC_ENABLED=true` and
-   `OWNED_RULES_GRPC_ENABLED=true`. Verify standard gRPC health, including
+2. In an isolated deployment, use the overlay's enabled gRPC listeners. Verify
+   standard gRPC health, including
    NOT_SERVING after an actual dependency failure. Preserve the default stack.
-3. Set each owned `OWNED_*_BROKER_TRANSPORT=grpc` independently. Verify actual
+3. Both owned publishers use `BROKER_TRANSPORT=grpc`. Verify actual
    owner applications, not stand-ins: Credential context/facts from Applicant
    and Record, both CredentialsReady processing receipts, Rules dependencies,
    Session bind/read and Moderation evaluation. Correlate each full path with
@@ -77,6 +83,11 @@ unchanged; Broker additionally requires fresh standard gRPC health for
 6. Remove obsolete owned internal HTTP callbacks in a separate follow-up
    release after the successful flip. Keep public REST, health and readiness.
 
-No flip or callback removal is included in this preparation. Unit tests,
-loopback gRPC/Broker doubles and a successful source release are not a claim
-that deployed multi-owner Task 8 acceptance is complete.
+This candidate includes the two-group flip, not HTTP callback removal. Local
+Broker tests passed (113 tests, 91% coverage), and the shared contract compiles
+and matches both private services. Isolated checks exercised real owned gRPC
+health, Rules binding/replay and Broker delivery, but the complete cross-owner
+business flow and both CredentialsReady receipts have not passed verification.
+Further local tests were stopped before PR publication. This is not a claim of
+full deployed Task 8 acceptance. Callback removal remains a separate follow-up
+after successful activation, as required by the shared rollout order.
