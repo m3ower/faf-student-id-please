@@ -3,3 +3,6 @@
 CLAUDE.local.md
 docs-local/
 __pycache__/
+
+# Private Lab 4 configuration; examples remain tracked.
+.env.lab4

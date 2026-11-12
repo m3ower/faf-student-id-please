@@ -1,32 +1,60 @@
-# Postman — public Lab 4 requests
+# Shared Postman collections
 
-Import the root `*.postman_collection.json` files. Every public business request
-uses Gateway `http://localhost:8090`; do not point it at a backend or Broker.
-Use a private local environment for access/refresh tokens and generated IDs.
-Never commit an exported environment containing secrets.
+The eight `*-service.postman_collection.json` files are the editable service
+collections. All were refreshed from shared `origin/dev` (`bdf7190`, fetched
+2026-11-12), then checked and corrected locally. Import the individual files or
+the generated `Student-ID-Please-Lab-1.postman_collection.json`. That historical
+filename now contains all eight services and a whole-system log download.
 
-1. Complete the deployment prerequisites in the CPR README. A published Lab 4
-   queue-capable Gateway and matching Broker transport catalog are required.
-   The latest published Lab 3 Gateway is not that release.
-2. Run Player registration/login first. Use the real access token for the player
-   whose role the target collection requires.
-3. Run Session Core to create/join a real session. Set that session's UUID in the
-   collections that read session-scoped data. Host, member, junior, outsider and
-   policy-admin cases require the corresponding actual identities/permissions.
-4. Run Credential/Rules CRUD collections in order; preserve their generated IDs
-   until cleanup. Applicant/Record operations require real initialization/session
-   state. Optional Moderation/DMs/full-shift scenarios require initialized data
-   and delivered events, not fixed fixture UUIDs or spoofed identity headers.
+Rebuild the combined file after editing a service collection:
 
-Internal service operations are not public REST endpoints. For gRPC diagnostics,
-import `contracts/proto/studentid/messaging/v1/messaging.proto` into an authorized
-private-network client and use MessageBroker Publish/GetResult with that caller's
-own credential. Broker/consumer gRPC ports are not exposed to the host by Compose.
-No player JWT substitutes for an internal caller credential.
+```powershell
+python scripts/build_shared_postman.py
+python scripts/build_shared_postman.py --check
+node tests/test_shared_postman.js
+```
 
-`legacy/` preserves obsolete internal HTTP examples from Task 5. Do not include
-them in the current public Collection Runner run or treat them as Task 8 tests.
-Operational log requests use the separate operations endpoint/token, not Gateway
-business routing. Keep explicit status assertions: 401/403/503 must not become a
-false green for a positive business case. A collection run alone does not prove
-Broker receipt semantics, full gameplay or deployment/image provenance.
+The shared file prefixes each service's variables, such as `applicant_accessToken`,
+`university_record_managementToken`, `moderation_moderatorToken` and
+`session_sessionId`. It also scopes variable access inside scripts, including
+computed keys, without renaming business JSON fields. Only `baseUrl`,
+`logDownloadUrl` and `logDownloadToken` are shared across services.
+
+The historical two-service copy inside the initialized Applicant repository is
+also refreshed. Use `--owned-copy` when generating/checking that copy together
+with the shared collection. This edits the file in that service working tree;
+service implementation and gitlink versions are not advanced by the generator.
+
+Set secrets in a private Postman environment and never export populated tokens.
+Player's login flow generates transient JWTs; Session's core flow creates real
+accounts and session membership. Other service folders need their own actual
+player/session/applicant prerequisites. Their input variables are deliberately
+independent: copy values privately when testing the same live session across
+folders. Historical fixed applicant and mock-membership IDs are not test setup.
+
+Run folders independently. Optional shift, operations and Broker checks
+need additional setup; running the entire combined file without that setup is
+not a supported acceptance test. DMs event publication requires an actual
+`shiftStartedEnvelope` for its `sessionId`; its duplicate check reuses that
+business event with a new transport ID. Operations use the host exporter rather
+than a public Gateway route. No durable-queue or dead-letter assertions are added
+for APIs the Broker does not implement.
+
+The HTTP collections cannot stand in for native gRPC publication checks. Import
+the unchanged `messaging.proto` into a native gRPC request and follow
+[Applicant/Record gRPC setup](README-owned.md). The same shared transport contract
+applies to every service; its catalog is in `contracts/messaging/catalog.json`.
+The current configuration and PDF compliance limits are recorded in
+[the Lab 4 review](../docs/lab4-configuration-review.md).
+
+The selected published Gateway returns 404 for unsupported method/path pairs.
+Its current allowlist also omits Player logout. The Player collection names that
+known 404 gap explicitly; it does not claim that logout/revocation succeeded.
+
+Private source access was unavailable for Player, Session, Credential, Rules,
+Moderation and DMs. Their collections match the latest shared exports plus the
+local corrections; that is not proof they match unpublished private changes or
+pass against a running deployment.
+
+The obsolete Applicant/Record Task 5 adapters remain archived under `legacy/`
+and are excluded from generated current collections.

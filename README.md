@@ -1,5 +1,13 @@
 # Student ID, please
 
+## Current Lab 4 configuration review
+
+The [Lab 4 configuration review](docs/lab4-configuration-review.md) records the
+Compose/Postman checks, verified image publications and remaining PDF requirements.
+Use the base Compose file with `docker-compose.owned-broker.yml`; the base alone
+is not a complete Lab 4 deployment. See the [current architecture diagram](docs/lab4-architecture.md)
+and [shared collection instructions](postman/README.md).
+
 A distributed, microservice-based multiplayer game about moderating a university
 Discord server. A team of moderators receives applicants who want to join the
 FAF community server. Applicants present credentials that may be expired, forged,
@@ -366,6 +374,11 @@ players in the same session landing on different processes and losing each other
 ---
 
 ## Communication contract
+
+The Postman diagnostic file [`postman/messaging.proto`](postman/messaging.proto)
+is an unchanged copy of the canonical shared messaging protobuf, pinned by the
+same LF-normalized SHA-256. It adds no RPC, REST payload or event schema and must
+stay identical to `contracts/proto/studentid/messaging/v1/messaging.proto`.
 
 Lab 3's additive internal control-plane API is documented in the
 [Service Discovery startup registration contract](docs/service-discovery-registration.md).
@@ -1602,15 +1615,16 @@ SHAs and digests. No application tests or container startup were run for this re
 | Discord DMs | `meow3r/student-id-discord-dms-service:lab3-0.8.0` | Redis 7.4 / AOF |
 | Service Discovery | `cmmarin/student-id-service-discovery:lab4-0.8.0` | In-memory registry |
 | Message Broker | `andreiisthebest/student-id-message-broker:lab4-0.6.0` | In-memory queues/results |
-| Gateway | `vasiok11/student-id-gateway-service:lab3-0.7.0-build.43` | None |
+| Gateway | `vasiok11/student-id-gateway-service:lab4-2.1.1-build.59` | None |
 
 **Publication gates:** Broker 0.6.0 supports gRPC but bundles HTTP delivery for
 every group. Activation requires the reviewed `lab4-0.6.4` release containing
 [Broker #34](https://github.com/Andreiisthebest/student-id-message-broker/pull/34)
 and the other merged owner flips. That tag is a target, not verified publication.
-Gateway's latest public tag is still the legacy Lab 3 implementation; its owner
-must publish the merged Lab 4 queue-capable source. `OWNED_GATEWAY_IMAGE` is
-required and blank until then; the old image does not implement Gateway → Broker.
+Gateway `lab4-2.1.1-build.59` is published and its source revision/digest are
+verified in `deployment/releases.json`. The private overlay example pins it by
+digest. Its current allowlist omits Player logout; the collection records that
+known 404 gap. The historical base Gateway image remains unsuitable for Lab 4.
 
 Compose pulls images, never local Dockerfiles. `latest` is not a reproducible pin.
 PostgreSQL major versions and existing named volumes are preserved. Tags retaining

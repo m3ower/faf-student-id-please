@@ -18,10 +18,10 @@
       "sourceCommit": "58a51f407132bdee4f340d12429ade2b398aaee4"
     },
     "gateway-service": {
-      "image": "vasiok11/student-id-gateway-service:lab3-0.7.0-build.43",
-      "digest": "sha256:ce8e173168a0741cafd93fb8f5d30fe13f4fc144fb7cb920f68709c689fec4b8",
-      "sourceCommit": "b3fa3453955d534ad57fa88f3160cecd0a6ad31e",
-      "limitation": "Latest public tag is the legacy Lab 3 Gateway. Lab 4 subscriber-queue Gateway source is merged on dev but requires owner release/publication. Do not use this image as the Lab 4 overlay Gateway."
+      "image": "vasiok11/student-id-gateway-service:lab4-2.1.1-build.59",
+      "digest": "sha256:1313c55b1295bb96c204025be0364dc6ed0dbb95555cd8e6b9ad78a916b1de5c",
+      "sourceCommit": "dd994edc82d2cefa7e57e6c01775a67ea07aeb3b",
+      "limitation": "Current allowlist omits POST /api/v1/players/logout; collection explicitly checks that known 404 gap. Live acceptance has not run."
     },
     "message-broker": {
       "image": "andreiisthebest/student-id-message-broker:lab4-0.6.0",
@@ -67,9 +67,10 @@
       "pr": "https://github.com/Andreiisthebest/student-id-message-broker/pull/34"
     },
     "gateway": {
-      "image": null,
-      "publishedAtVerification": false,
-      "requiredCapability": "HTTP subscriber queues through Broker; owner must supply the published version and source revision"
+      "image": "vasiok11/student-id-gateway-service:lab4-2.1.1-build.59",
+      "publishedAtVerification": true,
+      "sourceCommit": "dd994edc82d2cefa7e57e6c01775a67ea07aeb3b",
+      "requiredCapability": "HTTP subscriber queues through Broker; publication verified, live acceptance pending"
     }
   }
 }
