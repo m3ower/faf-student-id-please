@@ -1,12 +1,16 @@
 """Validate the Lab 4 Grade 8 gRPC messaging contract.
 
-The proto declares the Broker and consumer services with their RPCs; transports.json names
-every consumer group of the messaging catalog exactly once, with http or grpc delivery; and
-with --broker-root the Broker's bundled copies are byte-identical. When grpcio-tools is
-installed (CI), the proto is also compiled and its descriptors are checked.
+The proto declares the Broker and consumer services with their RPCs; transports.json pins
+the proto revision (SHA-256 of its LF-normalised text, which every vendored copy is checked
+against), names every consumer group of the messaging catalog exactly once with http or grpc
+delivery, and fixes the gRPC health service and its maximum observation age; with
+--broker-root the Broker's bundled copies are identical; with --vendored, any service's
+vendored proto copy is checked against the pin. When grpcio-tools is installed (CI), the
+proto is also compiled and its descriptors are checked.
 """
 
 import argparse
+import hashlib
 import importlib.util
 import json
 from pathlib import Path
@@ -74,18 +78,28 @@ def check_proto(text):
     return services
 
 
+HEALTH = {"service": "studentid.messaging.v1.MessageConsumer", "maxAgeMs": 5000}
+
+
+def proto_sha256(raw):
+    """The pinned revision: SHA-256 of the proto text with LF line endings."""
+    return hashlib.sha256(raw.replace(b"\r\n", b"\n")).hexdigest()
+
+
 def check_transports(transports, catalog):
     groups = set()
     for binding in catalog["operations"].values():
         groups.add(binding["group"])
     for event in catalog["events"].values():
         groups.update(event["groups"])
-    if set(transports) != {"version", "proto", "grpcPortOffset", "broker", "delivery"}:
+    if set(transports) != {"version", "proto", "protoSha256", "grpcPortOffset", "broker", "health", "delivery"}:
         raise ValueError("transports.json: unexpected or missing keys")
     if transports["version"] != 1 or transports["proto"] != PROTO.as_posix():
         raise ValueError("transports.json: version 1 and the shared proto path are required")
     if transports["grpcPortOffset"] != 1000:
         raise ValueError("transports.json: the agreed gRPC port offset is 1000")
+    if transports["health"] != HEALTH:
+        raise ValueError("transports.json: the agreed gRPC health service and 5 s maximum age are required")
     broker = transports["broker"]
     if broker != {"service": "message-broker", "httpPort": 8093, "grpcPort": 8093 + 1000}:
         raise ValueError("transports.json: the Broker serves gRPC on its HTTP port + 1000")
@@ -123,9 +137,11 @@ def check(root=ROOT, broker_root=None):
     transports = json.loads((root / TRANSPORTS).read_text(encoding="utf-8"))
     catalog = json.loads((root / "contracts/messaging/catalog.json").read_text(encoding="utf-8"))
     delivery = check_transports(transports, catalog)
+    if transports["protoSha256"] != proto_sha256((root / PROTO).read_bytes()):
+        raise ValueError("transports.json: protoSha256 does not pin the current messaging.proto")
     compiled = compile_proto(root)
     if broker_root:
-        if (broker_root / "contracts/messaging.proto").read_bytes() != (root / PROTO).read_bytes():
+        if proto_sha256((broker_root / "contracts/messaging.proto").read_bytes()) != transports["protoSha256"]:
             raise ValueError("Broker proto copy differs")
         if json.loads((broker_root / "contracts/transports.json").read_text(encoding="utf-8")) != transports:
             raise ValueError("Broker transports copy differs")
@@ -136,8 +152,14 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--broker-root", type=Path)
     parser.add_argument("--require-compiler", action="store_true")
+    parser.add_argument("--vendored", type=Path, action="append", default=[],
+                        help="a service's vendored copy of messaging.proto to check against the pin")
     args = parser.parse_args()
     delivery, compiled = check(broker_root=args.broker_root)
+    pin = json.loads((ROOT / TRANSPORTS).read_text(encoding="utf-8"))["protoSha256"]
+    for copy in args.vendored:
+        if proto_sha256(copy.read_bytes()) != pin:
+            sys.exit(f"{copy} differs from the pinned messaging.proto")
     if compiled is None and args.require_compiler:
         sys.exit("grpcio-tools is required to compile messaging.proto")
     grpc_groups = sorted(group for group, value in delivery.items() if value == "grpc")

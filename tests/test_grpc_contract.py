@@ -49,6 +49,9 @@ class GrpcContractTests(unittest.TestCase):
             lambda t: t.update(version=2),
             lambda t: t.update(extra=True),
             lambda t: t.update(delivery=dict(reversed(list(t["delivery"].items())))),
+            lambda t: t["health"].update(maxAgeMs=30000),
+            lambda t: t["health"].update(service="grpc.health.v1.Health"),
+            lambda t: t.pop("protoSha256"),
         ]
         for change in cases:
             broken = copy.deepcopy(self.transports)
@@ -58,6 +61,28 @@ class GrpcContractTests(unittest.TestCase):
         flipped = copy.deepcopy(self.transports)
         flipped["delivery"]["moderation-service"] = "grpc"
         self.assertEqual(check_transports(flipped, self.catalog)["moderation-service"], "grpc")
+
+    def test_the_pin_matches_the_proto_and_ignores_line_endings(self):
+        self.assertEqual(self.transports["protoSha256"], contract.proto_sha256((ROOT / PROTO).read_bytes()))
+        crlf = (ROOT / PROTO).read_bytes().replace(b"\r\n", b"\n").replace(b"\n", b"\r\n")
+        self.assertEqual(contract.proto_sha256(crlf), self.transports["protoSha256"])
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            for relative in (PROTO, TRANSPORTS, Path("contracts/messaging/catalog.json")):
+                (root / relative).parent.mkdir(parents=True, exist_ok=True)
+                shutil.copyfile(ROOT / relative, root / relative)
+            (root / PROTO).write_text(self.proto + "// drift\n", encoding="utf-8")
+            with mock.patch.object(contract, "compile_proto", return_value=None):
+                with self.assertRaisesRegex(ValueError, "protoSha256"):
+                    check(root)
+            vendored = root / "vendored.proto"
+            vendored.write_text(self.proto, encoding="utf-8")
+            with mock.patch("sys.argv", ["validate", "--vendored", str(vendored)]), mock.patch("builtins.print"):
+                contract.main()
+            vendored.write_text(self.proto + "// fork\n", encoding="utf-8")
+            with mock.patch("sys.argv", ["validate", "--vendored", str(vendored)]):
+                with self.assertRaises(SystemExit):
+                    contract.main()
 
     def test_broker_copies_must_be_identical(self):
         with tempfile.TemporaryDirectory() as tmp:

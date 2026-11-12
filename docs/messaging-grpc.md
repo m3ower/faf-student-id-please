@@ -1,111 +1,199 @@
-# Lab 4 Grade 8: service-to-service messaging over gRPC
+# Lab 4 Grade 8 (Task 8): service-to-service messaging over gRPC
 
-**Goal:** service-to-service calls move from REST to gRPC, to reduce overhead. These are the legs that already go through the Message Broker:
-- a service publishing to the Broker;
-- the Broker delivering to the consumer group.
-
-**Contract:** [`contracts/proto/studentid/messaging/v1/messaging.proto`](../contracts/proto/studentid/messaging/v1/messaging.proto). Java and Go generate their stubs from this one file; there are no hand copies.
+This page and [`contracts/proto/studentid/messaging/v1/messaging.proto`](../contracts/proto/studentid/messaging/v1/messaging.proto) are the **single** gRPC contract.
+- Earlier draft interfaces are discarded.
+- Nobody creates a service-specific variant, a per-service proto fork or an extra interface (such as a `ProcessingResult`).
 
 **What does not change:** everything in the Task 6 contract except the transport.
 - Topics, groups, caller grants and budgets.
 - The envelope fields, result states and receipt rules.
 - Error codes.
-- The business JSON bodies: each binding's `bodySchema` in [catalog.json](../contracts/messaging/catalog.json).
+- The JSON business schemas: each binding's `bodySchema` in [catalog.json](../contracts/messaging/catalog.json).
 
-## Scope
+## 1. Shared protobuf interface
 
-| Leg | Before | Grade 8 |
-| --- | --- | --- |
-| Service → Broker publication | `POST /internal/v1/messaging/publications` | `MessageBroker.Publish` |
-| Service → Broker result | `GET /internal/v1/messaging/results/{id}` | `MessageBroker.GetResult` |
-| Topic listing | `GET /internal/v1/messaging/topics` | `MessageBroker.ListTopics` |
-| Broker → consumer, every operation and event topic | HTTP callback to the binding's `method` + `path` | `MessageConsumer.Deliver` |
-| Gateway → Broker user queue, and its delivery to `/api/v1/...` | HTTP | **Unchanged.** It carries a user's HTTP request 1:1. The Gateway owner decides about the Gateway → Broker leg. |
-| Service ↔ Discovery registration and readiness, Docker healthchecks | HTTP | **Unchanged.** Discovery observes `/health/ready` over HTTP. |
+Every language generates its stubs from the one `messaging.proto`:
+- `MessageBroker.Publish`
+- `MessageBroker.GetResult`
+- `MessageBroker.ListTopics`
+- `MessageConsumer.Deliver`
 
-During migration the Broker serves REST and gRPC side by side, so no service has to switch on the same day as another.
+**Pinned revision:** [`contracts/proto/transports.json`](../contracts/proto/transports.json) pins the revision as `protoSha256`, the SHA-256 of the proto text with LF line endings.
+- Every vendored copy (the Broker's and each service's) must hash to it.
+- Check one with `python scripts/validate_grpc_contract.py --vendored <path>`, or the same hash in the service's own test.
+- Field numbers, enums, topic names and consumer groups never change in this migration.
 
-## Addressing
+## 2. Transport and addresses
 
-- **Port:** a service's gRPC port is its registered `baseUrl` port + `grpcPortOffset` (1000), on the host it registered with Discovery. In containers that's `8080` → `9080`. The Broker's gRPC port is `9093`.
-- **No Discovery change:** registrations stay as they are. The Broker dials only the registered host. No caller or registration supplies a gRPC address.
-- **Delivery transport:** [`contracts/proto/transports.json`](../contracts/proto/transports.json) lists, per consumer group, whether the Broker delivers over `http` or `grpc`.
-  - Every group starts on `http`.
-  - Each owner flips their own group in a reviewed PR once their published image serves `Deliver`.
-  - The Broker bundles a copy, checked by `--broker-root`.
-- **No silent fallback:** a `grpc` group that does not answer is a failed delivery. It is counted by the circuit breaker and Discovery eviction exactly as HTTP is.
+| Leg | Transport |
+| --- | --- |
+| Service → Broker publications, results, topic listing | gRPC `MessageBroker` at `message-broker:9093` |
+| Broker → service deliveries, operation and event topics | gRPC `MessageConsumer.Deliver`, **after that group's reviewed flip** in `transports.json`; HTTP until then |
+| Gateway public queues and their delivery, public REST, Discovery, health and readiness checks, SSE, WebSocket | **HTTP, unchanged** |
 
-## Authentication
+**Receiver port:** the receiver listens on its registered HTTP port + 1000 (`grpcPortOffset`). Examples:
+- containers on `8080` → `9080`;
+- Credential `9080`;
+- Rules `9081`.
 
-- Metadata `authorization: Bearer <token>` carries the same per-service credentials as the REST contract:
-  - towards the Broker, the publisher's own Broker credential;
-  - from the Broker, the receiving service's credential.
-- There is no shared universal token, no Discovery-token reuse and no player JWT.
-- A receiver that is called without its credential answers `UNAUTHENTICATED`. Plaintext gRPC (h2c) on the internal network matches the internal HTTP it replaces.
+**Host:** the Broker takes the host from the existing Discovery registration. There is no new gRPC address field, and the Broker dials no other address.
 
-## Deadlines
+**No silent fallback:** a `grpc` group that does not answer is a failed delivery, counted by the circuit breaker exactly as HTTP is. The Broker never falls back to REST.
 
-- The Broker sets the gRPC deadline to the delivery's remaining budget: 750 ms at most per operation, with the public 4 s budget unchanged. Publishers set theirs to their own call deadline.
-- `deadline_at` stays in `Envelope` and `Delivery` as the absolute UTC deadline, ending in `Z` or `+00:00`. Receivers check it exactly as they check `X-Deadline-At` today.
-- A delivery whose `deadline_at` has already passed is refused with `DEADLINE_EXCEEDED` before any work starts.
+**Network:** for this lab, gRPC is plaintext and only on the private Docker network. Consumer gRPC ports are never published to the host. TLS deployment is outside this migration.
 
-## Errors and acknowledgments
+## 3. Authentication and identity
 
-**Business outcomes:** a handler's outcome, success or not, is a normal `Reply{status, body_json, content_type}`. It carries the same status and JSON body that the HTTP binding returns today (for example 404 `APPLICANT_NOT_FOUND`), so results look identical to publishers.
+Metadata names, exactly:
 
-**Other failures:** authentication, authorization, a malformed message, an unknown operation, an expired deadline or capacity end the call with a gRPC status. The trailing metadata carries the existing error code as `error-code`, and `trace-id`. This uses the README's error table:
+```text
+authorization: Bearer <credential>
+x-service-name: <authenticated publishing service>
+x-trace-id: <trace ID>
+```
 
-| HTTP | gRPC |
+- **Publishers → Broker:** a publisher authenticates with its own caller credential. The Broker derives the publisher's identity from that credential and never trusts a supplied service name. The Gateway's credential is refused on gRPC, because its user queue stays HTTP.
+- **Broker → consumers:** the Broker authenticates with the target service's internal credential, and sets `x-service-name` to the verified original publisher.
+- **Consumers check:**
+  - `x-service-name == Delivery.publisher`;
+  - their own `group`;
+  - an operation they own, its topic binding (`operation.<name>.v1` as `REQUEST`, or the catalog event topic as `EVENT`) and its permitted publisher.
+- **Trace:** `x-trace-id` must equal the envelope's or delivery's `trace_id`.
+- **Not service authentication:** player JWTs, the Discovery token and any client-supplied identity never stand in for it.
+
+## 4. Deadlines and capacity
+
+Deadlines use the native gRPC deadline **and** the shared absolute `deadline_at`.
+- **Effective deadline:** the earliest of the incoming RPC deadline, `deadline_at`, and the existing local operation budget.
+- **One budget:** queue waiting, processing, nested calls and polling all spend that same remaining budget.
+- **Shorter limits stay:** for example Applicant and Record's 400 ms business budget, the Broker's 750 ms operation cap and the public 4 s.
+- **Expired work:** it is refused before any business logic runs, with `DEADLINE_EXCEEDED` / `DEADLINE_EXCEEDED`.
+- **Bounds:** concurrency and message sizes are bounded.
+- **Cancellation:** a cancellation does not prove that a mutation was rolled back.
+
+## 5. Direct business handling
+
+`Deliver` calls the existing application function directly. There is **no REST loopback**.
+
+It preserves:
+- business validation and authorization;
+- the exact business status and JSON body;
+- persistent deduplication, immutable ids and outboxes;
+- the existing initialization adapters and receipts.
+
+**Inputs:**
+- GET path and query values arrive in `Delivery.arguments`.
+- A POST body arrives in `payload_json`, with its URI arguments kept separately in `arguments`.
+
+## 6. JSON and reply compatibility
+
+- **Empty, `null` and `{}` are not interchangeable:**
+  - empty `payload_json` / `body_json` means **no body**;
+  - JSON `null` is an explicit null;
+  - `{}` is an empty object.
+- **Valid JSON only:** it must be valid UTF-8 and one JSON document, with no duplicate keys and no non-finite numbers.
+- **Size limits:** the Task 6 limits are enforced before processing.
+  - Envelopes: 96 KiB.
+  - Business bodies: 64 KiB.
+  - Operation replies: 16 KiB.
+- **Internal replies** carry status, JSON body and content type. Arbitrary HTTP headers are not part of this internal RPC. Public HTTP response-header behaviour is unchanged.
+
+## 7. Business errors versus transport errors
+
+**Business outcomes** are normal `Reply` messages, including business 4xx and 5xx.
+
+**Transport failures** end the call with a gRPC status. These are authentication, malformed transport envelopes, unknown bindings, exhausted capacity and delivery failures. The trailers carry:
+
+```text
+error-code: <existing stable machine-readable code>
+trace-id: <trace ID>
+```
+
+| HTTP-equivalent | gRPC |
 | --- | --- |
 | 400 | `INVALID_ARGUMENT` |
 | 401 | `UNAUTHENTICATED` |
 | 403 | `PERMISSION_DENIED` |
 | 404 | `NOT_FOUND` |
 | 409 | `ABORTED` |
-| 413, 429 | `RESOURCE_EXHAUSTED` |
+| 413 / 429 | `RESOURCE_EXHAUSTED` |
 | 500 | `INTERNAL` |
 | 503 | `UNAVAILABLE` |
 | 504 | `DEADLINE_EXCEEDED` |
 
-**Broker refusals:** when the Broker refuses a `Publish` (for example `CALLER_NOT_ALLOWED`, `TOPIC_NOT_FOUND` or `MESSAGE_CAPACITY_REACHED`), the publisher sees that gRPC status and code.
+**Failed deliveries:** the Broker turns a failed RPC delivery into the existing Task 6 failed-group status and error envelope. There is **no second result model and no `oneof`**. The transport `error-code` and the gRPC status are kept in sanitized error `details`.
 
-**Failed deliveries:** when a consumer's `Deliver` ends with a gRPC status, the Broker records that group as `FAILED`. It uses the HTTP status from the table and an error body with the code, so the result schema is unchanged.
+**Circuit breaker:**
+- Connection failures, timeouts and business 5xx keep the existing accounting.
+- Ordinary business 4xx do not trip circuits.
 
-**Event receipts:** the rule is unchanged. The reply must have status 200 and the same `eventId`, with status `PROCESSED` or `DUPLICATE` (`accepted: true` for CredentialsReady). Anything else is a failed delivery.
+## 8. Results and processing acknowledgments
 
-## Receiver duties
+**Overall states:**
+- `PENDING`: at least one group is unfinished.
+- `COMPLETED`: every required group is `SUCCEEDED` and acknowledged.
+- `FAILED`: every group is terminal and at least one failed.
 
-Every service that receives topics:
-1. Serves `MessageConsumer` on HTTP port + 1000.
-2. Authenticates the metadata against its own Broker-facing credential.
-3. Accepts only `group` = its own service name and an `operation` it owns in the catalog, and checks the topic matches that binding.
-4. Calls the same handler as its HTTP binding, with the delivery's `arguments` and `payload_json`, and returns that handler's `Reply`. Deduplication, outboxes and idempotency stay where they are.
-5. Logs `trace_id`, `message_id`, `correlation_id`, `causation_id` and `operation`, the same fields as today. It never logs tokens or bodies.
-6. Keeps its HTTP callback routes until its group's flip is merged, then removes them.
+**Group results:**
+- A pending group has no final status, body or headers.
+- A terminal group carries its actual outcome.
+- Readers reject unknown, missing or duplicate groups.
 
-## Publisher duties
+**Event receipts:** the Broker validates them independently. A receipt counts only with:
+- HTTP-equivalent status 200;
+- the matching business `eventId`;
+- `PROCESSED` or `DUPLICATE`, or `accepted: true` for `CredentialsReady`.
 
-1. Publishes with `MessageBroker.Publish` to `BROKER_GRPC_TARGET` (`message-broker:9093`), with the same envelope, ids, deadline and causation as today.
-2. A request topic returns the terminal `Result`, or `PENDING` to be polled with `GetResult`. An event returns `PENDING`.
-3. Keeps the existing receipt checks and outbox retries.
+**Publishers** keep their own receipt checks. Transport acceptance or `acknowledged = true` alone never clears an outbox.
 
-## Stubs
+**`GetResult`** is available only to the original authenticated publisher. A result missing after a restart or after retention means an **unknown delivery**, not a non-delivery.
+
+## 9. Readiness
+
+For a `grpc` group, HTTP readiness from Discovery is necessary but not sufficient.
+
+**Broker:** before selecting a replica, it must hold a fresh successful standard gRPC health check (`grpc.health.v1.Health/Check`) for `studentid.messaging.v1.MessageConsumer` (`transports.json` `health`).
+- Observations are bounded and cached for at most 5 s, and never beyond Discovery's readiness validity.
+- Missing, failed or stale observations fail closed.
+- Health checks never invoke business operations.
+
+**Every consumer** serves that health service:
+- `SERVING` only when its listener and required application dependencies are ready;
+- `NOT_SERVING` during startup, after a dependency failure, and during shutdown.
+
+## 10. Ownership
+
+- **Shared contract (this PR):** these rules.
+- **Broker owner:**
+  - finish Task 7;
+  - implement Andreiisthebest/student-id-message-broker#22 against this contract, including health selection, identity metadata, result validation and error mapping.
+- **Each service owner:** generated clients, direct `Deliver` handlers and gRPC health, preserving existing business behaviour.
+- **Marin:** Credential and Rules only.
+- **Vasile:** the Gateway user-route allowlist cleanup.
+- Nobody edits another owner's private service.
+
+## 11. Rollout order
+
+1. Merge Task 7.
+2. Merge this finalized shared contract.
+3. Merge and publish the Broker with HTTP and gRPC side by side.
+4. Merge and publish each owner's compatible services.
+5. Verify real cross-owner calls and event acknowledgments.
+6. Flip each ready group independently in `transports.json`. Update the Broker's identical bundled copy and the deployment.
+7. Remove that group's obsolete internal HTTP callbacks in a follow-up release.
+8. Keep public REST, health and readiness, and the streaming endpoints.
+
+**Task 8 is complete only when deployed gRPC communication actually works.** Proto generation, or tests with stand-ins, are not enough.
+
+## Stubs and checks
 
 - **Python (Broker):** `python -m grpc_tools.protoc -I contracts/proto --python_out=... --grpc_python_out=...`.
 - **Java (Quarkus):** `quarkus-grpc` generates from `src/main/proto/`. Copy the file unchanged.
-- **Go:** `protoc --go_out --go-grpc_out` with `--go_opt=Mstudentid/messaging/v1/messaging.proto=<your package>` and the same for `--go-grpc_opt`.
+- **Go:** `protoc --go_out --go-grpc_out` with `--go_opt=Mmessaging.proto=<your package>`, and the same for `--go-grpc_opt`.
 
-`scripts/validate_grpc_contract.py` keeps the contract coherent:
-- the proto compiles, when `grpcio-tools` is present, as it is in CI;
-- it declares both services and their RPCs;
-- `transports.json` covers exactly the catalog's consumer groups;
-- with `--broker-root`, the Broker's bundled copies are identical.
-
-## Out of scope
-
-- TLS between services.
-- gRPC for Discovery.
-- Streaming RPCs.
-- Typed per-operation protobuf messages.
-
-The business bodies stay the reviewed JSON schemas. A later version can type them one operation at a time without changing this envelope.
+`scripts/validate_grpc_contract.py` checks:
+- the proto compiles (in CI);
+- it declares exactly these services and RPCs, with the agreed field names and numbers;
+- the pin matches;
+- `transports.json` covers exactly the catalog's consumer groups, with the agreed health settings;
+- with `--broker-root` and `--vendored`, the copies match the pin.

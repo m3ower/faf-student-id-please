@@ -7,17 +7,33 @@
 // states, receipt rules and error codes are those of contracts/messaging/. See
 // docs/messaging-grpc.md.
 //
-// Authentication: metadata "authorization: Bearer <token>", the same per-service
-// credentials as the REST contract: the publisher's own Broker credential on
-// MessageBroker, the receiver's credential from the Broker on MessageConsumer.
+// Metadata (exact names):
+//   authorization: Bearer <credential>   the same per-service credentials as REST: the
+//                                        publisher's own Broker credential on
+//                                        MessageBroker, the receiver's own internal
+//                                        credential from the Broker on MessageConsumer.
+//   x-service-name: <service>            set by the Broker on Deliver to the verified
+//                                        original publisher; consumers require it to equal
+//                                        Delivery.publisher. The Broker never trusts a
+//                                        publisher-supplied name: it derives identity from
+//                                        the credential.
+//   x-trace-id: <trace id>               must equal Envelope.trace_id / Delivery.trace_id.
+//
+// Deadlines: the native gRPC deadline AND the absolute deadline_at. The effective deadline
+// is the earliest of the incoming RPC deadline, deadline_at and the local operation budget.
+//
+// Readiness: every MessageConsumer also serves the standard grpc.health.v1.Health service
+// for "studentid.messaging.v1.MessageConsumer" (SERVING only when its listener and required
+// dependencies are ready). The Broker selects a gRPC replica only with a fresh SERVING
+// observation (at most 5 s old, never beyond Discovery's readiness validity).
 //
 // Failures that are not business outcomes (authentication, authorization, a malformed
 // message, an unknown operation, an expired deadline, capacity) end the call with a
 // gRPC status and the existing error code in trailing metadata "error-code":
 //   400 INVALID_ARGUMENT, 401 UNAUTHENTICATED, 403 PERMISSION_DENIED, 404 NOT_FOUND,
 //   413/429 RESOURCE_EXHAUSTED, 503 UNAVAILABLE, 504 DEADLINE_EXCEEDED.
-// A business outcome (any status a handler returns today, success or not) is a normal
-// response.
+// A business outcome (any status a handler returns today, success or not, including
+// business 4xx/5xx) is a normal response. There is no second result model and no oneof.
 
 syntax = "proto3";
 
@@ -66,7 +82,8 @@ message Envelope {
   string causation_id = 7;              // nonzero UUID, or empty for none
   string deadline_at = 8;               // UTC ISO-8601, ending in Z or +00:00
   map<string, string> arguments = 9;    // at most 8, as the catalog binding names them
-  bytes payload_json = 10;              // one JSON document; empty means null
+  bytes payload_json = 10;              // one JSON document; empty means no body (JSON null is
+                                        // an explicit null, {} an empty object)
 }
 
 message ResultRequest {
@@ -142,11 +159,12 @@ message Delivery {
   string correlation_id = 8;
   string causation_id = 9;               // empty for none
   string deadline_at = 10;               // absolute UTC deadline of this delivery
-  map<string, string> arguments = 11;    // path/query arguments of a request binding
-  bytes payload_json = 12;               // the body the HTTP binding would have received; empty for none
+  map<string, string> arguments = 11;    // GET path/query values and POST URI arguments
+  bytes payload_json = 12;               // the POST body; empty means no body (JSON null is explicit)
 }
 
-// The handler's outcome, exactly as the HTTP binding returns it today.
+// The handler's outcome, exactly as the HTTP binding returns it today: status, JSON body
+// and content type only. Arbitrary HTTP headers are not part of this internal contract.
 message Reply {
   int32 status = 1;                      // 200..599
   bytes body_json = 2;

@@ -1,11 +1,16 @@
 {
   "version": 1,
   "proto": "contracts/proto/studentid/messaging/v1/messaging.proto",
+  "protoSha256": "16f01b51c6d591eabcf3c5839b4d4e7135bf7022d88c5186fe4210d17f607288",
   "grpcPortOffset": 1000,
   "broker": {
     "service": "message-broker",
     "httpPort": 8093,
     "grpcPort": 9093
+  },
+  "health": {
+    "service": "studentid.messaging.v1.MessageConsumer",
+    "maxAgeMs": 5000
   },
   "delivery": {
     "applicant-service": "http",
