@@ -17,9 +17,9 @@
     "credential-service": "http",
     "discord-dms-service": "http",
     "moderation-service": "http",
-    "player-service": "http",
+    "player-service": "grpc",
     "rules-service": "http",
-    "session-service": "http",
+    "session-service": "grpc",
     "university-record-service": "http"
   }
 }
