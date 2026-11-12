@@ -38,11 +38,11 @@ The [opt-in overlay](../docker-compose.owned-broker.yml) supplies both owned
 images, business bindings and private Broker configuration on both replicas.
 The overlay selects `BROKER_TRANSPORT=grpc`, `GRPC_ENABLED=true` on both owned
 replicas and gRPC delivery for their two groups in the shared transport catalog.
-It requires the matching Broker `lab4-0.6.3` release and published Discovery
+It requires the matching Broker `lab4-0.6.4` release and published Discovery
 `lab4-0.8.0`. The base Compose file and existing running stack are unchanged.
 
 Broker `lab4-0.6.0` is published, but its bundled catalog still selects HTTP for
-these groups. Merge the coordinated Broker activation PR and publish `lab4-0.6.3`
+these groups. Merge the coordinated Broker activation PR and publish `lab4-0.6.4`
 before deploying this overlay. Do not substitute the older image.
 
 Populate a private environment using [.env.owned-broker.example](../.env.owned-broker.example).

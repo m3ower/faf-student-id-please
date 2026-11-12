@@ -7,7 +7,7 @@ flowchart TB
         Discovery["Service Discovery<br/>Instance addresses · subscriptions · readiness"]
 
         subgraph Domain["Domain services — replica-capable"]
-            subgraph RPC["gRPC business-delivery groups"]
+        subgraph RPC["Core domain services"]
                 Player["Player"]
                 Session["Session"]
                 Applicant["Applicant"]
@@ -15,7 +15,7 @@ flowchart TB
                 Credential["Credential<br/>Java / Spring Boot"]
                 Rules["Server Rules<br/>Go / Fiber"]
             end
-            subgraph HTTP["HTTP business-delivery groups"]
+        subgraph HTTP["Moderation and real-time messaging"]
                 Moderation["Moderation"]
                 DMs["Discord DMs"]
             end
@@ -45,10 +45,8 @@ flowchart TB
     Broker <-->|"gRPC Publish / GetResult and Deliver"| Record
     Broker <-->|"gRPC Publish / GetResult and Deliver"| Credential
     Broker <-->|"gRPC Publish / GetResult and Deliver"| Rules
-    Moderation <-->|"gRPC publication / results"| Broker
-    DMs <-->|"gRPC publication / results"| Broker
-    Broker <-->|"HTTP business delivery / reply"| Moderation
-    Broker <-->|"HTTP business delivery / reply"| DMs
+    Moderation <-->|"gRPC Publish / GetResult and Deliver"| Broker
+    DMs <-->|"gRPC Publish / GetResult and Deliver"| Broker
 
     Domain -.->|"HTTP startup registration + subscriptions"| Discovery
     Discovery -.->|"HTTP readiness polls"| Domain

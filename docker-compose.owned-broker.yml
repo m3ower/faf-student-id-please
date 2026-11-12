@@ -109,7 +109,6 @@ services:
     <<: *owned-session
     profiles: [replicas]
     environment: *owned-session-env
-
   # Credential/Rules: gRPC publishers and consumers. Requires the matching Broker
   # release with the identical reviewed per-group transport catalog.
   credential-service: &owned-credential

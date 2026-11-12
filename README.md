@@ -184,8 +184,8 @@ transports messages and does not determine whether the information is true.
 
 Editable source: [docs/architecture.mmd](docs/architecture.mmd). This shows the
 coordinated Lab 4 source/configuration, not proof that all releases are deployed.
-Six business-delivery groups use gRPC; Moderation/DMs retain HTTP delivery until
-their separate owner flips. See [release provenance](deployment/releases.json).
+All eight business-delivery groups now select gRPC in the coordinated catalog.
+See [release provenance and publication gates](deployment/releases.json).
 
 ```mermaid
 flowchart TB
@@ -197,7 +197,7 @@ flowchart TB
         Discovery["Service Discovery<br/>Instance addresses · subscriptions · readiness"]
 
         subgraph Domain["Domain services — replica-capable"]
-            subgraph RPC["gRPC business-delivery groups"]
+        subgraph RPC["Core domain services"]
                 Player["Player"]
                 Session["Session"]
                 Applicant["Applicant"]
@@ -205,7 +205,7 @@ flowchart TB
                 Credential["Credential<br/>Java / Spring Boot"]
                 Rules["Server Rules<br/>Go / Fiber"]
             end
-            subgraph HTTP["HTTP business-delivery groups"]
+        subgraph HTTP["Moderation and real-time messaging"]
                 Moderation["Moderation"]
                 DMs["Discord DMs"]
             end
@@ -235,10 +235,8 @@ flowchart TB
     Broker <-->|"gRPC Publish / GetResult and Deliver"| Record
     Broker <-->|"gRPC Publish / GetResult and Deliver"| Credential
     Broker <-->|"gRPC Publish / GetResult and Deliver"| Rules
-    Moderation <-->|"gRPC publication / results"| Broker
-    DMs <-->|"gRPC publication / results"| Broker
-    Broker <-->|"HTTP business delivery / reply"| Moderation
-    Broker <-->|"HTTP business delivery / reply"| DMs
+    Moderation <-->|"gRPC Publish / GetResult and Deliver"| Broker
+    DMs <-->|"gRPC Publish / GetResult and Deliver"| Broker
 
     Domain -.->|"HTTP startup registration + subscriptions"| Discovery
     Discovery -.->|"HTTP readiness polls"| Domain
@@ -279,8 +277,8 @@ Responses return on their original connections, not independent service calls.
 | Credential | Java / Spring Boot | credential_db | Public REST; private Broker gRPC |
 | University Record | Go / Fiber | Own PostgreSQL | Public REST; private Broker gRPC |
 | Server Rules | Go / Fiber | rules_db | Public REST; private Broker gRPC |
-| Moderation | Java / Quarkus | Own PostgreSQL | Public REST; gRPC publication, HTTP delivery until group flip |
-| Discord DMs | Go / Gorilla WebSocket | Own Redis / AOF | Public REST/direct WebSocket; gRPC publication, HTTP delivery until group flip |
+| Moderation | Java / Quarkus | Own PostgreSQL | Public REST; private Broker gRPC |
+| Discord DMs | Go / Gorilla WebSocket | Own Redis / AOF | Public REST/direct WebSocket; private Broker gRPC |
 | API Gateway | Python / FastAPI | None | JWT verification, HTTP public queues, SSE relay, WebSocket negotiation |
 | Service Discovery | Python / FastAPI | In-memory registry | HTTP instance/subscription registration and readiness |
 | Custom Message Broker | Python / FastAPI | In-memory queues/results | HTTP public queues; gRPC business messaging; topic fan-out |
@@ -1607,7 +1605,7 @@ SHAs and digests. No application tests or container startup were run for this re
 | Gateway | `vasiok11/student-id-gateway-service:lab3-0.7.0-build.43` | None |
 
 **Publication gates:** Broker 0.6.0 supports gRPC but bundles HTTP delivery for
-every group. Activation requires the reviewed `lab4-0.6.3` release containing
+every group. Activation requires the reviewed `lab4-0.6.4` release containing
 [Broker #34](https://github.com/Andreiisthebest/student-id-message-broker/pull/34)
 and the other merged owner flips. That tag is a target, not verified publication.
 Gateway's latest public tag is still the legacy Lab 3 implementation; its owner

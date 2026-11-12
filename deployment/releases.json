@@ -27,7 +27,7 @@
       "image": "andreiisthebest/student-id-message-broker:lab4-0.6.0",
       "digest": "sha256:29c9bdef6f6af8ff45c0b97d40dcc8d9ab0384ba8b4c2e78f702a5d11e7f4c71",
       "sourceCommit": "6e5c2327dae01e914c04d303bd76013eefa02da3",
-      "limitation": "This published image supports gRPC but bundles HTTP delivery for every group. The activation overlay requires the separately reviewed six-group 0.6.3 release."
+      "limitation": "This published image supports gRPC but bundles HTTP delivery for every group. The activation overlay requires the separately reviewed eight-group 0.6.4 release."
     },
     "moderation-service": {
       "image": "meow3r/student-id-moderation-service:lab3-0.8.0",
@@ -62,7 +62,7 @@
   },
   "activationDependencies": {
     "broker": {
-      "image": "andreiisthebest/student-id-message-broker:lab4-0.6.3",
+      "image": "andreiisthebest/student-id-message-broker:lab4-0.6.4",
       "publishedAtVerification": false,
       "pr": "https://github.com/Andreiisthebest/student-id-message-broker/pull/34"
     },
