@@ -22,7 +22,7 @@ jobs:
       - name: Install coverage into an isolated environment
         run: |
           python3 -m venv docs-local/contract-test-venv
-          docs-local/contract-test-venv/bin/python -m pip install --disable-pip-version-check coverage==7.10.6 grpcio-tools==1.71.0
+          docs-local/contract-test-venv/bin/python -m pip install --disable-pip-version-check --only-binary=grpcio,grpcio-tools,protobuf coverage==7.10.6 grpcio-tools==1.76.0
       - name: Validate the catalog, its examples and the generated OpenAPI
         run: python3 scripts/validate_http_contracts.py
       - name: Validate messaging bindings and owner subscriptions
