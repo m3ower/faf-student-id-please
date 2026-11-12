@@ -104,4 +104,4 @@ where it verifies the Player access JWT itself.
 
 ## Applicant/Record caller migration
 
-The [owned broker migration candidate](owned-broker-migration.md) switches both callers and Record membership to BROKER_URL/BROKER_SERVICE_TOKEN, without Gateway/direct fallback. It uses the unchanged current 39-operation catalog; Broker issue #12 owns bundling that snapshot. Public Gateway routes and direct Discovery registration stay in place. Matching images and actual current-peer acceptance remain deployment gates.
+The [Applicant/Record broker migration candidate](applicant-record-broker-migration.md) switches both callers and Record membership to BROKER_URL/BROKER_SERVICE_TOKEN, without Gateway/direct fallback. It uses the unchanged current 39-operation catalog; Broker issue #12 owns bundling that snapshot. Public Gateway routes and direct Discovery registration stay in place. Matching images and actual current-peer acceptance remain deployment gates.

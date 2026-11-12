@@ -457,6 +457,10 @@ Latest compatibility work uses Applicant/Record's explicit adapter handoff at
 The 39-operation candidate includes the missing initialization/context/callback
 and batch-validation routes. It does not establish real-owner acceptance or
 authorize promotion of images/pins or migration of our callers to Broker.
+The subsequent [owned Task 5 migration candidate](docs/owned-broker-migration.md)
+switches Credential/Rules outbound calls to required Broker settings without a
+Gateway fallback. It preserves public Gateway access and leaves shared load
+balancing/circuit-breaker work to its owner. Source migration is not live acceptance.
 
 A prefix matches only on a segment boundary. The method, path, query string, body and
 headers reach the service with the credential/identity handling described below,
@@ -485,7 +489,7 @@ verified player JWT subject. Session adds host-only
 `PUT /api/v1/sessions/{sessionId}/access` for explicit stored record/channel
 assignments. This is a candidate contract and verification harness: the existing
 shared image pins and Compose deployment still select the previous releases.
-Discovery registration stays direct. The [Applicant/Record migration](docs/owned-broker-migration.md)
+Discovery registration stays direct. The [Applicant/Record migration](docs/applicant-record-broker-migration.md)
 now routes their business and membership calls through Message Broker, with unchanged
 wire contracts and an opt-in deployment overlay. Gateway retains public routing.
 The matching broker catalog/image and actual current-peer acceptance remain required;
