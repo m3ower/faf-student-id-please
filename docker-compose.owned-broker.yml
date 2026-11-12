@@ -68,6 +68,52 @@ services:
       # receiver token must match its entry; this is not a Broker caller map.
       GATEWAY_TARGET_TOKENS_JSON: ${GATEWAY_TARGET_TOKENS_JSON:?configure the actual public receiver credentials}
 
+  # Credential/Rules: published opt-in gRPC-capable images. Keep HTTP publication
+  # and delivery until the real-peer acceptance gate and reviewed group flips.
+  credential-service: &owned-credential
+    image: ${OWNED_CREDENTIAL_IMAGE:-cmmarin/student-id-credential-service:lab4-1.1.0}
+    environment: &owned-credential-env
+      BROKER_URL: http://message-broker:8093
+      BROKER_SERVICE_TOKEN: ${CREDENTIAL_BROKER_SERVICE_TOKEN:?match credential-service in BROKER_CALLER_TOKENS_JSON}
+      CREDENTIAL_INTERNAL_TOKEN: ${CREDENTIAL_INTERNAL_TOKEN:?match the Credential receiver credential}
+      BUSINESS_HTTP_BINDINGS_JSON: '{"applicant.context":"/internal/v1/applicants/context","record.facts":"/internal/v1/records/facts","applicant.ready":"/internal/v1/applicants/events/credentials-ready","record.ready":"/internal/v1/records/events/credentials-ready"}'
+      BROKER_TRANSPORT: ${OWNED_CREDENTIAL_BROKER_TRANSPORT:-http}
+      BROKER_GRPC_TARGET: message-broker:9093
+      GRPC_ENABLED: ${OWNED_CREDENTIAL_GRPC_ENABLED:-false}
+      GRPC_BIND_ADDRESS: 0.0.0.0
+      GRPC_PORT: "9080"
+      GRPC_ALLOW_PLAINTEXT: "true"
+    depends_on:
+      message-broker:
+        condition: service_healthy
+
+  credential-service-2:
+    <<: *owned-credential
+    profiles: [replicas]
+    environment: *owned-credential-env
+
+  rules-service: &owned-rules
+    image: ${OWNED_RULES_IMAGE:-cmmarin/student-id-rules-service:lab4-1.1.0}
+    environment: &owned-rules-env
+      BROKER_URL: http://message-broker:8093
+      BROKER_SERVICE_TOKEN: ${RULES_BROKER_SERVICE_TOKEN:?match rules-service in BROKER_CALLER_TOKENS_JSON}
+      RULES_INTERNAL_TOKEN: ${RULES_INTERNAL_TOKEN:?match the Rules receiver credential}
+      BUSINESS_HTTP_BINDINGS_JSON: '{"session.context":"/internal/v1/session-state/get","record.facts":"/internal/v1/records/facts"}'
+      BROKER_TRANSPORT: ${OWNED_RULES_BROKER_TRANSPORT:-http}
+      BROKER_GRPC_TARGET: message-broker:9093
+      GRPC_ENABLED: ${OWNED_RULES_GRPC_ENABLED:-false}
+      GRPC_BIND_ADDRESS: 0.0.0.0
+      GRPC_PORT: "9081"
+      GRPC_ALLOW_PLAINTEXT: "true"
+    depends_on:
+      message-broker:
+        condition: service_healthy
+
+  rules-service-2:
+    <<: *owned-rules
+    profiles: [replicas]
+    environment: *owned-rules-env
+
   # ---- Moderation and Discord DMs on the Broker (Lab 4 Tasks 5-8) ----
   # Released lab3-0.8.0 images: every business call is published to the Broker over gRPC
   # (MessageBroker at message-broker:9093) and the Broker delivers to them over gRPC
