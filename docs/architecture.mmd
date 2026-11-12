@@ -1,0 +1,71 @@
+flowchart TB
+    Client["Browser / API client"]
+
+    subgraph Platform["Docker Compose — private service network"]
+        Gateway["API Gateway<br/>JWT verification · verified player identity<br/>Public HTTP entry: localhost:8090"]
+        Broker["Custom Message Broker<br/>In-memory subscriber queues and business topics<br/>Round-robin selection · circuit breakers · deadlines"]
+        Discovery["Service Discovery<br/>Instance addresses · subscriptions · readiness"]
+
+        subgraph Domain["Domain services — replica-capable"]
+            subgraph RPC["gRPC business-delivery groups"]
+                Player["Player"]
+                Session["Session"]
+                Applicant["Applicant"]
+                Record["University Record"]
+                Credential["Credential<br/>Java / Spring Boot"]
+                Rules["Server Rules<br/>Go / Fiber"]
+            end
+            subgraph HTTP["HTTP business-delivery groups"]
+                Moderation["Moderation"]
+                DMs["Discord DMs"]
+            end
+        end
+
+        subgraph Data["Persistent service-owned storage"]
+            PlayerDB[("Player PostgreSQL")]
+            SessionDB[("Session PostgreSQL")]
+            ApplicantDB[("Applicant PostgreSQL")]
+            RecordDB[("University Record PostgreSQL")]
+            ModerationDB[("Moderation PostgreSQL")]
+            Redis[("DMs Redis / AOF")]
+            subgraph OwnedPG["One PostgreSQL instance — separate databases"]
+                CredentialDB[("credential_db")]
+                RulesDB[("rules_db")]
+            end
+        end
+    end
+
+    Client <-->|"HTTP REST + client JWT"| Gateway
+    Gateway <-->|"HTTP public queues / results<br/>SSE relay and WebSocket negotiation"| Broker
+    Broker <-->|"HTTP public REST / responses<br/>Session SSE relay"| Domain
+
+    Broker <-->|"gRPC Publish / GetResult and Deliver"| Player
+    Broker <-->|"gRPC Publish / GetResult and Deliver"| Session
+    Broker <-->|"gRPC Publish / GetResult and Deliver"| Applicant
+    Broker <-->|"gRPC Publish / GetResult and Deliver"| Record
+    Broker <-->|"gRPC Publish / GetResult and Deliver"| Credential
+    Broker <-->|"gRPC Publish / GetResult and Deliver"| Rules
+    Moderation <-->|"gRPC publication / results"| Broker
+    DMs <-->|"gRPC publication / results"| Broker
+    Broker <-->|"HTTP business delivery / reply"| Moderation
+    Broker <-->|"HTTP business delivery / reply"| DMs
+
+    Domain -.->|"HTTP startup registration + subscriptions"| Discovery
+    Discovery -.->|"HTTP readiness polls"| Domain
+    Broker -.->|"HTTP ready-subscriber lookup"| Discovery
+    Broker -.->|"Standard gRPC consumer health"| RPC
+
+    Player -->|"SQL"| PlayerDB
+    Session -->|"SQL"| SessionDB
+    Applicant -->|"SQL"| ApplicantDB
+    Record -->|"SQL"| RecordDB
+    Credential -->|"SQL"| CredentialDB
+    Rules -->|"SQL"| RulesDB
+    Moderation -->|"SQL"| ModerationDB
+    DMs -->|"Redis protocol"| Redis
+    Client <-->|"Direct WebSocket after negotiation"| DMs
+
+    classDef infrastructure fill:#e8efff,stroke:#385a91,color:#172b4d
+    classDef service fill:#eaf6ed,stroke:#42754c,color:#173c20
+    class Gateway,Broker,Discovery infrastructure
+    class Player,Session,Applicant,Record,Credential,Rules,Moderation,DMs service

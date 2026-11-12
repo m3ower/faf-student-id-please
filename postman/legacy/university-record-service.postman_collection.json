@@ -1,0 +1,511 @@
+{
+  "info": {
+    "name": "Student ID - University Record Service — archived Task 5 HTTP operations",
+    "description": "Historical internal REST examples only. Not current Task 8 tests; do not run with the public collections. Use contracts/proto/studentid/messaging/v1/messaging.proto and an authorized private-network gRPC client for current operations.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{accessToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "accessToken",
+      "value": "",
+      "type": "string",
+      "description": "Supply a valid Gateway test JWT in a private environment; never commit tokens or signing keys."
+    },
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8090"
+    },
+    {
+      "key": "recordId",
+      "value": ""
+    },
+    {
+      "key": "recordConflictId",
+      "value": ""
+    },
+    {
+      "key": "recordStudentId",
+      "value": ""
+    },
+    {
+      "key": "recordOtherStudentId",
+      "value": ""
+    },
+    {
+      "key": "sessionId",
+      "value": ""
+    },
+    {
+      "key": "playerId",
+      "value": "postman-player"
+    },
+    {
+      "key": "logDownloadUrl",
+      "value": "http://127.0.0.1:8092",
+      "description": "Local operational log endpoint; independent of Gateway baseUrl."
+    },
+    {
+      "key": "logDownloadToken",
+      "value": "",
+      "type": "string",
+      "description": "Separate operations secret. Set only in a private local environment; never commit it."
+    },
+    {
+      "key": "managementToken",
+      "value": "",
+      "description": "Private local input; never commit credentials or private envelopes."
+    },
+    {
+      "key": "sessionServiceToken",
+      "value": "",
+      "description": "Distinct Broker caller credential for this named service; configure only in a private local environment. Never use a player JWT."
+    },
+    {
+      "key": "moderationServiceToken",
+      "value": "",
+      "description": "Distinct Broker caller credential for this named service; configure only in a private local environment. Never use a player JWT."
+    },
+    {
+      "key": "credentialServiceToken",
+      "value": "",
+      "description": "Distinct Broker caller credential for this named service; configure only in a private local environment. Never use a player JWT."
+    },
+    {
+      "key": "applicantServiceToken",
+      "value": "",
+      "description": "Distinct Broker caller credential for this named service; configure only in a private local environment. Never use a player JWT."
+    },
+    {
+      "key": "recordServiceToken",
+      "value": "",
+      "description": "Distinct Broker caller credential for this named service; configure only in a private local environment. Never use a player JWT."
+    },
+    {
+      "key": "integrationApplicantId",
+      "value": "",
+      "description": "Integration candidate input. Set sessionId to the actual session. Empty generated IDs are created once by the generation request."
+    },
+    {
+      "key": "integrationRequestId",
+      "value": "",
+      "description": "Integration candidate input. Set sessionId to the actual session. Empty generated IDs are created once by the generation request."
+    },
+    {
+      "key": "integrationSessionId",
+      "value": "",
+      "description": "Integration candidate input. Set sessionId to the actual session. Empty generated IDs are created once by the generation request."
+    },
+    {
+      "key": "integrationSeed",
+      "value": "17",
+      "description": "Integration candidate input. Set sessionId to the actual session. Empty generated IDs are created once by the generation request."
+    },
+    {
+      "key": "integrationDifficulty",
+      "value": "HARD",
+      "description": "Integration candidate input. Set sessionId to the actual session. Empty generated IDs are created once by the generation request."
+    },
+    {
+      "key": "initializationEnvelope",
+      "value": "",
+      "description": "Private local input; never commit credentials or private envelopes."
+    },
+    {
+      "key": "unknownIntegrationId",
+      "value": "",
+      "description": "Integration candidate input. Set sessionId to the actual session. Empty generated IDs are created once by the generation request."
+    },
+    {
+      "key": "credentialsReadyEnvelope",
+      "value": "",
+      "type": "string",
+      "description": "Actual correlated CredentialsReady JSON from private test evidence; never fill tracked state or invent production readiness."
+    },
+    {
+      "key": "brokerBaseUrl",
+      "value": "http://message-broker:8093",
+      "description": "Private Broker origin reachable by an authorized network test runner; do not use a public Gateway URL."
+    }
+  ],
+  "item": [
+    {
+      "name": "Owned Message Broker integration candidate",
+      "description": "Run against the reviewed Gateway registry and candidate service images. No X-Service-Name is supplied by this client: Gateway derives it from each distinct caller credential. Generation persists pending state; 202 is not a ready applicant. Supply initializationEnvelope only for receiver contract testing. Tokens remain empty in this export.",
+      "item": [
+        {
+          "name": "record.enrollmentFacts",
+          "request": {
+            "method": "GET",
+            "url": "{{brokerBaseUrl}}/internal/v1/records/{{integrationApplicantId}}/facts",
+            "description": "Authoritative persisted Record truth, accessible only to Credential and Rules using service identity. NOT_ENROLLED is enrolled=false and record=null; claimed identity is never rewritten to match truth.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "type": "string",
+                  "value": "{{credentialServiceToken}}"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "X-Trace-Id",
+                "value": "owned-postman-{{integrationRequestId}}",
+                "type": "text"
+              }
+            ]
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Documented response', function() { pm.expect(pm.response.code).to.be.oneOf([200]); });",
+                  "pm.test('Trace correlation returned', function(){pm.expect(pm.response.headers.get('X-Trace-Id')).to.eql(pm.variables.replaceIn('owned-postman-{{integrationRequestId}}'));});",
+                  "pm.test('Negative truth is explicit',function(){var body=pm.response.json();pm.expect(body.enrolled).to.be.a('boolean');if(!body.enrolled)pm.expect(body.record).to.eql(null);});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "record.generate",
+          "request": {
+            "method": "POST",
+            "url": "{{brokerBaseUrl}}/internal/v1/records/generate",
+            "description": "Owned persisted HTTP baseline. Initialization consumers commit only their component and receipt, without republishing. Readiness checks both peer local receipts in parallel; missing, denied, malformed or unavailable peers keep the item pending.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "type": "string",
+                  "value": "{{sessionServiceToken}}"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "X-Trace-Id",
+                "value": "owned-postman-{{integrationRequestId}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"requestId\":\"{{integrationRequestId}}\",\"applicantId\":\"{{integrationApplicantId}}\",\"sessionId\":\"{{integrationSessionId}}\",\"seed\":{{integrationSeed}},\"difficulty\":\"{{integrationDifficulty}}\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "['integrationApplicantId','integrationRequestId','unknownIntegrationId'].forEach(function(key){ if (!pm.collectionVariables.get(key)) pm.collectionVariables.set(key, pm.variables.replaceIn('{{$guid}}')); });"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Documented response', function() { pm.expect(pm.response.code).to.be.oneOf([202]); });",
+                  "pm.test('Trace correlation returned', function(){pm.expect(pm.response.headers.get('X-Trace-Id')).to.eql(pm.variables.replaceIn('owned-postman-{{integrationRequestId}}'));});",
+                  "pm.test('Readiness is explicit',function(){ var body=pm.response.json(); pm.expect(body.ready).to.be.a('boolean'); if(pm.response.code===202) pm.expect(body.ready).to.eql(false); else pm.expect(body.ready).to.eql(true); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "record.initialize",
+          "request": {
+            "method": "POST",
+            "url": "{{brokerBaseUrl}}/internal/v1/records/events/applicant-initialized",
+            "description": "Owned persisted HTTP baseline. Initialization consumers commit only their component and receipt, without republishing. Never exposes deception through claims/profile or public management projections.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "type": "string",
+                  "value": "{{applicantServiceToken}}"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "X-Trace-Id",
+                "value": "owned-postman-{{integrationRequestId}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{{initializationEnvelope}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Documented response', function() { pm.expect(pm.response.code).to.be.oneOf([200]); });",
+                  "pm.test('Trace correlation returned', function(){pm.expect(pm.response.headers.get('X-Trace-Id')).to.eql(pm.variables.replaceIn('owned-postman-{{integrationRequestId}}'));});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "record.getInitialization",
+          "request": {
+            "method": "GET",
+            "url": "{{brokerBaseUrl}}/internal/v1/records/{{integrationApplicantId}}/initialization",
+            "description": "Owned persisted HTTP baseline. Initialization consumers commit only their component and receipt, without republishing. Never exposes deception through claims/profile or public management projections.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "type": "string",
+                  "value": "{{sessionServiceToken}}"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "X-Trace-Id",
+                "value": "owned-postman-{{integrationRequestId}}",
+                "type": "text"
+              }
+            ]
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Documented response', function() { pm.expect(pm.response.code).to.be.oneOf([200]); });",
+                  "pm.test('Trace correlation returned', function(){pm.expect(pm.response.headers.get('X-Trace-Id')).to.eql(pm.variables.replaceIn('owned-postman-{{integrationRequestId}}'));});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "record.getReadiness",
+          "request": {
+            "method": "GET",
+            "url": "{{brokerBaseUrl}}/internal/v1/records/{{integrationApplicantId}}/readiness",
+            "description": "Owned persisted HTTP baseline. Initialization consumers commit only their component and receipt, without republishing. Readiness checks both peer local receipts in parallel; missing, denied, malformed or unavailable peers keep the item pending.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "type": "string",
+                  "value": "{{sessionServiceToken}}"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "X-Trace-Id",
+                "value": "owned-postman-{{integrationRequestId}}",
+                "type": "text"
+              }
+            ]
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Documented response', function() { pm.expect(pm.response.code).to.be.oneOf([200, 202]); });",
+                  "pm.test('Trace correlation returned', function(){pm.expect(pm.response.headers.get('X-Trace-Id')).to.eql(pm.variables.replaceIn('owned-postman-{{integrationRequestId}}'));});",
+                  "pm.test('Readiness is explicit',function(){ var body=pm.response.json(); pm.expect(body.ready).to.be.a('boolean'); if(pm.response.code===202) pm.expect(body.ready).to.eql(false); else pm.expect(body.ready).to.eql(true); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "record.resumeInitialization",
+          "request": {
+            "method": "POST",
+            "url": "{{brokerBaseUrl}}/internal/v1/records/{{integrationApplicantId}}/resume",
+            "description": "Owned persisted HTTP baseline. Initialization consumers commit only their component and receipt, without republishing. Readiness checks both peer local receipts in parallel; missing, denied, malformed or unavailable peers keep the item pending.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "type": "string",
+                  "value": "{{sessionServiceToken}}"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "X-Trace-Id",
+                "value": "owned-postman-{{integrationRequestId}}",
+                "type": "text"
+              }
+            ]
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Documented response', function() { pm.expect(pm.response.code).to.be.oneOf([202]); });",
+                  "pm.test('Trace correlation returned', function(){pm.expect(pm.response.headers.get('X-Trace-Id')).to.eql(pm.variables.replaceIn('owned-postman-{{integrationRequestId}}'));});",
+                  "pm.test('Readiness is explicit',function(){ var body=pm.response.json(); pm.expect(body.ready).to.be.a('boolean'); if(pm.response.code===202) pm.expect(body.ready).to.eql(false); else pm.expect(body.ready).to.eql(true); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Credential authoritative facts",
+          "request": {
+            "method": "POST",
+            "url": "{{brokerBaseUrl}}/internal/v1/records/facts",
+            "description": "Requires full session-bound initialization and Credential caller identity. Never supplies a player identity or generates missing context.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "type": "string",
+                  "value": "{{credentialServiceToken}}"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "X-Trace-Id",
+                "value": "owned-postman-{{integrationRequestId}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"applicantId\":\"{{integrationApplicantId}}\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Documented response', function(){ pm.expect(pm.response.code).to.be.oneOf([200]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "CredentialsReady durable callback",
+          "request": {
+            "method": "POST",
+            "url": "{{brokerBaseUrl}}/internal/v1/records/events/credentials-ready",
+            "description": "Use an actual Credential callback from the private local test run, matching integrationApplicantId and parent request/event ID. Identical replay 200; changed content or causation 409. A callback alone cannot establish READY.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "type": "string",
+                  "value": "{{credentialServiceToken}}"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "X-Trace-Id",
+                "value": "owned-postman-{{integrationRequestId}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{{credentialsReadyEnvelope}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Documented response', function(){ pm.expect(pm.response.code).to.be.oneOf([200]); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

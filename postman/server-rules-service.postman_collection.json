@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "Student ID - Server Rules Service",
-    "description": "UNRELEASED owned business HTTP candidate; not a live full-stack acceptance claim. Current reads require actual Session membership and Gateway target-credential/verified-player support. The old caller-facts evaluation is retired with 410 CALLER_FACTS_RETIRED; the service-only ID evaluation is invoked by Moderation using its own service identity, never public player tokens or service credentials in this collection. Credential generation/provenance and Rules authoritative HTTP consumers are implemented locally, but peer schema review, exact Gateway bindings and live integration remain pending. Published lab3 images predate these changes.",
+    "description": "Server Rules lab4-1.1.0 public CRUD and authorization/error checks through Gateway at http://localhost:8090. Use a real Player token and persisted Session membership. Run in order with disposable rule IDs. Caller-supplied-facts evaluation remains retired (410 CALLER_FACTS_RETIRED); ID-based evaluation and shift binding are private Broker gRPC operations. No mock membership or player-supplied identity headers. See deployment/releases.json and postman/README.md for deployment prerequisites.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
@@ -10,7 +10,7 @@
   },
   "event": [{ "listen": "test", "script": { "exec": [
     "pm.test('No server-side failure or false green', () => pm.expect(pm.response.code).to.be.below(500));",
-    "pm.test('Response has a UUID trace', () => pm.expect(pm.response.headers.get('X-Trace-Id')).to.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i));"
+    "pm.test('Response has a valid trace', () => pm.expect(pm.response.headers.get('X-Trace-Id')).to.match(/^[A-Za-z0-9._-]{1,64}$/));"
   ] } }],
   "variable": [
     { "key": "accessToken", "value": "", "type": "string", "description": "Disposable local test JWT. Set in a private local environment; keep this collection value empty." },
@@ -24,7 +24,7 @@
     {
       "name": "Create rule",
       "event": [
-        { "listen": "prerequest", "script": { "exec": ["pm.collectionVariables.unset('ruleId');", "pm.collectionVariables.set('ruleCode', 'LAB3_' + pm.variables.replaceIn('{{$guid}}').replace(/-/g, '').toUpperCase());"] } },
+        { "listen": "prerequest", "script": { "exec": ["pm.collectionVariables.unset('ruleId');", "pm.collectionVariables.set('ruleCode', 'LAB4_' + pm.variables.replaceIn('{{$guid}}').replace(/-/g, '').toUpperCase());"] } },
         { "listen": "test", "script": { "exec": ["pm.test('Rule created with an ID', () => { pm.response.to.have.status(201); const id = pm.response.json().ruleId; pm.expect(id).to.be.a('string').and.not.empty; pm.collectionVariables.set('ruleId', id); });"] } }
       ],
       "request": {

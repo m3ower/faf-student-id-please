@@ -40,7 +40,7 @@ traumatize Mr. Pumpkin with the emojis.
 6. [Repository structure](#repository-structure)
 7. [Contribution guide](#contribution-guide)
 8. [Project board](#project-board)
-9. [Lab 1 deployment](#lab-1-deployment)
+9. [Credential and Rules deployment](#credential-and-rules-deployment)
 
 ---
 
@@ -182,53 +182,122 @@ transports messages and does not determine whether the information is true.
 
 ## Architecture diagram
 
-![Architecture diagram](https://github.com/m3ower/faf-student-id-please/blob/main/archdiagram.png "Architecture diagram")
+Editable source: [docs/architecture.mmd](docs/architecture.mmd). This shows the
+coordinated Lab 4 source/configuration, not proof that all releases are deployed.
+Six business-delivery groups use gRPC; Moderation/DMs retain HTTP delivery until
+their separate owner flips. See [release provenance](deployment/releases.json).
 
-**Legend**
+```mermaid
+flowchart TB
+    Client["Browser / API client"]
 
-- Solid arrow — synchronous request/response over REST or gRPC.
-- Dotted arrow — asynchronous event published through the message broker.
-- Colour groups services by ownership domain: player state, session state,
-  decisions, applicant claims, ground truth, rules, transport.
+    subgraph Platform["Docker Compose — private service network"]
+        Gateway["API Gateway<br/>JWT verification · verified player identity<br/>Public HTTP entry: localhost:8090"]
+        Broker["Custom Message Broker<br/>In-memory subscriber queues and business topics<br/>Round-robin selection · circuit breakers · deadlines"]
+        Discovery["Service Discovery<br/>Instance addresses · subscriptions · readiness"]
 
-The triangular `ApplicantInitialized` relationship between the Applicant,
-Credential and University Record services is described in
-[Applicant initialization](#applicant-initialization).
+        subgraph Domain["Domain services — replica-capable"]
+            subgraph RPC["gRPC business-delivery groups"]
+                Player["Player"]
+                Session["Session"]
+                Applicant["Applicant"]
+                Record["University Record"]
+                Credential["Credential<br/>Java / Spring Boot"]
+                Rules["Server Rules<br/>Go / Fiber"]
+            end
+            subgraph HTTP["HTTP business-delivery groups"]
+                Moderation["Moderation"]
+                DMs["Discord DMs"]
+            end
+        end
+
+        subgraph Data["Persistent service-owned storage"]
+            PlayerDB[("Player PostgreSQL")]
+            SessionDB[("Session PostgreSQL")]
+            ApplicantDB[("Applicant PostgreSQL")]
+            RecordDB[("University Record PostgreSQL")]
+            ModerationDB[("Moderation PostgreSQL")]
+            Redis[("DMs Redis / AOF")]
+            subgraph OwnedPG["One PostgreSQL instance — separate databases"]
+                CredentialDB[("credential_db")]
+                RulesDB[("rules_db")]
+            end
+        end
+    end
+
+    Client <-->|"HTTP REST + client JWT"| Gateway
+    Gateway <-->|"HTTP public queues / results<br/>SSE relay and WebSocket negotiation"| Broker
+    Broker <-->|"HTTP public REST / responses<br/>Session SSE relay"| Domain
+
+    Broker <-->|"gRPC Publish / GetResult and Deliver"| Player
+    Broker <-->|"gRPC Publish / GetResult and Deliver"| Session
+    Broker <-->|"gRPC Publish / GetResult and Deliver"| Applicant
+    Broker <-->|"gRPC Publish / GetResult and Deliver"| Record
+    Broker <-->|"gRPC Publish / GetResult and Deliver"| Credential
+    Broker <-->|"gRPC Publish / GetResult and Deliver"| Rules
+    Moderation <-->|"gRPC publication / results"| Broker
+    DMs <-->|"gRPC publication / results"| Broker
+    Broker <-->|"HTTP business delivery / reply"| Moderation
+    Broker <-->|"HTTP business delivery / reply"| DMs
+
+    Domain -.->|"HTTP startup registration + subscriptions"| Discovery
+    Discovery -.->|"HTTP readiness polls"| Domain
+    Broker -.->|"HTTP ready-subscriber lookup"| Discovery
+    Broker -.->|"Standard gRPC consumer health"| RPC
+
+    Player -->|"SQL"| PlayerDB
+    Session -->|"SQL"| SessionDB
+    Applicant -->|"SQL"| ApplicantDB
+    Record -->|"SQL"| RecordDB
+    Credential -->|"SQL"| CredentialDB
+    Rules -->|"SQL"| RulesDB
+    Moderation -->|"SQL"| ModerationDB
+    DMs -->|"Redis protocol"| Redis
+    Client <-->|"Direct WebSocket after negotiation"| DMs
+
+    classDef infrastructure fill:#e8efff,stroke:#385a91,color:#172b4d
+    classDef service fill:#eaf6ed,stroke:#42754c,color:#173c20
+    class Gateway,Broker,Discovery infrastructure
+    class Player,Session,Applicant,Record,Credential,Rules,Moderation,DMs service
+```
+
+Solid connections carry application/data traffic; dashed connections carry
+registration, lookup or health control-plane traffic. Session SSE returns
+Session → Broker → Gateway → client on the HTTP connection. WebSocket negotiation
+uses Gateway/Broker, then the client connects directly to the selected DMs instance.
+Responses return on their original connections, not independent service calls.
 
 ---
 
 ## Technologies and communication patterns
 
-| Service | Language | Framework | Database | Surfaces exposed |
-| --- | --- | --- | --- | --- |
-| Player | Java 21 | Quarkus | PostgreSQL | REST |
-| Moderation Session | Go | Fiber | PostgreSQL + Redis | REST, gRPC |
-| Applicant | Java 21 | Quarkus | PostgreSQL | gRPC |
-| Credential | Java 21 | Spring Boot | PostgreSQL | REST, gRPC |
-| University Record | Go | Fiber | PostgreSQL | REST, gRPC |
-| Server Rules | Go | Fiber | PostgreSQL | REST, gRPC |
-| Moderation | Java 21 | Quarkus | PostgreSQL | REST, gRPC |
-| Discord DMs | Go | Gorilla WebSocket | Redis | WebSocket, REST |
+| Component | Implementation | Persistent storage | Interfaces |
+| --- | --- | --- | --- |
+| Player | Java / Quarkus | Own PostgreSQL | Public REST; private Broker gRPC |
+| Session | Go / Fiber | Own PostgreSQL | Public REST/SSE; private Broker gRPC |
+| Applicant | Java / Quarkus | Own PostgreSQL | Public REST; private Broker gRPC |
+| Credential | Java / Spring Boot | credential_db | Public REST; private Broker gRPC |
+| University Record | Go / Fiber | Own PostgreSQL | Public REST; private Broker gRPC |
+| Server Rules | Go / Fiber | rules_db | Public REST; private Broker gRPC |
+| Moderation | Java / Quarkus | Own PostgreSQL | Public REST; gRPC publication, HTTP delivery until group flip |
+| Discord DMs | Go / Gorilla WebSocket | Own Redis / AOF | Public REST/direct WebSocket; gRPC publication, HTTP delivery until group flip |
+| API Gateway | Python / FastAPI | None | JWT verification, HTTP public queues, SSE relay, WebSocket negotiation |
+| Service Discovery | Python / FastAPI | In-memory registry | HTTP instance/subscription registration and readiness |
+| Custom Message Broker | Python / FastAPI | In-memory queues/results | HTTP public queues; gRPC business messaging; topic fan-out |
 
-This table describes the planned full system. In Lab 1, Credential runs on
-Spring Boot and exposes REST endpoints; Server Rules also exposes REST endpoints.
-Their gRPC contracts below remain integration targets for later labs.
+There is no RabbitMQ, Kafka or Traefik deployment. Broker owns instance selection,
+round robin and circuit breakers. Gateway is the public entry point, not an
+internal business router. Credential and Rules share a PostgreSQL process, not
+tables or users. Each domain service accesses only its own storage.
 
-Message broker for the existing event contract: **RabbitMQ**. API gateway: a **Python 3.12 / FastAPI** service of our own
-(see [Gateway routing](#gateway-routing)) rather than Traefik, so the route map, the error
-envelope it returns and the identity it forwards are our code and are tested like any other
-service. Everything runs under `docker compose`.
-
-**Lab 4 custom Message Broker:** the new private
-[`Andreiisthebest/student-id-message-broker`](https://github.com/Andreiisthebest/student-id-message-broker)
-repository uses **Python 3.12+**, the team's banned language already used by
-Gateway and Service Discovery. Its repository/workflow scaffold exists; it has
-no running application, HTTP/gRPC endpoint, queue implementation, Docker image,
-Compose service or CPR submodule yet. Gateway remains the HTTP entry point and
-keeps its existing routing, load balancing and circuit breakers. Moving internal
-communication and those policies to the custom broker belongs to later Lab 4
-tasks. The RabbitMQ event definitions below remain the existing contract until
-that integration is implemented and reviewed.
+Current transport contracts:
+[queues/topics](docs/messaging-queues.md),
+[gRPC](docs/messaging-grpc.md),
+[per-group modes](contracts/proto/transports.json).
+The older domain-specific protos later in this README are design history, not
+a claim that those domain RPC servers are live. Durable Broker queues and a
+dead-letter channel are not implemented here; service-owned outboxes are not
+Broker persistence.
 
 ### Why these choices
 
@@ -1517,271 +1586,97 @@ separate from verification against the actual running Docker project.
 
 ## Docker Hub images
 
-The Compose file references versioned Docker Hub image tags
-(`<user>/<service>:<version>`); it never builds from a Dockerfile. An image must
-be published publicly before a fresh machine can pull it.
+Latest published tags were checked on 12 November 2026 using DockerHub digests
+and Linux amd64 OCI source labels. Gitlinks track those released source commits,
+not inaccessible/unpublished WIP.
+[deployment/releases.json](deployment/releases.json) records all eleven full
+SHAs and digests. No application tests or container startup were run for this refresh.
 
-|Service|Image|Published host port|Database|
-|-|-|-|-|
-|Moderation| [`meow3r/student-id-moderation-service:lab3-0.4.1`](https://hub.docker.com/r/meow3r/student-id-moderation-service) | 8087 | PostgreSQL 16 (`moderation-db`, volume `moderation-pg-data`) |
-|Discord DMs| [`meow3r/student-id-discord-dms-service:lab3-0.4.2`](https://hub.docker.com/r/meow3r/student-id-discord-dms-service) | 8088 | Redis 7.4 with AOF (`dms-redis`, volume `dms-redis-data`) |
-|Credential|[`cmmarin/student-id-credential-service:lab3-0.4.0`](https://hub.docker.com/r/cmmarin/student-id-credential-service)|internal only|PostgreSQL 17 (`credential_db`, volume `postgres-data`)|
-|Server Rules|[`cmmarin/student-id-rules-service:lab3-0.4.0`](https://hub.docker.com/r/cmmarin/student-id-rules-service)|internal only|PostgreSQL 17 (`rules_db`, volume `postgres-data`)|
-|Player|[`vasiok11/student-id-player-service:lab3-0.6.0-build.18`](https://hub.docker.com/r/vasiok11/student-id-player-service)|8082|PostgreSQL 16 (`player-db`, volume `player-pg-data`)|
-|Session|[`vasiok11/student-id-session-service:lab3-0.7.0-build.22`](https://hub.docker.com/r/vasiok11/student-id-session-service)|8083|PostgreSQL 16 (`session-db`, volume `session-pg-data`)|
-|Applicant|[`andreiisthebest/student-id-applicant-service:lab3-0.3.0`](https://hub.docker.com/r/andreiisthebest/student-id-applicant-service)|internal only (Gateway 8090)|PostgreSQL 16 (`applicant-db`, volume `applicant-pg-data`)|
-|University Record|[`andreiisthebest/student-id-university-record-service:lab3-0.3.0`](https://hub.docker.com/r/andreiisthebest/student-id-university-record-service)|internal only (Gateway 8090)|PostgreSQL 16 (`university-record-db`, volume `record-pg-data`)|
-|Gateway|[`vasiok11/student-id-gateway-service:lab3-0.7.0-build.43`](https://hub.docker.com/r/vasiok11/student-id-gateway-service)|8090|none|
-|Service Discovery|[`cmmarin/student-id-service-discovery:lab3-0.7.0`](https://hub.docker.com/r/cmmarin/student-id-service-discovery)|127.0.0.1:8089|none, in-memory registry|
+| Component | Latest verified published image | Storage |
+| --- | --- | --- |
+| Credential | `cmmarin/student-id-credential-service:lab4-1.1.0` | PostgreSQL 17, credential_db |
+| Server Rules | `cmmarin/student-id-rules-service:lab4-1.1.0` | PostgreSQL 17, rules_db |
+| Player | `vasiok11/student-id-player-service:lab4-1.3.0-build.31` | Own PostgreSQL 16 |
+| Session | `vasiok11/student-id-session-service:lab4-1.3.0-build.37` | Own PostgreSQL 16 |
+| Applicant | `andreiisthebest/student-id-applicant-service:lab3-1.2.0` | Own PostgreSQL 16 |
+| University Record | `andreiisthebest/student-id-university-record-service:lab3-1.2.0` | Own PostgreSQL 16 |
+| Moderation | `meow3r/student-id-moderation-service:lab3-0.8.0` | Own PostgreSQL 16 |
+| Discord DMs | `meow3r/student-id-discord-dms-service:lab3-0.8.0` | Redis 7.4 / AOF |
+| Service Discovery | `cmmarin/student-id-service-discovery:lab4-0.8.0` | In-memory registry |
+| Message Broker | `andreiisthebest/student-id-message-broker:lab4-0.6.0` | In-memory queues/results |
+| Gateway | `vasiok11/student-id-gateway-service:lab3-0.7.0-build.43` | None |
 
-**Every tag in the table above is published and pullable**, and `.env.example` now pins
-all of them, so a fresh clone needs no local build. Each tag matches the submodule
-revision recorded here, because the pointer and the pin are advanced together.
+**Publication gates:** Broker 0.6.0 supports gRPC but bundles HTTP delivery for
+every group. Activation requires the reviewed `lab4-0.6.3` release containing
+[Broker #34](https://github.com/Andreiisthebest/student-id-message-broker/pull/34)
+and the other merged owner flips. That tag is a target, not verified publication.
+Gateway's latest public tag is still the legacy Lab 3 implementation; its owner
+must publish the merged Lab 4 queue-capable source. `OWNED_GATEWAY_IMAGE` is
+required and blank until then; the old image does not implement Gateway → Broker.
 
-**Service Discovery** is pinned to `lab3-0.7.0`, which has the shared `/status` endpoint,
-aligned logging, task limits, controlled instance removal, Grade 8 health polling, the
-**Grade 9 Discord notifications** (set `DISCOVERY_DISCORD_WEBHOOK_URL` to enable them) and
-**Grade 10 automatic removal**: three failed polls of one instance inside the circuit window
-remove it from the registry, so the Gateway stops routing to it until a probe after the
-cooldown restores it. The stack polls every 5 s (`DISCOVERY_POLL_INTERVAL_SECONDS`), which
-keeps that window at exactly task timeout x 3.5 = 17.5 s; at the image's 10 s default it
-widens to 35 s.
-
-**Gateway** is pinned to `lab3-0.7.0-build.43`. It looks up Service Discovery on every
-request and rotates round-robin between the registered instances of each service (Grade 6),
-logs `circuit_tripped` after three failed calls to one instance inside task timeout x 3.5
-(Grade 7), and when that circuit trips it removes the instance from Discovery with
-`DELETE /internal/v1/instances/{service}/{instanceId}`, so no other caller is routed to it
-either (Grade 10).
-
-Images are built and pushed by each repository's `publish` workflow when a release PR merges
-to `main`. A workflow refuses to publish over a tag that already exists, so one tag cannot
-come to mean two different builds. Verify a tag rather than trusting a green build:
-
-```bash
-docker buildx imagetools inspect meow3r/student-id-moderation-service:lab3-0.4.0
-```
-
-Other image tags are maintained by their respective owners.
-
-For the Player and Session services, the linked Docker Hub repositories above
-are [`vasiok11/student-id-player-service`](https://hub.docker.com/r/vasiok11/student-id-player-service)
-and [`vasiok11/student-id-session-service`](https://hub.docker.com/r/vasiok11/student-id-session-service).
-Player `lab3-0.6.0-build.18` and Session `lab3-0.7.0-build.22` include measured
-`/status` telemetry and Discovery registration circuit-trip logging. Player adds
-versioned database migrations and case-insensitive identity uniqueness; Session
-reports database failures accurately and preserves its PostgreSQL-backed
-cross-instance SSE at `GET /api/v1/sessions/{sessionId}/events`. The existing
-CRUD and task-limit behavior remains, and fixture flows stay in-process rather
-than becoming live service integrations. Before upgrading Player, follow its
-private README's migration checks: existing case-insensitive duplicate accounts
-require deliberate operator resolution. Preserve the existing database volumes.
-These owned releases do not resolve the separately tracked shared Discovery
-registration and conditional-removal defects.
+Compose pulls images, never local Dockerfiles. `latest` is not a reproducible pin.
+PostgreSQL major versions and existing named volumes are preserved. Tags retaining
+a Lab 3 prefix above are the owners' actual names for their current migrated releases.
 
 ## Running the system
 
-For Lab 3 Grade 5, use the [scaled startup guide](docs/service-discovery-scaled.md)
-and `python scripts/scaled_stack.py up` with the updated `.env.example` settings.
-The shared `docker-compose.yml` contains both replicas; the helper initializes
-primary schemas before enabling the second instances. The Lab 2 release notes
-below describe the earlier baseline, not the pending Lab 3 image pins.
+Lab 4 requires the base file plus
+[docker-compose.owned-broker.yml](docker-compose.owned-broker.yml).
+Base Compose alone is not a complete current deployment. Satisfy the
+Broker/Gateway publication gates above before attempting a full stack.
 
-Applicant and University Record submodules now track their merged Lab 3 fixes
-on `dev`, both with source version `0.4.0`:
+1. Clone with submodules using an account that can read the private services.
+2. Create a git-ignored private environment from `.env.example`, then add the
+   settings from `.env.owned-broker.example`. Existing local image overrides win:
+   replace stale overrides deliberately; never overwrite existing secret files.
+3. Select matching published Broker/Gateway/Discovery images. Every canonical
+   caller has a distinct credential in `BROKER_CALLER_TOKENS_JSON`, matching its
+   service variable; Broker target secrets match the receivers. Never reuse
+   caller, target, management or Discovery credentials.
+4. Configure Player's private signing key and the matching public key for Gateway
+   and DMs. No real key or token belongs in Git.
+5. Once publication/configuration prerequisites are satisfied:
 
-| Service | Source commit | Merged repair PR |
-| --- | --- | --- |
-| Applicant | `7b33b46a5900ecd35e791cd5e6b4f160f513fbfb` | [Applicant #21](https://github.com/Andreiisthebest/student-id-applicant-service/pull/21) |
-| University Record | `aefdd93e198ee2824ca1c5c394cfe37aabf599de` | [University Record #20](https://github.com/Andreiisthebest/student-id-university-record-service/pull/20) |
-
-Applicant adds HTTP/1.1 Discovery registration, measured `/status`, sanitized
-create/update uniqueness conflicts and safe process/request logs. Record adds
-measured `/status` and sanitized Fiber 404/405 handling while retaining 23505 ->
-409 conflicts. Both retain the exact caller timeout x 3.5 failure window, exclude
-ordinary 4xx/shutdown cancellation, and keep their in-process integration mocks
-explicit. Record's `session.MockVerifier{}` is not live Session authorization.
-
-Source verification passed 34 Applicant tests with 96.6% line coverage and the
-race-enabled Record suite with 78.8% line / 78.7% statement coverage. Two source
-replicas per service also passed registration, shared CRUD, 15 create and 15
-update race pairs per service, restart, measured critical latency and database
-failure/recovery. These results do not establish the full shared laboratory run.
-
-The image table and Compose still select `lab3-0.3.0` for these two services.
-Those images do not match the newer gitlinks; changing a submodule does not
-rebuild a pulled image. Source version `0.4.0` is not a claim of Docker Hub
-publication. Reviewed release, immutable tag/digest/source-revision verification
-and a separate image-pin update remain required. No other owner's release is
-changed by this source synchronization.
-
-**Requirements:** Docker Engine 24+ with Compose v2, Python 3.12+, enough RAM
-for 16 backend instances and their databases, and free host ports 8082, 8083,
-8087, 8088, 8089, 8090 and 8091. Configure `.env` using `.env.example` and the
-scaled startup guide; preserve existing credentials and update old image overrides.
-
-```bash
-git clone --recurse-submodules https://github.com/m3ower/faf-student-id-please.git
-cd faf-student-id-please
-cp .env.example .env      # replace every example password
-docker compose pull gateway-service
-docker compose up -d
-docker compose ps
+```powershell
+docker compose --env-file .env.private -f docker-compose.yml -f docker-compose.owned-broker.yml config --quiet
+docker compose --env-file .env.private -f docker-compose.yml -f docker-compose.owned-broker.yml pull
+docker compose --env-file .env.private -f docker-compose.yml -f docker-compose.owned-broker.yml up -d
+docker compose --env-file .env.private -f docker-compose.yml -f docker-compose.owned-broker.yml ps
 ```
 
-Data survives `docker compose down` because every database uses a named volume;
-`docker compose down -v` wipes it.
+Initialize primary schemas before optional second replicas:
 
-Credentials exist only in `.env`, which is git-ignored. `.env.example` holds
-placeholders so everyone knows which variables to set.
-
-### Gateway deployment and authorization
-
-Gateway uses the published image above. Update an existing ignored `.env`'s
-`GATEWAY_IMAGE` to that tag, or remove the override to use the Compose default.
-An older override takes precedence over an updated `docker-compose.yml`.
-
-Set `GATEWAY_JWT_PUBLIC_KEY_B64` in local `.env` to the base64 encoding of the
-matching issuer's PEM RSA **public** key (SubjectPublicKeyInfo, at least 2048 bits).
-Gateway must never receive the private signing key. Do not commit JWTs, private
-keys or local `.env` files; `.env.example` intentionally leaves this setting empty.
-
-With an empty key setting, protected requests with a Bearer token fail closed
-with `503 AUTH_NOT_CONFIGURED`; requests without a token return
-`401 UNAUTHENTICATED`. A configured key verifies RS256 access JWTs with
-`iss=student-id-player-service`, `aud=student-id-api`, UUID `sub`, numeric
-`iat`/`exp` no more than 3600 seconds apart, and `token_use=access`.
-Expired/invalid tokens return `401 UNAUTHENTICATED`. Gateway removes
-`Authorization` before forwarding requests, including public requests.
-
-Health endpoints, `OPTIONS`, and Player registration/login/refresh paths are
-public. The pinned Lab 3 Player image predates real token issuance. The
-[Player/Session baseline candidate](docs/player-session-http-baseline.md) implements
-login/refresh and updates the owned collections to obtain real tokens; use a matching
-reviewed Player/Gateway build and private key configuration. This documentation
-does not silently upgrade the pinned deployment or establish full-stack readiness.
-
-After updating local settings, adopt the release without clearing data:
-
-```bash
-docker compose pull gateway-service
-docker compose up -d --no-deps gateway-service
+```powershell
+docker compose --env-file .env.private -f docker-compose.yml -f docker-compose.owned-broker.yml --profile replicas up -d
 ```
 
-Use the same project name and overrides as the existing stack. Local Gateway
-health is `GET http://localhost:8090/health`. The membership/business baseline binds
-Session's player identity to the verified JWT subject and adds backend target
-credentials; do not supply a spoofed identity header. Direct published service ports
-in the old lab deployment require a separate private-network deployment update.
-
-### Moderation and Discord DMs: what they need
-
-| Variable | Used by | Meaning |
-| --- | --- | --- |
-| `MODERATION_DB_PASSWORD` | `moderation-db`, `moderation-service` | PostgreSQL password; the same value in both |
-| `DMS_REDIS_PASSWORD` | `dms-redis`, `discord-dms-service` | Redis password |
-| `DOCKERHUB_USER` | both | `meow3r` |
-| `MODERATION_VERSION`, `DMS_VERSION` | both | image tags, see the table above |
-
-Health checks: `GET http://localhost:8087/q/health/ready` (Quarkus, reports the database
-too) and `GET http://localhost:8088/health`. Both must report `UP` before the Postman
-collections will pass.
-
-Both services keep their data in named volumes, so a `docker compose restart` preserves
-decisions and chat history; only `docker compose down -v` clears them.
-**Player and Session run requirements:** set `PLAYER_DB_PASSWORD` and
-`SESSION_DB_PASSWORD` to local values in the ignored `.env` file before
-starting the shared Compose stack. Keep all keys from `.env.example` defined,
-because Compose validates the whole shared file even when starting only two
-services. The Session connection URL currently embeds its password, so use
-URL-safe characters (letters, digits, `_`, `-`) for `SESSION_DB_PASSWORD`.
-Run `docker compose up -d player-service session-service`
-to pull the two published images and start their separate PostgreSQL 16
-containers; ports `8082` (Player) and `8083` (Session) must be free.
-`PLAYER_IMAGE` and `SESSION_IMAGE` select the published releases listed above.
-If an existing ignored `.env` still sets these variables to older tags,
-update those two values to match `.env.example`; local values take precedence.
-Docker Compose supplies the database URLs, users, and named volumes, so
-Java and Go are not needed on the host for this image-based run. To build or
-test the current source instead, Player needs Java 21 (Maven Wrapper included),
-Session needs Go 1.27, and running either outside Compose needs its PostgreSQL
-database configured separately.
-
-**Applicant and University Record run requirements:** keep all keys from
-`.env.example` in the ignored `.env`, and replace `APPLICANT_DB_PASSWORD` and
-`RECORD_DB_PASSWORD` with distinct local values. Use URL-safe characters for
-`RECORD_DB_PASSWORD` because its value is embedded in the record service's
-PostgreSQL URL. Their public REST entry point is Gateway on host port `8090`.
-Use the published Gateway image and its authorization settings documented above. Run
-`docker compose up -d applicant-service university-record-service gateway-service`
-to start these services and their separate PostgreSQL 16 containers. Data persists in
-the `applicant-pg-data` and `record-pg-data` named volumes. The image tags can
-be overridden with `APPLICANT_IMAGE` and `RECORD_IMAGE`. Update these two values
-in an existing ignored `.env` to match `.env.example`; older overrides take
-precedence over the Compose defaults. To adopt the published images in an
-already running stack, run these commands from the CPR directory:
-
-```bash
-docker compose pull applicant-service university-record-service
-docker compose up -d --no-deps applicant-service university-record-service
-```
-
-Use the same Compose project name and overrides as the existing deployment.
-This refreshes only these two services and preserves their database volumes.
-Check
-`http://localhost:8090/api/v1/health/applicant-service` and
-`http://localhost:8090/api/v1/health/university-record-service`.
-For this shared deployment, import the CPR's
-[`Applicant collection`](postman/applicant-service.postman_collection.json),
-[`University Record collection`](postman/university-record-service.postman_collection.json),
-or [`combined collection`](postman/Student-ID-Please-Lab-1.postman_collection.json).
-All three use `http://localhost:8090`. The older collection inside the Applicant
-submodule defaults to standalone ports `8080` and `8081`; override both service
-URL variables to `http://localhost:8090` if using that collection with Compose.
-The current HTTP and in-process mock contract is documented in
-[Applicant and University Record Lab 1 contract notes](docs/applicant-university-record-lab1.md).
-Their dedicated networks and Gateway configuration are documented in
-[Applicant and University Record Grade 6 integration](docs/applicant-record-lab2-grade6.md).
-
-Run the owned collections in order. Each generates unique disposable student IDs,
-checks create/update conflicts and rollback, and deletes only the records created
-by that run. Record also checks enrollment lookup with local mock membership and
-a missing-membership 403. `accessToken` stays empty in tracked collections; supply
-a valid Gateway test token in a private environment. `sessionId`/`playerId` are
-mock header inputs, not proof of live Session authorization. The combined
-collection contains only these same two owned folders. These public collections
-do not call internal `/status`, inject database failures or prove concurrent races,
-image provenance, real membership authorization or full Grade 10 acceptance.
-
-For Lab 4 Task 3, the two dedicated Applicant and University Record collections
-also start with a **Gateway boundary** folder: the owned service's public health
-relay, a missing-token `401`, and a malformed Bearer-header `401`, including the
-Gateway error code and trace ID. Those checks override inherited authorization;
-the existing business requests still inherit `Bearer {{accessToken}}`. Keep
-`baseUrl` at Gateway (`http://localhost:8090`). The combined collection and other
-owners' collections are unchanged; no request targets the repository-only broker.
-
-Collection verification against local `0.4.0` builds of the exact owned gitlinks
-passed 68 requests and 120 assertions across the two dedicated collections and
-their combined run. This validates the business contracts directly against those
-builds; Gateway authentication and the older pinned images were not part of that run.
+Use the same Compose project name throughout. Preserve existing volumes. The old
+`scripts/scaled_stack.py` helper selects base Compose only; do not use it as an
+implicit Lab 4 launcher. Public clients use Gateway 8090. Broker/consumer gRPC
+ports stay private; DMs exposes its configured direct WebSocket endpoints.
+[Historical Lab 3 startup notes](docs/history/lab3-running-system.md) are archived,
+not current transport instructions.
 
 ## Testing with Postman
 
-Collections live in [`postman/`](postman). Import one and run it with the Collection
-Runner. The Credential and Server Rules collections create and delete their
-test records in one run.
+Import the root collections in [postman/](postman) and follow
+[postman/README.md](postman/README.md). Public business URLs use
+`http://localhost:8090`. Run Player registration/login and Session Core first
+to obtain real accounts, tokens and session context. Credential/Rules CRUD
+collections run in order and clean up only their generated records. Membership
+and record permissions are real, not fixed-header mocks. Moderation/DMs and
+full-shift scenarios require initialized applicants and delivered events.
 
-|Collection|Base URL|
-|-|-|
-|`moderation-service.postman_collection.json`|`http://localhost:8090`|
-|`discord-dms-service.postman_collection.json`|`http://localhost:8090`|
-|`credential-service.postman_collection.json`|`http://localhost:8090`|
-|`server-rules-service.postman_collection.json`|`http://localhost:8090`|
-|`player-service.postman_collection.json`|`http://localhost:8090`|
-|`session-service.postman_collection.json`|`http://localhost:8090`|
-|`applicant-service.postman_collection.json`|`http://localhost:8090`|
-|`university-record-service.postman_collection.json`|`http://localhost:8090`|
+Keep tokens and generated IDs in a private local environment. Never commit
+exported secrets. Obsolete private HTTP examples are preserved under
+[postman/legacy](postman/legacy), outside the current public collection set.
+Private operations use Broker gRPC from an authorized private-network client,
+not public REST or a player JWT. Log-download operations use their separate
+authenticated operations endpoint.
+
+Positive and negative status assertions are retained: 401/403/503 must not count
+as success for a positive business case. Collections alone do not establish
+full gameplay, event receipts or image provenance. No Newman runs were performed.
 
 ## Mocks in Lab 1
 
@@ -1910,116 +1805,26 @@ visible difference is the health endpoint: `GET /q/health/ready` and `/q/health/
 instead of `/actuator/health`.
 
 ---
-## Lab 1 deployment
+## Credential and Rules deployment
 
-The shared [`docker-compose.yml`](docker-compose.yml) also deploys the Credential
-and Server Rules services owned by Clima Marin. They share one PostgreSQL
-container while using separate databases, users, and the `postgres-data` Docker
-volume; the Moderation and Discord DMs services retain their own database and
-Redis volumes.
+Marin owns Credential (Java/Spring Boot) and Rules (Go/Fiber). Their published
+`lab4-1.1.0` releases, source SHAs and digests are recorded in the
+[release inventory](deployment/releases.json); gitlinks match their image labels.
+Each uses a separate database and user on PostgreSQL 17, persisted through the
+existing `postgres-data` volume.
 
-Published versioned Docker Hub images for these two services:
+The Lab 4 overlay enables private gRPC consumers on 9080/9081 and publishers
+to Broker 9093. Public CRUD stays HTTP through Gateway. Authentication, verified
+original caller, trace/deadline propagation, database readiness and persistent
+initialization/recovery are retained. Credential clears its outbox only after
+both real CredentialsReady processing receipts. Rules stores immutable
+session/shift bindings. Production does not substitute fixture facts or mock
+membership for the real clients.
 
-- [Credential Service — `cmmarin/student-id-credential-service:lab3-0.4.2`](https://hub.docker.com/r/cmmarin/student-id-credential-service)
-- [Server Rules Service — `cmmarin/student-id-rules-service:lab3-0.4.1`](https://hub.docker.com/r/cmmarin/student-id-rules-service)
-
-To run only these two services through the Gateway, you need Docker Engine with
-Compose v2 and free host port 8090. Copy `.env.example` to the
-git-ignored `.env` and replace at least `POSTGRES_PASSWORD`,
-`CREDENTIAL_DB_PASSWORD`, and `RULES_DB_PASSWORD` with your own values. Complete
-the other required settings from the current `.env.example`, including the
-Discovery machine token and reviewed shared image selections; the earlier
-Lab 1 three-password setup alone is no longer sufficient. Protected Gateway
-requests also require its matching public key and a valid client access token.
-Follow the [shared startup guide](docs/service-discovery-scaled.md) for the
-team-wide configuration; this owned-service update changes neither shared
-authentication nor other members' image selections. Do not commit `.env` or
-real credentials. To start just these services and their dependencies:
-
-```bash
-docker compose up -d gateway-service postgres credential-service rules-service
-docker compose ps
-```
-
-The Compose file references these published image tags, never the services'
-local Dockerfiles. Both services use separate databases and users in the shared
-PostgreSQL container, with data persisted in the `postgres-data` named volume.
-The private service READMEs explain how to run each service from source.
-
-These releases retain the internal `GET /status` introduced in `lab3-0.4.0`, with measured
-database `checks[].latencyMs`, enabling Discovery's dependency-pressure alerts
-without changing existing health or business responses. Rules also reads rules
-and their version from one repeatable-read snapshot across concurrent replica
-writes. See [the owned-service health guide](docs/credential-rules-discovery-health.md)
-for the additive contract and the original Grade 3 health/logging notes.
-Existing local `.env` image overrides take precedence: update only
-`CREDENTIAL_IMAGE` and `RULES_IMAGE` to the tags above when adopting this release.
-
-Credential `lab3-0.4.2` also sanitizes framework error responses and suppresses
-raw JDBC failing-row detail while preserving safe application error events.
-Both services exclude ordinary 4xx from their registration failure budgets and
-expire failures exactly one window old. Their only live outbound service call
-is Discovery registration; this release does not implement shared eviction fixes.
-Exact released source commits, digests and PRs are listed in the
-[owned-service health guide](docs/credential-rules-discovery-health.md).
-
-Import `postman/credential-service.postman_collection.json` and
-`postman/server-rules-service.postman_collection.json`. Select a private local
-environment with a valid `accessToken` accepted by the Gateway and run each
-collection in order. Both default to `http://localhost:8090`; keep stored tokens
-empty. CRUD requests create disposable records and delete them at the end;
-negative requests assert exact error statuses and sanitized responses. These
-collections do not call internal `/status`, inject database faults, or establish
-that the shared Discovery/Gateway acceptance tests pass.
-
-The PostgreSQL initialization script runs only when the volume is first
-created. To recreate development databases, intentionally remove the named
-volume and start Compose again.
-
-### Credential and Server Rules mock contract
-
-For the newer Lab 4 Broker/gRPC-capable releases and the opt-in deployment,
-see [Credential and Rules Task 8 rollout](docs/owned-grpc-rollout.md).
-The opt-in overlay activates both owned gRPC publishers/receivers; deploy it only
-with the matching Broker transport-catalog release described there.
-The Lab 1 in-process examples below are historical, not the production Lab 4
-service-to-service implementation. The base Lab 3 deployment is not promoted
-by the opt-in overlay.
-
-The following describes released Lab 3 behavior and test fixture expectations,
-not the unreleased production-baseline implementation. In the candidate branches
-the legacy fixture code is test-only, and protected reads use the real candidate
-membership boundary; see [candidate status and missing work](docs/owned-business-http-baseline.md).
-
-The Grade 9 code in these two private services prepares the existing internal
-contract without changing their Lab 1 HTTP endpoints. Credential models
-`ApplicantInitialized` plus `GenerateCredentials`, `GetCredentials`, and
-`ValidateCredential` in process. An identical initialization event is safe to
-replay; conflicting seed or event data is rejected. Validation reports
-`structurally_valid`, `authentic`, and `issues` separately. The current
-`X-Session-Id` HTTP check is only a session-presence mock, not per-player
-authorization.
-
-Rules models `GetCurrentRuleset(sessionId)` and
-`Evaluate(sessionId, applicantId)` with a session-scoped fact provider. The
-existing HTTP evaluation endpoint still takes applicant facts in its request;
-the internal mock resolves those facts by IDs. Rules returns violations and an
-advisory `recommendedAction`; Moderation owns the final admission decision, so
-the forged-document fixture's `ACCEPT` recommendation is not its final verdict.
-
-For session `55555555-5555-5555-5555-555555555555`, the agreed in-process
-fixtures use ruleset version 1 and fixed `enrollmentYears=2`:
-
-| Applicant ID | Seed and deception | Credential result | Rules result |
-| --- | --- | --- | --- |
-| `a0000000-0000-0000-0000-000000000001` | `918273`, `NONE` | Student ID structurally valid and authentic | No violations; `ACCEPT` recommendation |
-| `a0000000-0000-0000-0000-000000000002` | `918274`, `FORGED_DOCUMENT` | Student ID structurally valid, not authentic; `SIGNATURE_MISMATCH` | No violations; `ACCEPT` recommendation |
-| `a0000000-0000-0000-0000-000000000003` | `918275`, `PREVIOUSLY_BANNED` | Credentials valid; the ban does not invalidate a document | `NO_BANNED` (`CRITICAL`); `BAN` recommendation |
-
-These are in-process mock fixtures, not live gRPC or RabbitMQ integrations.
-The current Credential `lab3-0.4.2` and Rules `lab3-0.4.1` images include these
-in-process mocks. Run `mvn test` in Credential and `go test ./...` in Rules to
-exercise their fixture contracts; that is not proof of live gRPC/event transport.
+See [owned gRPC rollout](docs/owned-grpc-rollout.md) for the matching Broker
+release, verification limits and post-activation HTTP callback removal.
+[Historical Lab 1/3 deployment and mock notes](docs/history/credential-rules-lab1.md)
+are retained as history, not current runtime behavior.
 
 ## Repository structure
 
