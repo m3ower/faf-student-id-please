@@ -1,5 +1,12 @@
 # Owned Task 5 preparation: current implementation handoff
 
+**Superseding compatibility update:** Applicant/Record handoff `42f69b9` now
+implements explicit adapters to Credential's original seed/status/callback
+protocol. Rules' Session and wrapped Applicant profile readers are adapted.
+Read [the current compatibility gate](owned-peer-compatibility.md) first: earlier
+missing-protocol/schema statements below are historical. Real-peer acceptance
+and reviewed publication remain required before Broker migration.
+
 Status: owned business workflows are implemented in local candidate source.
 This is **not** a complete Task 5 / full-stack READY claim: peer schema agreement,
 Gateway registration and real multi-service acceptance remain outstanding.
