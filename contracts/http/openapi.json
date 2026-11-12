@@ -706,8 +706,7 @@
         "x-callers": [
           "session-service",
           "credential-service",
-          "rules-service",
-          "moderation-service"
+          "rules-service"
         ],
         "x-idempotency": "read-only",
         "security": [
@@ -743,8 +742,7 @@
               "enum": [
                 "session-service",
                 "credential-service",
-                "rules-service",
-                "moderation-service"
+                "rules-service"
               ]
             }
           }
@@ -1157,8 +1155,7 @@
         "x-callers": [
           "session-service",
           "credential-service",
-          "rules-service",
-          "moderation-service"
+          "rules-service"
         ],
         "x-idempotency": "read-only",
         "security": [
@@ -1194,8 +1191,7 @@
               "enum": [
                 "session-service",
                 "credential-service",
-                "rules-service",
-                "moderation-service"
+                "rules-service"
               ]
             }
           }
@@ -2379,7 +2375,6 @@
         "x-owner": "credential-service",
         "x-status": "implemented-pending-review",
         "x-callers": [
-          "moderation-service",
           "rules-service"
         ],
         "x-idempotency": "Read-only; validates actual stored documents against fresh authoritative Record facts.",
@@ -2405,7 +2400,6 @@
             "schema": {
               "type": "string",
               "enum": [
-                "moderation-service",
                 "rules-service"
               ]
             }
@@ -4415,8 +4409,7 @@
         "x-owner": "rules-service",
         "x-status": "candidate",
         "x-callers": [
-          "session-service",
-          "moderation-service"
+          "session-service"
         ],
         "x-idempotency": "Read the immutable shift snapshot.",
         "security": [
@@ -4459,8 +4452,7 @@
             "schema": {
               "type": "string",
               "enum": [
-                "session-service",
-                "moderation-service"
+                "session-service"
               ]
             }
           }
@@ -4958,7 +4950,6 @@
         "x-owner": "session-service",
         "x-status": "candidate",
         "x-callers": [
-          "moderation-service",
           "rules-service",
           "credential-service",
           "applicant-service"
@@ -4986,7 +4977,6 @@
             "schema": {
               "type": "string",
               "enum": [
-                "moderation-service",
                 "rules-service",
                 "credential-service",
                 "applicant-service"

@@ -453,7 +453,6 @@
       "method": "POST",
       "path": "/internal/v1/session-state/get",
       "callers": [
-        "moderation-service",
         "rules-service",
         "credential-service",
         "applicant-service"
@@ -946,8 +945,7 @@
       "callers": [
         "session-service",
         "credential-service",
-        "rules-service",
-        "moderation-service"
+        "rules-service"
       ],
       "idempotency": "read-only",
       "retry": "No automatic request retries. Original producer durable outbox alone retries identical initialization.",
@@ -985,8 +983,7 @@
       "callers": [
         "session-service",
         "credential-service",
-        "rules-service",
-        "moderation-service"
+        "rules-service"
       ],
       "idempotency": "read-only",
       "retry": "No automatic request retries. Original producer durable outbox alone retries identical initialization.",
@@ -1085,8 +1082,7 @@
       "method": "GET",
       "path": "/internal/v1/rulesets/sessions/{sessionId}/shifts/{shiftId}",
       "callers": [
-        "session-service",
-        "moderation-service"
+        "session-service"
       ],
       "status": "candidate",
       "statusEvidence": "Receiver-defined CPR #127 at 28e3d8e; Session/Gateway accept these bind/read operations for review in CPR #132.",
@@ -1350,7 +1346,6 @@
       "method": "POST",
       "path": "/internal/v1/credentials/validate-applicant",
       "callers": [
-        "moderation-service",
         "rules-service"
       ],
       "idempotency": "Read-only; validates actual stored documents against fresh authoritative Record facts.",

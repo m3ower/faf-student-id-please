@@ -253,8 +253,9 @@ fresh-ready instances; frames are never queued or replayed. Their existing
 reconnection, authorization and shared Session/DMs state requirements remain.
 
 Send each owner [messaging-owner-handoff.md](messaging-owner-handoff.md) after the
-reviewed shared schemas are available. The two pending business-catalog issues
-are not silently changed here: Moderation's unused caller grants need receiving
-owner review; CredentialsReady receivers require1-32 unique nonzero credential
+reviewed shared schemas are available. Moderation's unused caller grants
+(session-state.get, applicant.getProfile, applicant.getClaims, rules.shift.read,
+credential.validateApplicant) are removed in a separate reviewed catalog change.
+The remaining pending business-catalog issue: CredentialsReady receivers require1-32 unique nonzero credential
 UUIDs, which the existing business schema does not fully express. Preserve that
 receiver validation and agree its separate schema correction.
