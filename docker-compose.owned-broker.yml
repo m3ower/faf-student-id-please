@@ -3,6 +3,11 @@
 # Requires matching images and private configuration; does not change the default
 # deployment/release pins or peer services that have not migrated.
 services:
+  # Task 6 subscriptions/readiness are required for Broker selection. The Lab 3
+  # default does not implement that contract; select a verified published release.
+  service-discovery:
+    image: ${OWNED_DISCOVERY_IMAGE:?set a published subscriptions-and-readiness Discovery image}
+
   message-broker:
     image: ${OWNED_BROKER_IMAGE:?set a published Broker image bundling the reviewed owned grpc delivery choices}
     networks: [default, applicant-net, record-net]
@@ -18,7 +23,7 @@ services:
       RULES_INTERNAL_TOKEN: ${RULES_INTERNAL_TOKEN:-}
       MODERATION_INTERNAL_TOKEN: ${MODERATION_INTERNAL_TOKEN:-}
       DMS_INTERNAL_TOKEN: ${DMS_INTERNAL_TOKEN:-}
-      PLAYER_INTERNAL_TOKEN: ${PLAYER_INTERNAL_TOKEN:-}
+      PLAYER_INTERNAL_TOKEN: ${PLAYER_INTERNAL_TOKEN:?match the Player receiver credential}
     depends_on:
       service-discovery:
         condition: service_healthy
@@ -65,10 +70,48 @@ services:
     environment: *owned-record-env
 
   gateway-service:
+    image: ${OWNED_GATEWAY_IMAGE:?set a published subscriber-queue Gateway image}
     environment:
-      # Public backend authentication remains Gateway's responsibility. Record's
-      # receiver token must match its entry; this is not a Broker caller map.
-      GATEWAY_TARGET_TOKENS_JSON: ${GATEWAY_TARGET_TOKENS_JSON:?configure the actual public receiver credentials}
+      # Gateway validates Player JWTs; Broker authenticates and routes this caller.
+      BROKER_URL: http://message-broker:8093
+      BROKER_SERVICE_TOKEN: ${GATEWAY_BROKER_SERVICE_TOKEN:?match gateway-service in BROKER_CALLER_TOKENS_JSON}
+      GATEWAY_JWT_PUBLIC_KEY_B64: ${GATEWAY_JWT_PUBLIC_KEY_B64:?set the public key matching Player signing}
+      DISCOVERY_URL: ""
+      DISCOVERY_REGISTRATION_TOKEN: ""
+    depends_on:
+      message-broker:
+        condition: service_healthy
+
+  player-service: &owned-player
+    image: ${OWNED_PLAYER_IMAGE:-vasiok11/student-id-player-service:lab4-1.3.0-build.31}
+    environment: &owned-player-env
+      PLAYER_JWT_PRIVATE_KEY_B64: ${PLAYER_JWT_PRIVATE_KEY_B64:?set the private Player signing key locally}
+      PLAYER_INTERNAL_TOKEN: ${PLAYER_INTERNAL_TOKEN:?match the Player receiver credential}
+      BROKER_SERVICE_TOKEN: ${PLAYER_BROKER_SERVICE_TOKEN:?match player-service in BROKER_CALLER_TOKENS_JSON}
+      BROKER_GRPC_TARGET: message-broker:9093
+    depends_on:
+      message-broker:
+        condition: service_healthy
+
+  player-service-2:
+    <<: *owned-player
+    profiles: [replicas]
+    environment: *owned-player-env
+
+  session-service: &owned-session
+    image: ${OWNED_SESSION_IMAGE:-vasiok11/student-id-session-service:lab4-1.3.0-build.37}
+    environment: &owned-session-env
+      SESSION_INTERNAL_TOKEN: ${SESSION_INTERNAL_TOKEN:?match the Session receiver credential}
+      BROKER_SERVICE_TOKEN: ${SESSION_BROKER_SERVICE_TOKEN:?match session-service in BROKER_CALLER_TOKENS_JSON}
+      BROKER_GRPC_TARGET: message-broker:9093
+    depends_on:
+      message-broker:
+        condition: service_healthy
+
+  session-service-2:
+    <<: *owned-session
+    profiles: [replicas]
+    environment: *owned-session-env
 
   # Credential/Rules: published opt-in gRPC-capable images. Keep HTTP publication
   # and delivery until the real-peer acceptance gate and reviewed group flips.

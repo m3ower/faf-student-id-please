@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "Student ID - Player Service",
-    "description": "Real Player CRUD/login/teams through Gateway at localhost:8090. Run in order against the new baseline source/reviewed image, not the old pinned Lab 3 image. Player and Gateway require matching RSA private/public keys and distinct machine target credentials. Login supplies real access/refresh tokens in transient runner variables; never export populated secrets. Backend identity is bound to verified JWT sub. Synthetic accounts are deleted at the end; no internal operations or fabricated JWTs are used.",
+    "description": "Published Player lab4-1.3.0-build.31 through Gateway at localhost:8090. Use docker-compose.yml plus the shared docker-compose.owned-broker.yml overlay with compatible published Gateway/Broker/Discovery images. Public requests stay HTTP; internal gRPC needs no Postman port change. Player and Gateway require matching RSA private/public keys and distinct machine target credentials. Login supplies real access/refresh tokens in transient runner variables; never export populated secrets. Backend identity is bound to verified JWT sub. Synthetic accounts are deleted at the end; no internal operations or fabricated JWTs are used.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
