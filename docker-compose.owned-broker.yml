@@ -9,7 +9,7 @@ services:
     image: ${OWNED_DISCOVERY_IMAGE:?set a published subscriptions-and-readiness Discovery image}
 
   message-broker:
-    image: ${OWNED_BROKER_IMAGE:-andreiisthebest/student-id-message-broker:lab4-0.6.0}
+    image: ${OWNED_BROKER_IMAGE:?set a published Broker release containing the Player/Session grpc activation}
     networks: [default, applicant-net, record-net]
     environment:
       DISCOVERY_URL: http://service-discovery:8089

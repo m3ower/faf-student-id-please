@@ -16,11 +16,13 @@ verified on 12 November 2026. CPR's two owned gitlinks select these revisions.
 
 ## Shared release prerequisites
 
-Fill `OWNED_GATEWAY_IMAGE` and `OWNED_DISCOVERY_IMAGE` with
+Fill `OWNED_BROKER_IMAGE`, `OWNED_GATEWAY_IMAGE` and `OWNED_DISCOVERY_IMAGE` with
 verified **published** compatible releases. Their blank example values are
 deliberate: the overlay fails validation instead of selecting historical images.
 
-- Broker is pinned to published `andreiisthebest/student-id-message-broker:lab4-0.6.0`.
+- Broker `andreiisthebest/student-id-message-broker:lab4-0.6.0` is published, but
+  predates this Player/Session activation. Select the next release containing
+  [Broker #33](https://github.com/Andreiisthebest/student-id-message-broker/pull/33).
   Its publication succeeded during this verification. The source label matches
   main `6e5c2327dae01e914c04d303bd76013eefa02da3`, version label is `0.6.0`, and
   its versioned/`latest` digest is
@@ -34,10 +36,12 @@ deliberate: the overlay fails validation instead of selecting historical images.
 - Discovery needs the merged subscription/readiness implementation from #39.
   Its published `lab3-0.7.0` image predates that implementation.
 
-No delivery modes in `contracts/proto/transports.json` or Broker's bundled copy
-are changed here. Incoming deliveries remain HTTP until each group's reviewed
-flip; Player/Session publish to Broker over gRPC. Full cross-owner and multi-group
-acceptance remains part of that coordinated rollout.
+This branch switches Player/Session to `grpc` in the CPR catalog; Broker #33
+contains the matching two changes in its bundled catalog. Other groups are
+preserved on each branch. Broker dev already activates Applicant/Record, whose
+CPR alignment belongs to their owner. The released image must contain the merged
+activation settings. Full cross-owner and multi-group acceptance remains a release
+check. The verification below predates this delivery-mode switch.
 
 ## Private environment
 
