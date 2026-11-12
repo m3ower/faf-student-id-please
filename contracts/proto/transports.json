@@ -15,8 +15,8 @@
   "delivery": {
     "applicant-service": "http",
     "credential-service": "http",
-    "discord-dms-service": "http",
-    "moderation-service": "http",
+    "discord-dms-service": "grpc",
+    "moderation-service": "grpc",
     "player-service": "http",
     "rules-service": "http",
     "session-service": "http",
