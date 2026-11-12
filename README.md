@@ -887,6 +887,13 @@ Errors:   403 player has no access to this channel
 
 ### gRPC services
 
+> **Lab 4 Grade 8, implemented contract:** service-to-service messaging over gRPC is
+> [`contracts/proto/studentid/messaging/v1/messaging.proto`](contracts/proto/studentid/messaging/v1/messaging.proto),
+> described in [docs/messaging-grpc.md](docs/messaging-grpc.md): `MessageBroker`
+> (`Publish`, `GetResult`, `ListTopics`) and `MessageConsumer` (`Deliver`), carrying the
+> reviewed JSON business bodies unchanged. The per-service protos below are the Lab 1
+> design and were never implemented; they are kept for history only.
+
 Proto files live in [`contracts/proto/`](contracts/proto) at the root of the CPR
 and are consumed by every service, so Java and Go generate their stubs from the
 same source of truth. `syntax = "proto3"` throughout; `package studentid.v1`.
