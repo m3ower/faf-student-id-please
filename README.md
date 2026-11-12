@@ -2072,6 +2072,13 @@ in the system.
 
 ---
 
+## Gateway and Broker routing handoff (candidate)
+
+[The coordinated handoff contract](docs/gateway-broker-handoff.md) moves backend
+selection, balancing and circuits to Broker for public as well as service calls.
+Gateway keeps JWT validation and the public API. This is review-stage source work;
+shared Compose, image selections and submodule pointers are unchanged here.
+
 ## Contribution guide
 
 ### Branches

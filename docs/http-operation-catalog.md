@@ -78,7 +78,7 @@ from the Gateway into the message broker
 ([broker #7](https://github.com/Andreiisthebest/student-id-message-broker/issues/7)).
 The broker bundles a snapshot of [`contracts/http/service-operations.json`](../contracts/http/service-operations.json)
 and routes every operation in it whose status is `candidate` or `implemented-pending-review`
-(all 31 today), with that operation's owner as the target, its caller allowlist and its
+(all 39 today), with that operation's owner as the target, its caller allowlist and its
 `budgetsMs.broker` deadline. `requested` and `owner-to-define` entries are not routed. The
 snapshot is updated together with this catalog; the broker never fetches routing policy at
 runtime.
@@ -105,3 +105,13 @@ where it verifies the Player access JWT itself.
 ## Applicant/Record caller migration
 
 The [Applicant/Record broker migration candidate](applicant-record-broker-migration.md) switches both callers and Record membership to BROKER_URL/BROKER_SERVICE_TOKEN, without Gateway/direct fallback. It uses the unchanged current 39-operation catalog; Broker issue #12 owns bundling that snapshot. Public Gateway routes and direct Discovery registration stay in place. Matching images and actual current-peer acceptance remain deployment gates.
+
+## Gateway public delivery handoff (candidate)
+
+The coordinated [Gateway ? Broker handoff](gateway-broker-handoff.md) moves the
+remaining public-route balancing and backend circuits into Broker. It specifies
+Gateway caller authentication, trusted player identity, health/SSE relays and
+Broker-selected direct WebSocket targets. Gateway's legacy service router is
+retired by that candidate. Its review/release and every caller's migration must
+finish before the shared deployment adopts it. Existing receiver-owned business
+operations and schemas above remain unchanged.
