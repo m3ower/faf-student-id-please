@@ -82,6 +82,10 @@ actions, all reported by the Moderation Session Service at the end of a shift.
 **Does not own:** anything about the fictional applicants trying to enter the
 server. A player and an applicant are unrelated concepts.
 
+Published Lab 4 image: `vasiok11/student-id-player-service:lab4-1.3.0-build.31`.
+See [Player/Session deployment and Postman verification](docs/player-session-grpc-deployment.md)
+for the existing shared Compose overlay and required shared releases.
+
 ### Moderation Session Service
 
 Owns one **active moderation shift**.
@@ -97,6 +101,10 @@ so the Player Service can apply progression.
 
 **Does not own:** the correctness of any individual decision, which belongs to
 the Moderation Service, nor permanent player progression.
+
+Published Lab 4 image: `vasiok11/student-id-session-service:lab4-1.3.0-build.37`.
+See [Player/Session deployment and Postman verification](docs/player-session-grpc-deployment.md)
+for signing/receiver configuration, replicas and the current rollout gates.
 
 ### Applicant Service
 
@@ -1527,16 +1535,18 @@ be published publicly before a fresh machine can pull it.
 |Discord DMs| [`meow3r/student-id-discord-dms-service:lab3-0.4.2`](https://hub.docker.com/r/meow3r/student-id-discord-dms-service) | 8088 | Redis 7.4 with AOF (`dms-redis`, volume `dms-redis-data`) |
 |Credential|[`cmmarin/student-id-credential-service:lab3-0.4.0`](https://hub.docker.com/r/cmmarin/student-id-credential-service)|internal only|PostgreSQL 17 (`credential_db`, volume `postgres-data`)|
 |Server Rules|[`cmmarin/student-id-rules-service:lab3-0.4.0`](https://hub.docker.com/r/cmmarin/student-id-rules-service)|internal only|PostgreSQL 17 (`rules_db`, volume `postgres-data`)|
-|Player|[`vasiok11/student-id-player-service:lab3-0.6.0-build.18`](https://hub.docker.com/r/vasiok11/student-id-player-service)|8082|PostgreSQL 16 (`player-db`, volume `player-pg-data`)|
-|Session|[`vasiok11/student-id-session-service:lab3-0.7.0-build.22`](https://hub.docker.com/r/vasiok11/student-id-session-service)|8083|PostgreSQL 16 (`session-db`, volume `session-pg-data`)|
+|Player (Lab 4 overlay)|[`vasiok11/student-id-player-service:lab4-1.3.0-build.31`](https://hub.docker.com/r/vasiok11/student-id-player-service)|8082|PostgreSQL 16 (`player-db`, volume `player-pg-data`)|
+|Session (Lab 4 overlay)|[`vasiok11/student-id-session-service:lab4-1.3.0-build.37`](https://hub.docker.com/r/vasiok11/student-id-session-service)|8083|PostgreSQL 16 (`session-db`, volume `session-pg-data`)|
 |Applicant|[`andreiisthebest/student-id-applicant-service:lab3-0.3.0`](https://hub.docker.com/r/andreiisthebest/student-id-applicant-service)|internal only (Gateway 8090)|PostgreSQL 16 (`applicant-db`, volume `applicant-pg-data`)|
 |University Record|[`andreiisthebest/student-id-university-record-service:lab3-0.3.0`](https://hub.docker.com/r/andreiisthebest/student-id-university-record-service)|internal only (Gateway 8090)|PostgreSQL 16 (`university-record-db`, volume `record-pg-data`)|
 |Gateway|[`vasiok11/student-id-gateway-service:lab3-0.7.0-build.43`](https://hub.docker.com/r/vasiok11/student-id-gateway-service)|8090|none|
 |Service Discovery|[`cmmarin/student-id-service-discovery:lab3-0.7.0`](https://hub.docker.com/r/cmmarin/student-id-service-discovery)|127.0.0.1:8089|none, in-memory registry|
 
-**Every tag in the table above is published and pullable**, and `.env.example` now pins
-all of them, so a fresh clone needs no local build. Each tag matches the submodule
-revision recorded here, because the pointer and the pin are advanced together.
+**Player and Session's Lab 4 tags above are published and match their current
+submodule revisions.** Select them through `.env.owned-broker.example` and the
+existing Lab 4 Compose overlay; the base `.env.example` retains its historical
+Lab 3 pins. [Owned deployment requirements](docs/player-session-grpc-deployment.md)
+list the shared release prerequisites. Other owners maintain their own entries.
 
 **Service Discovery** is pinned to `lab3-0.7.0`, which has the shared `/status` endpoint,
 aligned logging, task limits, controlled instance removal, Grade 8 health polling, the

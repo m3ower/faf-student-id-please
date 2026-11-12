@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "Student ID - Session Service",
-    "description": "Real owned-service baseline through Gateway at localhost:8090. Run Core CRUD and access first; it creates two real Player accounts/tokens, a persistent team and a session. Tokens use transient runner variables, never tracked/exported values. Optional shift requests require receiver-approved Rules selection plus real Applicant/DMs/Moderation dependencies and manual readiness/decision steps; do not call their absence a successful full-shift test. No fixture IDs or spoofed X-Player-Id headers are used. Core leaves a session/accounts for optional follow-up; clean up only these generated IDs afterward.",
+    "description": "Published Session lab4-1.3.0-build.37 and Player lab4-1.3.0-build.31 through Gateway at localhost:8090. Use the shared Lab 4 Compose overlay with compatible published Gateway/Broker/Discovery images. Internal gRPC does not change these public HTTP requests. Run Core CRUD and access first; it creates two real Player accounts/tokens, a persistent team and a session. Tokens use transient runner variables, never tracked/exported values. Optional shift requests require receiver-approved Rules selection plus real Applicant/DMs/Moderation dependencies and manual readiness/decision steps; do not call their absence a successful full-shift test. No fixture IDs or spoofed X-Player-Id headers are used. Core leaves a session/accounts for optional follow-up; clean up only these generated IDs afterward.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
