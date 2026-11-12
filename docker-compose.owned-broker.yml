@@ -1,0 +1,67 @@
+# Opt-in Applicant/Record migration candidate. Requires matching images and private
+# configuration; does not change default deployment/release pins or peer services.
+services:
+  message-broker:
+    image: ${OWNED_BROKER_IMAGE:?set the broker image bundling the agreed 39-operation catalog}
+    networks: [default, applicant-net, record-net]
+    environment:
+      DISCOVERY_URL: http://service-discovery:8089
+      DISCOVERY_REGISTRATION_TOKEN: ${DISCOVERY_REGISTRATION_TOKEN:?set the Discovery machine credential}
+      SERVICE_ADVERTISE_URL: http://message-broker:8093
+      BROKER_CALLER_TOKENS_JSON: ${BROKER_CALLER_TOKENS_JSON:?include each actual caller with a distinct credential}
+      APPLICANT_INTERNAL_TOKEN: ${APPLICANT_INTERNAL_TOKEN:?match Applicant SERVICE_INTERNAL_TOKEN}
+      RECORD_INTERNAL_TOKEN: ${RECORD_INTERNAL_TOKEN:?match Record SERVICE_INTERNAL_TOKEN}
+      CREDENTIAL_INTERNAL_TOKEN: ${CREDENTIAL_INTERNAL_TOKEN:?match the actual Credential receiver}
+      SESSION_INTERNAL_TOKEN: ${SESSION_INTERNAL_TOKEN:?match the actual Session receiver}
+      RULES_INTERNAL_TOKEN: ${RULES_INTERNAL_TOKEN:-}
+      MODERATION_INTERNAL_TOKEN: ${MODERATION_INTERNAL_TOKEN:-}
+      DMS_INTERNAL_TOKEN: ${DMS_INTERNAL_TOKEN:-}
+      PLAYER_INTERNAL_TOKEN: ${PLAYER_INTERNAL_TOKEN:-}
+    depends_on:
+      service-discovery:
+        condition: service_healthy
+
+  applicant-service: &owned-applicant
+    image: ${OWNED_APPLICANT_IMAGE:?set the migrated Applicant candidate image}
+    environment: &owned-applicant-env
+      BROKER_URL: http://message-broker:8093
+      GATEWAY_URL: ""
+      APPLICANT_SERVICE_URL: ""
+      RECORD_SERVICE_URL: ""
+      BROKER_SERVICE_TOKEN: ${APPLICANT_BROKER_SERVICE_TOKEN:?match this caller in BROKER_CALLER_TOKENS_JSON}
+      SERVICE_INTERNAL_TOKEN: ${APPLICANT_INTERNAL_TOKEN:?set the Applicant receiver credential}
+      MANAGEMENT_TOKEN: ${APPLICANT_MANAGEMENT_TOKEN:?set a separate management credential}
+    depends_on:
+      message-broker:
+        condition: service_healthy
+
+  applicant-service-2:
+    <<: *owned-applicant
+    profiles: [replicas]
+    environment: *owned-applicant-env
+
+  university-record-service: &owned-record
+    image: ${OWNED_RECORD_IMAGE:?set the migrated Record candidate image}
+    environment: &owned-record-env
+      SESSION_CLIENT: broker
+      BROKER_URL: http://message-broker:8093
+      GATEWAY_URL: ""
+      APPLICANT_SERVICE_URL: ""
+      RECORD_SERVICE_URL: ""
+      BROKER_SERVICE_TOKEN: ${RECORD_BROKER_SERVICE_TOKEN:?match this caller in BROKER_CALLER_TOKENS_JSON}
+      SERVICE_INTERNAL_TOKEN: ${RECORD_INTERNAL_TOKEN:?set the Record receiver credential}
+      MANAGEMENT_TOKEN: ${RECORD_MANAGEMENT_TOKEN:?set a separate management credential}
+    depends_on:
+      message-broker:
+        condition: service_healthy
+
+  university-record-service-2:
+    <<: *owned-record
+    profiles: [replicas]
+    environment: *owned-record-env
+
+  gateway-service:
+    environment:
+      # Public backend authentication remains Gateway's responsibility. Record's
+      # receiver token must match its entry; this is not a Broker caller map.
+      GATEWAY_TARGET_TOKENS_JSON: ${GATEWAY_TARGET_TOKENS_JSON:?configure the actual public receiver credentials}
