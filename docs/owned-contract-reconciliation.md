@@ -1,5 +1,10 @@
 # Owned HTTP integration: latest team reconciliation
 
+**Superseded by the [pre-migration compatibility update](owned-peer-compatibility.md).**
+Applicant/Record handoff `42f69b9` explicitly adapts the two protocols; the earlier
+claim below that one side must replace its protocol is historical. Joint real-peer
+verification remains outstanding. No Broker migration is enabled by this update.
+
 Reconciled against CPR dev `e21cdd9` (merged #132, including the rewritten
 #129 catalog and #134's reviewed teammate pins). #132 imports Applicant/Record
 [CPR #126](https://github.com/m3ower/faf-student-id-please/pull/126) schemas at

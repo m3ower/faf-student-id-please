@@ -1,0 +1,235 @@
+[
+  {
+    "request": {
+      "requestId": "00000000-0000-0000-0000-000000008000",
+      "applicantId": "00000000-0000-0000-0000-000000007000",
+      "sessionId": "00000000-0000-0000-0000-000000009000",
+      "seed": 0,
+      "difficulty": "HARD"
+    },
+    "event": {
+      "eventId": "00000000-0000-0000-0000-000000008000",
+      "type": "ApplicantInitialized",
+      "occurredAt": "2026-11-11T12:00:00.123Z",
+      "producer": "applicant-service",
+      "version": 1,
+      "payload": {
+        "applicantId": "00000000-0000-0000-0000-000000007000",
+        "seed": 0,
+        "initiator": "applicant-service",
+        "identity": {
+          "name": "Applicant 000000000000",
+          "studentId": "PAD-00000000000000000000000000007000",
+          "year": 1
+        },
+        "deception": {
+          "type": "NONE",
+          "impersonatedStudentId": "",
+          "inconsistentFields": []
+        },
+        "sessionId": "00000000-0000-0000-0000-000000009000"
+      }
+    },
+    "eventHash": "980ff78717403087619ba79a07ba789743059fc64d531203d24caccc0466c751"
+  },
+  {
+    "request": {
+      "requestId": "00000000-0000-0000-0000-000000008001",
+      "applicantId": "00000000-0000-0000-0000-000000007001",
+      "sessionId": "00000000-0000-0000-0000-000000009000",
+      "seed": 1,
+      "difficulty": "HARD"
+    },
+    "event": {
+      "eventId": "00000000-0000-0000-0000-000000008001",
+      "type": "ApplicantInitialized",
+      "occurredAt": "2026-11-11T12:00:00.123Z",
+      "producer": "applicant-service",
+      "version": 1,
+      "payload": {
+        "applicantId": "00000000-0000-0000-0000-000000007001",
+        "seed": 1,
+        "initiator": "applicant-service",
+        "identity": {
+          "name": "Applicant 000000000000",
+          "studentId": "PAD-00000000000000000000000000007001",
+          "year": 2
+        },
+        "deception": {
+          "type": "IMPERSONATION",
+          "impersonatedStudentId": "PAD-00000000000000000000000000007001",
+          "inconsistentFields": []
+        },
+        "sessionId": "00000000-0000-0000-0000-000000009000"
+      }
+    },
+    "eventHash": "1ed9cb707066169f6f9721ec399929789ce67507e57a5f4a1ddd00bfe943fdbd"
+  },
+  {
+    "request": {
+      "requestId": "00000000-0000-0000-0000-000000008002",
+      "applicantId": "00000000-0000-0000-0000-000000007002",
+      "sessionId": "00000000-0000-0000-0000-000000009000",
+      "seed": 2,
+      "difficulty": "HARD"
+    },
+    "event": {
+      "eventId": "00000000-0000-0000-0000-000000008002",
+      "type": "ApplicantInitialized",
+      "occurredAt": "2026-11-11T12:00:00.123Z",
+      "producer": "applicant-service",
+      "version": 1,
+      "payload": {
+        "applicantId": "00000000-0000-0000-0000-000000007002",
+        "seed": 2,
+        "initiator": "applicant-service",
+        "identity": {
+          "name": "Applicant 000000000000",
+          "studentId": "PAD-00000000000000000000000000007002",
+          "year": 3
+        },
+        "deception": {
+          "type": "FORGED_DOCUMENT",
+          "impersonatedStudentId": "",
+          "inconsistentFields": []
+        },
+        "sessionId": "00000000-0000-0000-0000-000000009000"
+      }
+    },
+    "eventHash": "3820d73c5d5895879b884b47b2180c1d4dcc1152bc529483ff16123e65321b68"
+  },
+  {
+    "request": {
+      "requestId": "00000000-0000-0000-0000-000000008003",
+      "applicantId": "00000000-0000-0000-0000-000000007003",
+      "sessionId": "00000000-0000-0000-0000-000000009000",
+      "seed": 3,
+      "difficulty": "HARD"
+    },
+    "event": {
+      "eventId": "00000000-0000-0000-0000-000000008003",
+      "type": "ApplicantInitialized",
+      "occurredAt": "2026-11-11T12:00:00.123Z",
+      "producer": "applicant-service",
+      "version": 1,
+      "payload": {
+        "applicantId": "00000000-0000-0000-0000-000000007003",
+        "seed": 3,
+        "initiator": "applicant-service",
+        "identity": {
+          "name": "Applicant 000000000000",
+          "studentId": "PAD-00000000000000000000000000007003",
+          "year": 4
+        },
+        "deception": {
+          "type": "EXPIRED_DOCUMENT",
+          "impersonatedStudentId": "",
+          "inconsistentFields": []
+        },
+        "sessionId": "00000000-0000-0000-0000-000000009000"
+      }
+    },
+    "eventHash": "30d041f052fad0c7e82e5cf34666cd09c224b709bdc8ae067e0682c0af8fea38"
+  },
+  {
+    "request": {
+      "requestId": "00000000-0000-0000-0000-000000008004",
+      "applicantId": "00000000-0000-0000-0000-000000007004",
+      "sessionId": "00000000-0000-0000-0000-000000009000",
+      "seed": 4,
+      "difficulty": "HARD"
+    },
+    "event": {
+      "eventId": "00000000-0000-0000-0000-000000008004",
+      "type": "ApplicantInitialized",
+      "occurredAt": "2026-11-11T12:00:00.123Z",
+      "producer": "applicant-service",
+      "version": 1,
+      "payload": {
+        "applicantId": "00000000-0000-0000-0000-000000007004",
+        "seed": 4,
+        "initiator": "applicant-service",
+        "identity": {
+          "name": "Applicant 000000000000",
+          "studentId": "PAD-00000000000000000000000000007004",
+          "year": 1
+        },
+        "deception": {
+          "type": "INCONSISTENT_CLAIM",
+          "impersonatedStudentId": "",
+          "inconsistentFields": [
+            "major"
+          ]
+        },
+        "sessionId": "00000000-0000-0000-0000-000000009000"
+      }
+    },
+    "eventHash": "375e2ff8d2aefb520a83e2a530faf7b58c5e6c165d643661ade3d4daef7f92f5"
+  },
+  {
+    "request": {
+      "requestId": "00000000-0000-0000-0000-000000008005",
+      "applicantId": "00000000-0000-0000-0000-000000007005",
+      "sessionId": "00000000-0000-0000-0000-000000009000",
+      "seed": 5,
+      "difficulty": "HARD"
+    },
+    "event": {
+      "eventId": "00000000-0000-0000-0000-000000008005",
+      "type": "ApplicantInitialized",
+      "occurredAt": "2026-11-11T12:00:00.123Z",
+      "producer": "applicant-service",
+      "version": 1,
+      "payload": {
+        "applicantId": "00000000-0000-0000-0000-000000007005",
+        "seed": 5,
+        "initiator": "applicant-service",
+        "identity": {
+          "name": "Applicant 000000000000",
+          "studentId": "PAD-00000000000000000000000000007005",
+          "year": 2
+        },
+        "deception": {
+          "type": "NOT_ENROLLED",
+          "impersonatedStudentId": "",
+          "inconsistentFields": []
+        },
+        "sessionId": "00000000-0000-0000-0000-000000009000"
+      }
+    },
+    "eventHash": "29c7cb4cb054e28461a5e804f60bc95e0bc1e41942da01c721eae774eb5eeb54"
+  },
+  {
+    "request": {
+      "requestId": "00000000-0000-0000-0000-000000008006",
+      "applicantId": "00000000-0000-0000-0000-000000007006",
+      "sessionId": "00000000-0000-0000-0000-000000009000",
+      "seed": 6,
+      "difficulty": "HARD"
+    },
+    "event": {
+      "eventId": "00000000-0000-0000-0000-000000008006",
+      "type": "ApplicantInitialized",
+      "occurredAt": "2026-11-11T12:00:00.123Z",
+      "producer": "applicant-service",
+      "version": 1,
+      "payload": {
+        "applicantId": "00000000-0000-0000-0000-000000007006",
+        "seed": 6,
+        "initiator": "applicant-service",
+        "identity": {
+          "name": "Applicant 000000000000",
+          "studentId": "PAD-00000000000000000000000000007006",
+          "year": 3
+        },
+        "deception": {
+          "type": "PREVIOUSLY_BANNED",
+          "impersonatedStudentId": "",
+          "inconsistentFields": []
+        },
+        "sessionId": "00000000-0000-0000-0000-000000009000"
+      }
+    },
+    "eventHash": "522b376f1840835b0c6c0e8a21efd63b22b43274bb4573fa97cc3db831ba46ad"
+  }
+]

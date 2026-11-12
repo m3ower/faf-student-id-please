@@ -2,10 +2,141 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Student ID, please: service operations through the message broker",
-    "version": "0.3.0-candidate",
+    "version": "0.3.0",
     "description": "Generated from contracts/http/service-operations.json. Do not edit by hand."
   },
   "paths": {
+    "/internal/v1/applicants/context": {
+      "post": {
+        "operationId": "applicant.credentialContext",
+        "summary": "Credential generation context only, using immutable persisted Applicant seed/claims/deception and full-event revision. This is the generation input that Credential would receive in full initialization, not a player/Rules answer-key read. No data is generated on a miss; session-bound initialization must already exist.",
+        "x-owner": "applicant-service",
+        "x-status": "implemented-pending-review",
+        "x-callers": [
+          "credential-service"
+        ],
+        "x-idempotency": "Read-only",
+        "security": [
+          {
+            "brokerServiceCredential": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Trace-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Service-Name",
+            "in": "header",
+            "required": true,
+            "description": "set by the message broker to the authenticated caller",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "credential-service"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ownedApplicantContextPort"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "400 INVALID_REQUEST | INVALID_EVENT: Malformed, unbound or duplicate identifiers",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "401 UNAUTHENTICATED: Missing/wrong target credential",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "403 SERVICE_CALL_FORBIDDEN: Caller outside exact operation allowlist",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "404 INITIALIZATION_NOT_FOUND: Unknown full initialization on a read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "409 CREDENTIAL_EVENT_CONFLICT | CREDENTIAL_CAUSATION_CONFLICT: Immutable callback/parent conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "503 INITIALIZATION_PENDING | FACTS_UNAVAILABLE | DATABASE_UNAVAILABLE: No complete authoritative context; never fabricate success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "504 TASK_TIMEOUT: 500 ms target deadline",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ownedApplicantOnly"
+              }
+            }
+          }
+        }
+      }
+    },
     "/internal/v1/applicants/events/applicant-initialized": {
       "post": {
         "operationId": "applicant.initialize",
@@ -143,6 +274,137 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/ownedApplicantInitialized"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/applicants/events/credentials-ready": {
+      "post": {
+        "operationId": "applicant.credentialsReady",
+        "summary": "Accept only Credential callbacks causally bound to the persisted full initialization. Return accepted only after a durable receipt. Do not treat this acknowledgement as Credential global READY or a full hash receipt.",
+        "x-owner": "applicant-service",
+        "x-status": "implemented-pending-review",
+        "x-callers": [
+          "credential-service"
+        ],
+        "x-idempotency": "Persist callback eventId/content and initialization causation atomically; identical semantic replay acknowledges; changed payload, reused id or wrong causation is 409. Never republishes initialization.",
+        "security": [
+          {
+            "brokerServiceCredential": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Trace-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Service-Name",
+            "in": "header",
+            "required": true,
+            "description": "set by the message broker to the authenticated caller",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "credential-service"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ownedReadyAcknowledgement"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "400 INVALID_REQUEST | INVALID_EVENT: Malformed, unbound or duplicate identifiers",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "401 UNAUTHENTICATED: Missing/wrong target credential",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "403 SERVICE_CALL_FORBIDDEN: Caller outside exact operation allowlist",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "404 INITIALIZATION_NOT_FOUND: Unknown full initialization on a read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "409 CREDENTIAL_EVENT_CONFLICT | CREDENTIAL_CAUSATION_CONFLICT: Immutable callback/parent conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "503 INITIALIZATION_PENDING | FACTS_UNAVAILABLE | DATABASE_UNAVAILABLE: No complete authoritative context; never fabricate success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "504 TASK_TIMEOUT: 500 ms target deadline",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ownedCredentialsReady"
               }
             }
           }
@@ -438,7 +700,7 @@
     "/internal/v1/applicants/{applicantId}/claims": {
       "get": {
         "operationId": "applicant.getClaims",
-        "summary": "Owned persisted HTTP baseline. Initialization consumers commit only their component and receipt, without republishing. Never exposes deception through claims/profile or public management projections. Session receives 202 with no profile/claims until all three owners have matching receipts; authorized peer fact reads may inspect their own initialization dependencies.",
+        "summary": "Owned persisted HTTP baseline. Initialization consumers commit only their component and receipt, without republishing. Never exposes deception through claims/profile or public management projections. Session receives 202 with no profile/claims until the full peer receipt, local durable Credential callback and correlated Credential READY/zero-pending status are verified; authorized peer fact reads may inspect their own initialization dependencies.",
         "x-owner": "applicant-service",
         "x-status": "implemented-pending-review",
         "x-callers": [
@@ -889,7 +1151,7 @@
     "/internal/v1/applicants/{applicantId}/profile": {
       "get": {
         "operationId": "applicant.getProfile",
-        "summary": "Owned persisted HTTP baseline. Initialization consumers commit only their component and receipt, without republishing. Never exposes deception through claims/profile or public management projections. Session receives 202 with no profile/claims until all three owners have matching receipts; authorized peer fact reads may inspect their own initialization dependencies.",
+        "summary": "Owned persisted HTTP baseline. Initialization consumers commit only their component and receipt, without republishing. Never exposes deception through claims/profile or public management projections. Session receives 202 with no profile/claims until the full peer receipt, local durable Credential callback and correlated Credential READY/zero-pending status are verified; authorized peer fact reads may inspect their own initialization dependencies.",
         "x-owner": "applicant-service",
         "x-status": "implemented-pending-review",
         "x-callers": [
@@ -1671,6 +1933,568 @@
         }
       }
     },
+    "/internal/v1/credentials/initializations/{eventId}": {
+      "get": {
+        "operationId": "credential.initialization.status",
+        "summary": "Credential owns documents and accepts its original seed-only protocol. A Status is never a full Applicant/Record hash receipt. Owned adapters require a durable correlated CredentialsReady callback plus matching READY/pendingDeliveries=0; no successful readiness is fabricated.",
+        "x-owner": "credential-service",
+        "x-status": "implemented-pending-review",
+        "x-callers": [
+          "applicant-service",
+          "university-record-service",
+          "session-service"
+        ],
+        "x-idempotency": "Original eventId and seed identity are immutable. Identical initialization/recovery does not regenerate documents; conflict is 409. Status reads have no side effects.",
+        "security": [
+          {
+            "brokerServiceCredential": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "eventId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "X-Trace-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Service-Name",
+            "in": "header",
+            "required": true,
+            "description": "set by the message broker to the authenticated caller",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "applicant-service",
+                "university-record-service",
+                "session-service"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ownedInitializationStatus"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "400 INVALID_REQUEST: Invalid receiver-published input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "401 UNAUTHENTICATED: Missing/wrong receiver credential",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "403 SERVICE_FORBIDDEN: Caller not permitted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "404 INITIALIZATION_NOT_FOUND: Unknown event; a recovering sender may return to INITIALIZE without resetting its attempt bound",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "409 INITIALIZATION_CONFLICT: Immutable identifiers/content conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "503 DEPENDENCY_UNAVAILABLE: Storage or authoritative facts unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "504 TASK_TIMEOUT: Deadline exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/credentials/initializations/{eventId}/recover": {
+      "post": {
+        "operationId": "credential.initialization.recover",
+        "summary": "Credential owns documents and accepts its original seed-only protocol. A Status is never a full Applicant/Record hash receipt. Owned adapters require a durable correlated CredentialsReady callback plus matching READY/pendingDeliveries=0; no successful readiness is fabricated.",
+        "x-owner": "credential-service",
+        "x-status": "implemented-pending-review",
+        "x-callers": [
+          "applicant-service",
+          "university-record-service"
+        ],
+        "x-idempotency": "Original eventId and seed identity are immutable. Identical initialization/recovery does not regenerate documents; conflict is 409. Status reads have no side effects.",
+        "security": [
+          {
+            "brokerServiceCredential": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "eventId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "X-Trace-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Service-Name",
+            "in": "header",
+            "required": true,
+            "description": "set by the message broker to the authenticated caller",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "applicant-service",
+                "university-record-service"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ownedInitializationStatus"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Initialization pending",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ownedInitializationStatus"
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "Initialization pending",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ownedInitializationStatus"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "400 INVALID_REQUEST: Invalid receiver-published input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "401 UNAUTHENTICATED: Missing/wrong receiver credential",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "403 SERVICE_FORBIDDEN: Caller not permitted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "404 INITIALIZATION_NOT_FOUND: Unknown event; a recovering sender may return to INITIALIZE without resetting its attempt bound",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "409 INITIALIZATION_CONFLICT: Immutable identifiers/content conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "503 DEPENDENCY_UNAVAILABLE: Storage or authoritative facts unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "504 TASK_TIMEOUT: Deadline exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/credentials/initialize": {
+      "post": {
+        "operationId": "credential.initialization.accept",
+        "summary": "Credential owns documents and accepts its original seed-only protocol. A Status is never a full Applicant/Record hash receipt. Owned adapters require a durable correlated CredentialsReady callback plus matching READY/pendingDeliveries=0; no successful readiness is fabricated.",
+        "x-owner": "credential-service",
+        "x-status": "implemented-pending-review",
+        "x-callers": [
+          "applicant-service",
+          "university-record-service"
+        ],
+        "x-idempotency": "Original eventId and seed identity are immutable. Identical initialization/recovery does not regenerate documents; conflict is 409. Status reads have no side effects.",
+        "security": [
+          {
+            "brokerServiceCredential": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Trace-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Service-Name",
+            "in": "header",
+            "required": true,
+            "description": "set by the message broker to the authenticated caller",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "applicant-service",
+                "university-record-service"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ownedInitializationStatus"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Initialization pending",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ownedInitializationStatus"
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "Initialization pending",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ownedInitializationStatus"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "400 INVALID_REQUEST: Invalid receiver-published input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "401 UNAUTHENTICATED: Missing/wrong receiver credential",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "403 SERVICE_FORBIDDEN: Caller not permitted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "404 INITIALIZATION_NOT_FOUND: Unknown event; a recovering sender may return to INITIALIZE without resetting its attempt bound",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "409 INITIALIZATION_CONFLICT: Immutable identifiers/content conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "503 DEPENDENCY_UNAVAILABLE: Storage or authoritative facts unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "504 TASK_TIMEOUT: Deadline exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ownedInitialization"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/credentials/validate-applicant": {
+      "post": {
+        "operationId": "credential.validateApplicant",
+        "summary": "Receiver-owned batch operation already implemented for Rules. Nonempty checks, matching applicant IDs and Record revision are required. A missing document set never becomes empty successful validation.",
+        "x-owner": "credential-service",
+        "x-status": "implemented-pending-review",
+        "x-callers": [
+          "moderation-service",
+          "rules-service"
+        ],
+        "x-idempotency": "Read-only; validates actual stored documents against fresh authoritative Record facts.",
+        "security": [
+          {
+            "brokerServiceCredential": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Trace-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Service-Name",
+            "in": "header",
+            "required": true,
+            "description": "set by the message broker to the authenticated caller",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "moderation-service",
+                "rules-service"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ownedApplicantValidation"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "400 INVALID_REQUEST: Missing applicant UUID",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "401 UNAUTHENTICATED: Wrong receiver credential",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "403 SERVICE_FORBIDDEN: Wrong caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "404 CREDENTIALS_NOT_FOUND: No stored documents",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "503 DEPENDENCY_UNAVAILABLE: Missing provenance, unavailable or malformed authoritative facts",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "504 TASK_TIMEOUT: Receiver deadline exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ownedApplicantOnly"
+              }
+            }
+          }
+        }
+      }
+    },
     "/internal/v1/credentials/{credentialId}/validation": {
       "get": {
         "operationId": "credential.validateCredential",
@@ -2381,6 +3205,270 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/ownedApplicantInitialized"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/records/events/credentials-ready": {
+      "post": {
+        "operationId": "record.credentialsReady",
+        "summary": "Persist and deduplicate Credential callbacks bound to the full immutable parent. No initialization fanout; no callback status is substituted for the other owner full receipt.",
+        "x-owner": "university-record-service",
+        "x-status": "implemented-pending-review",
+        "x-callers": [
+          "credential-service"
+        ],
+        "x-idempotency": "Persist callback eventId/content and initialization causation atomically; identical semantic replay acknowledges; changed payload, reused id or wrong causation is 409. Never republishes initialization.",
+        "security": [
+          {
+            "brokerServiceCredential": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Trace-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Service-Name",
+            "in": "header",
+            "required": true,
+            "description": "set by the message broker to the authenticated caller",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "credential-service"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ownedReadyAcknowledgement"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "400 INVALID_REQUEST | INVALID_EVENT: Malformed, unbound or duplicate identifiers",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "401 UNAUTHENTICATED: Missing/wrong target credential",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "403 SERVICE_CALL_FORBIDDEN: Caller outside exact operation allowlist",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "404 INITIALIZATION_NOT_FOUND: Unknown full initialization on a read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "409 CREDENTIAL_EVENT_CONFLICT | CREDENTIAL_CAUSATION_CONFLICT: Immutable callback/parent conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "503 INITIALIZATION_PENDING | FACTS_UNAVAILABLE | DATABASE_UNAVAILABLE: No complete authoritative context; never fabricate success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "504 TASK_TIMEOUT: 500 ms target deadline",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ownedCredentialsReady"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/records/facts": {
+      "post": {
+        "operationId": "record.credentialFacts",
+        "summary": "Separate authoritative owned-university projection for Credential/Rules, never a player impersonation. Persist identity role, institutional game email, actual SVG data-URI asset and enrollment confirmation. NOT_ENROLLED has enrolled=false, no confirmation, no courses and zero enrollment years; a stored absence illustration does not assert enrollment.",
+        "x-owner": "university-record-service",
+        "x-status": "implemented-pending-review",
+        "x-callers": [
+          "credential-service",
+          "rules-service"
+        ],
+        "x-idempotency": "Read-only",
+        "security": [
+          {
+            "brokerServiceCredential": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Trace-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Service-Name",
+            "in": "header",
+            "required": true,
+            "description": "set by the message broker to the authenticated caller",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "credential-service",
+                "rules-service"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ownedRecordFactsPort"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "400 INVALID_REQUEST | INVALID_EVENT: Malformed, unbound or duplicate identifiers",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "401 UNAUTHENTICATED: Missing/wrong target credential",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "403 SERVICE_CALL_FORBIDDEN: Caller outside exact operation allowlist",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "404 INITIALIZATION_NOT_FOUND: Unknown full initialization on a read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "409 CREDENTIAL_EVENT_CONFLICT | CREDENTIAL_CAUSATION_CONFLICT: Immutable callback/parent conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "503 INITIALIZATION_PENDING | FACTS_UNAVAILABLE | DATABASE_UNAVAILABLE: No complete authoritative context; never fabricate success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "504 TASK_TIMEOUT: 500 ms target deadline",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ownedApplicantOnly"
               }
             }
           }

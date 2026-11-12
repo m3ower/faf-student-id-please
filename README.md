@@ -452,6 +452,11 @@ acceptance remain outstanding. Discovery's current dev needs no domain calls.
 For the latest merged catalog and the incompatible Applicant/Record initialization
 draft, read the [owned contract reconciliation](docs/owned-contract-reconciliation.md)
 before connecting these candidates. The private service PRs remain draft.
+Latest compatibility work uses Applicant/Record's explicit adapter handoff at
+`42f69b9`; see the [pre-migration compatibility gate](docs/owned-peer-compatibility.md).
+The 39-operation candidate includes the missing initialization/context/callback
+and batch-validation routes. It does not establish real-owner acceptance or
+authorize promotion of images/pins or migration of our callers to Broker.
 
 A prefix matches only on a segment boundary. The method, path, query string, body and
 headers reach the service with the credential/identity handling described below,
