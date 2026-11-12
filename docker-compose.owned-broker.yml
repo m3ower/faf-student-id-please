@@ -1,5 +1,5 @@
 # Opt-in Lab 4 Broker deployment: the Message Broker plus the services migrated to it
-# (Applicant/Record candidates; Moderation and Discord DMs lab3-0.8.0 over gRPC).
+# (Applicant/Record 1.2.0 and Moderation/Discord DMs lab3-0.8.0 over gRPC).
 # Requires matching images and private configuration; does not change the default
 # deployment/release pins or peer services that have not migrated.
 services:
@@ -7,7 +7,7 @@ services:
     image: ${OWNED_DISCOVERY_IMAGE:-cmmarin/student-id-service-discovery:lab4-0.8.0}
 
   message-broker:
-    image: ${OWNED_BROKER_IMAGE:?set the broker image bundling the agreed 39-operation catalog}
+    image: ${OWNED_BROKER_IMAGE:?set a published Broker image bundling the reviewed owned grpc delivery choices}
     networks: [default, applicant-net, record-net]
     environment:
       DISCOVERY_URL: http://service-discovery:8089
@@ -27,9 +27,11 @@ services:
         condition: service_healthy
 
   applicant-service: &owned-applicant
-    image: ${OWNED_APPLICANT_IMAGE:?set the migrated Applicant candidate image}
+    image: ${OWNED_APPLICANT_IMAGE:?set a published grpc-capable Applicant 1.2.0+ image}
     environment: &owned-applicant-env
-      BROKER_URL: http://message-broker:8093
+      # Private listener: advertised HTTP 8080 +1000. Never publish this port.
+      GRPC_PORT: "9080"
+      BROKER_GRPC_TARGET: message-broker:9093
       GATEWAY_URL: ""
       APPLICANT_SERVICE_URL: ""
       RECORD_SERVICE_URL: ""
@@ -46,10 +48,10 @@ services:
     environment: *owned-applicant-env
 
   university-record-service: &owned-record
-    image: ${OWNED_RECORD_IMAGE:?set the migrated Record candidate image}
+    image: ${OWNED_RECORD_IMAGE:?set a published grpc-capable Record 1.2.0+ image}
     environment: &owned-record-env
       SESSION_CLIENT: broker
-      BROKER_URL: http://message-broker:8093
+      BROKER_GRPC_TARGET: message-broker:9093
       GATEWAY_URL: ""
       APPLICANT_SERVICE_URL: ""
       RECORD_SERVICE_URL: ""

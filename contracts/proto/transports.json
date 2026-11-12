@@ -13,13 +13,13 @@
     "maxAgeMs": 5000
   },
   "delivery": {
-    "applicant-service": "http",
+    "applicant-service": "grpc",
     "credential-service": "grpc",
     "discord-dms-service": "http",
     "moderation-service": "http",
-    "player-service": "http",
+    "player-service": "grpc",
     "rules-service": "grpc",
-    "session-service": "http",
-    "university-record-service": "http"
+    "session-service": "grpc",
+    "university-record-service": "grpc"
   }
 }
