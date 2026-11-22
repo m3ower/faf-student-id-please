@@ -17,7 +17,14 @@ flowchart LR
     Client -->|Authenticated WebSocket| DMs
     Operator[Local operations client] -->|Separate bearer credential| Exporter[Host log-download endpoint]
     Exporter -->|Bounded docker compose logs| Logs[Logs from the exact Compose project]
+    Prometheus[Prometheus] -->|Scrape private metrics| Broker
+    Grafana[Grafana] -->|Query metrics| Prometheus
 ```
+
+The optional Task 10 monitoring overlay adds Prometheus and Grafana. The Task 10
+Broker samples registered services' live `/status.load` and prefers least utilization
+when all eligible replicas have fresh measurements; otherwise it uses round robin.
+These changes require reviewed Task 10 images; uninstrumented services remain explicit gaps.
 
 Broker owns instance selection, round robin, circuit breaking, subscriber queues
 and topic routing. Gateway authenticates public users and does not route internal
@@ -27,7 +34,7 @@ browser-facing DMs WebSocket listeners. Receiver authorization remains mandatory
 
 The shared catalog selects gRPC for all eight consumer groups. Runtime compliance
 requires compatible published images and a Broker bundling identical transport
-choices. The inspected Broker source still differs for Credential/Rules; see the
-[configuration review](lab4-configuration-review.md). The diagram does not claim
-that deployment gates, durable Broker queues, dead letters, load-aware routing or
-a monitoring stack have been implemented or verified.
+choices. Task 9 durable queues/dead letters and all eight gRPC activations are now
+merged into Broker dev. The Task 10 source changes add load-aware routing and the
+monitoring overlay; neither a source diagram nor a merged PR proves publication
+or running-stack acceptance. See the [Task 10 rollout](service-load-monitoring.md).

@@ -1,0 +1,26 @@
+{
+  "info": {
+    "name": "PAD Task 10 - local monitoring",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Requires the monitoring overlay and released Task 10 Broker/owned-service images. These are loopback operational interfaces, not business Gateway routes. No service credentials or player token are needed. A metric is not a substitute for a traced business failover demonstration."
+  },
+  "auth": {"type": "noauth"},
+  "variable": [{"key": "prometheusUrl", "value": "http://localhost:9090"}],
+  "item": [
+    {
+      "name": "Broker is being scraped successfully",
+      "request": {"method": "GET", "url": "{{prometheusUrl}}/api/v1/query?query=up%7Bjob%3D%22message-broker%22%7D"},
+      "event": [{"listen":"test","script":{"type":"text/javascript","exec":["pm.test('HTTP 200',()=>pm.response.to.have.status(200));","pm.test('Broker scrape is up',()=>{const b=pm.response.json();pm.expect(b.status).to.eql('success');pm.expect(b.data.result.length).to.be.above(0);pm.expect(b.data.result[0].value[1]).to.eql('1');});"]}}]
+    },
+    {
+      "name": "Credential and Rules report actual utilization",
+      "request": {"method": "GET", "url": "{{prometheusUrl}}/api/v1/query?query=service_utilization_ratio"},
+      "event": [{"listen":"test","script":{"type":"text/javascript","exec":["pm.test('HTTP 200',()=>pm.response.to.have.status(200));","pm.test('Both owned services have fresh load samples',()=>{const b=pm.response.json();pm.expect(b.status).to.eql('success');for(const name of ['credential-service','rules-service']){const samples=b.data.result.filter(x=>x.metric.service===name);pm.expect(samples.length,name).to.be.above(0);for(const x of samples)pm.expect(Number(x.value[1])).to.be.within(0,1);}});"]}}]
+    },
+    {
+      "name": "Inspect recorded failovers (empty before a failover)",
+      "request": {"method": "GET", "url": "{{prometheusUrl}}/api/v1/query?query=broker_failovers_total"},
+      "event": [{"listen":"test","script":{"type":"text/javascript","exec":["pm.test('HTTP 200',()=>pm.response.to.have.status(200));","pm.test('Prometheus query succeeded',()=>pm.expect(pm.response.json().status).to.eql('success'));"]}}]
+    }
+  ]
+}

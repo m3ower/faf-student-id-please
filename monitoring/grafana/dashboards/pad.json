@@ -1,0 +1,17 @@
+{
+  "uid": "pad-lab4", "title": "PAD - routing and service load", "schemaVersion": 39,
+  "version": 1, "refresh": "5s", "timezone": "browser", "tags": ["PAD", "Lab 4"],
+  "time": {"from": "now-15m", "to": "now"},
+  "panels": [
+    {"id":1,"title":"Broker scrape availability","type":"stat","gridPos":{"x":0,"y":0,"w":6,"h":4},"datasource":{"type":"prometheus","uid":"pad-prometheus"},"targets":[{"refId":"A","expr":"up{job=\"message-broker\"}"}]},
+    {"id":2,"title":"Queued deliveries","type":"stat","gridPos":{"x":6,"y":0,"w":6,"h":4},"datasource":{"type":"prometheus","uid":"pad-prometheus"},"targets":[{"refId":"A","expr":"broker_queued_deliveries"}]},
+    {"id":3,"title":"Dead letters","type":"stat","gridPos":{"x":12,"y":0,"w":6,"h":4},"datasource":{"type":"prometheus","uid":"pad-prometheus"},"targets":[{"refId":"A","expr":"broker_dead_letters"}]},
+    {"id":4,"title":"Open instance circuits","type":"stat","gridPos":{"x":18,"y":0,"w":6,"h":4},"datasource":{"type":"prometheus","uid":"pad-prometheus"},"targets":[{"refId":"A","expr":"broker_open_circuits"}]},
+    {"id":5,"title":"Live utilization by replica (missing means unknown)","type":"timeseries","gridPos":{"x":0,"y":4,"w":12,"h":8},"datasource":{"type":"prometheus","uid":"pad-prometheus"},"fieldConfig":{"defaults":{"unit":"percentunit","min":0,"max":1},"overrides":[]},"targets":[{"refId":"A","expr":"service_utilization_ratio","legendFormat":"{{service}} / {{instance_id}}"}]},
+    {"id":6,"title":"Routing selections per second","type":"timeseries","gridPos":{"x":12,"y":4,"w":12,"h":8},"datasource":{"type":"prometheus","uid":"pad-prometheus"},"targets":[{"refId":"A","expr":"rate(broker_route_selections_total[1m])","legendFormat":"{{service}}"}]},
+    {"id":7,"title":"HTTP business ingress latency p95 (seconds)","type":"timeseries","gridPos":{"x":0,"y":12,"w":12,"h":8},"datasource":{"type":"prometheus","uid":"pad-prometheus"},"fieldConfig":{"defaults":{"unit":"s"},"overrides":[]},"targets":[{"refId":"A","expr":"histogram_quantile(0.95, sum by (le) (rate(broker_http_request_duration_seconds_bucket[5m])))"}]},
+    {"id":8,"title":"Backend responses per second","type":"timeseries","gridPos":{"x":12,"y":12,"w":12,"h":8},"datasource":{"type":"prometheus","uid":"pad-prometheus"},"targets":[{"refId":"A","expr":"rate(broker_backend_responses_total[1m])","legendFormat":"{{service}} {{transport}} {{status}}"}]},
+    {"id":9,"title":"Failovers in last five minutes","type":"timeseries","gridPos":{"x":0,"y":20,"w":12,"h":8},"datasource":{"type":"prometheus","uid":"pad-prometheus"},"targets":[{"refId":"A","expr":"increase(broker_failovers_total[5m])","legendFormat":"{{service}}"}]},
+    {"id":10,"title":"Durable storage availability","type":"stat","gridPos":{"x":12,"y":20,"w":12,"h":8},"datasource":{"type":"prometheus","uid":"pad-prometheus"},"targets":[{"refId":"A","expr":"broker_storage_available"}]}
+  ]
+}

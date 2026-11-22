@@ -1,0 +1,11 @@
+apiVersion: 1
+providers:
+  - name: PAD
+    orgId: 1
+    folder: PAD Lab 4
+    type: file
+    disableDeletion: true
+    editable: false
+    updateIntervalSeconds: 10
+    options:
+      path: /var/lib/grafana/dashboards

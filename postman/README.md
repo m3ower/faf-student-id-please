@@ -1,5 +1,12 @@
 # Shared Postman collections
 
+Task 10 adds the separate `monitoring.postman_collection.json` for loopback
+Prometheus checks. It requires the monitoring overlay and released Task 10 images;
+it is not part of the generated eight-service business collection. No bearer token
+is required for the loopback operational interface. See
+[the Task 10 guide](../docs/service-load-monitoring.md). Empty utilization results
+are a failed prerequisite, not proof that the service is idle or healthy.
+
 The eight `*-service.postman_collection.json` files are the editable service
 collections. All were refreshed from shared `origin/dev` (`bdf7190`, fetched
 2026-11-12), then checked and corrected locally. Import the individual files or

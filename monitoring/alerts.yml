@@ -1,0 +1,18 @@
+groups:
+  - name: pad-service-state
+    rules:
+      - alert: BrokerUnavailable
+        expr: up{job="message-broker"} == 0
+        for: 30s
+        labels: {severity: critical}
+        annotations: {summary: "Broker metrics have been unreachable for 30 seconds"}
+      - alert: ServiceNearCapacity
+        expr: service_utilization_ratio > 0.85
+        for: 30s
+        labels: {severity: warning}
+        annotations: {summary: "A service replica is above 85 percent task capacity"}
+      - alert: BrokerDeadLettersPresent
+        expr: broker_dead_letters > 0
+        for: 10s
+        labels: {severity: warning}
+        annotations: {summary: "Inspect the authenticated dead-letter listing"}
