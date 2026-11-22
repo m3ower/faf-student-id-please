@@ -1595,6 +1595,14 @@ The `log-download-tests` workflow runs the endpoint and collector tests and fail
 below 70% line coverage for the new module. Controlled HTTP/subprocess tests are
 separate from verification against the actual running Docker project.
 
+### Broker durable queues (Lab 4 Task 9 candidate)
+
+The [durable queue contract](docs/broker-durable-queues.md) defines acceptance,
+restart recovery and the authenticated, caller-scoped dead-letter listing.
+The opt-in Broker overlay mounts `broker-data:/data`. Select the reviewed durable
+Broker image **after publication**; this change does not update existing image
+pins or prove a live deployment. Preserve the volume across container restarts.
+
 ## Docker Hub images
 
 Latest published tags were checked on 12 November 2026 using DockerHub digests
