@@ -27,6 +27,10 @@ Use the base Compose file with `docker-compose.owned-broker.yml`; the base alone
 is not a complete Lab 4 deployment. See the [current architecture diagram](docs/lab4-architecture.md)
 and [shared collection instructions](postman/README.md).
 
+The [Applicant and Record Warehouse export contracts](docs/applicant-record-warehouse-exports.md)
+publish their reporting allowlists for the shared ETL owner's review. Shared
+Warehouse registration and released-image deployment remain separate.
+
 A distributed, microservice-based multiplayer game about moderating a university
 Discord server. A team of moderators receives applicants who want to join the
 FAF community server. Applicants present credentials that may be expired, forged,
