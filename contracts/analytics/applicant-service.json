@@ -1,0 +1,13 @@
+{
+  "source": "applicant-service",
+  "url": "http://applicant-service:8080/internal/v1/analytics/snapshot",
+  "tokenEnv": "APPLICANT_WAREHOUSE_EXPORT_TOKEN",
+  "datasets": {
+    "applicants": {
+      "year": "integer",
+      "universityStatus": "string",
+      "role": "string",
+      "courseCount": "integer"
+    }
+  }
+}

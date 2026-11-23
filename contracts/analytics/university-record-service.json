@@ -1,0 +1,13 @@
+{
+  "source": "university-record-service",
+  "url": "http://university-record-service:8081/internal/v1/analytics/snapshot",
+  "tokenEnv": "RECORD_WAREHOUSE_EXPORT_TOKEN",
+  "datasets": {
+    "university-records": {
+      "status": "string",
+      "courseCount": "integer",
+      "outlookGroupCount": "integer",
+      "fcimMessageCount": "integer"
+    }
+  }
+}
