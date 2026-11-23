@@ -1,0 +1,20 @@
+{
+  "source": "moderation-service",
+  "url": "http://moderation-service:8080/internal/v1/analytics/snapshot",
+  "tokenEnv": "MODERATION_WAREHOUSE_EXPORT_TOKEN",
+  "datasets": {
+    "decisions": {
+      "sessionId": "uuid",
+      "moderatorId": "uuid",
+      "action": "string",
+      "expectedAction": "string",
+      "correct": "boolean",
+      "penalty": "integer",
+      "scoreDelta": "integer",
+      "penaltyRefunded": "integer",
+      "appealStatus": "string",
+      "violatedRuleCount": "integer",
+      "decidedAtEpochMs": "integer"
+    }
+  }
+}
