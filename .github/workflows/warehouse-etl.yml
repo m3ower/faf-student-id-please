@@ -2,10 +2,10 @@ name: warehouse ETL checks
 on:
   pull_request:
     branches: [dev, main]
-    paths: ['etl/**', 'docker-compose.warehouse.yml', '.env.warehouse.example', '.github/workflows/warehouse-etl.yml']
+    paths: ['etl/**', 'contracts/analytics/**', 'docker-compose.warehouse.yml', '.env.warehouse.example', '.github/workflows/warehouse-etl.yml']
   push:
     branches: [dev, main]
-    paths: ['etl/**', 'docker-compose.warehouse.yml', '.github/workflows/warehouse-etl.yml']
+    paths: ['etl/**', 'contracts/analytics/**', 'docker-compose.warehouse.yml', '.github/workflows/warehouse-etl.yml']
 permissions:
   contents: read
 jobs:
@@ -34,6 +34,6 @@ jobs:
           cache-dependency-path: etl/requirements.txt
       - run: python -m pip install --only-binary=:all: -r etl/requirements.txt coverage==7.10.6
       - run: |
-          python -m coverage run --source=etl.run -m unittest discover -s etl/tests -v
+          python -m coverage run --source=etl.run,etl.verify_exports -m unittest discover -s etl/tests -v
           python -m coverage report --fail-under=70 --show-missing
       - run: docker build -t student-id-warehouse-etl:ci etl

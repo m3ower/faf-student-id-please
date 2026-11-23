@@ -38,10 +38,10 @@ class OwnedSchemaTests(unittest.TestCase):
                     self.assertEqual(peer.calls,1)
                 finally:peer.close()
 
-    def test_actual_shared_source_configuration_uses_four_distinct_credentials(self):
+    def test_actual_shared_source_configuration_uses_eight_distinct_credentials(self):
         configured=json.loads((ROOT / "sources.json").read_text())
         with patch.dict(os.environ,{s["tokenEnv"]:str(i)+"x"*39 for i,s in enumerate(configured)}):
-            self.assertEqual(len(settings()),4)
+            self.assertEqual(len(settings()),8)
         for source in sources():
             value=snapshot(source)
             self.assertEqual(len(validate(source,value)[1]),1)

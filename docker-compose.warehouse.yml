@@ -19,7 +19,7 @@ services:
   warehouse-etl:
     image: ${WAREHOUSE_ETL_IMAGE:?set a built or published reviewed ETL image}
     profiles: [warehouse-etl]
-    networks: [default, warehouse-net]
+    networks: [default, applicant-net, record-net, warehouse-net]
     environment:
       PGHOST: warehouse
       PGPORT: "5432"
@@ -31,6 +31,10 @@ services:
       SESSION_WAREHOUSE_EXPORT_TOKEN: ${SESSION_WAREHOUSE_EXPORT_TOKEN:?set a separate Session reporting credential}
       CREDENTIAL_WAREHOUSE_EXPORT_TOKEN: ${CREDENTIAL_WAREHOUSE_EXPORT_TOKEN:?set a separate Credential reporting credential}
       RULES_WAREHOUSE_EXPORT_TOKEN: ${RULES_WAREHOUSE_EXPORT_TOKEN:?set a separate Rules reporting credential}
+      APPLICANT_WAREHOUSE_EXPORT_TOKEN: ${APPLICANT_WAREHOUSE_EXPORT_TOKEN:?set a separate Applicant reporting credential}
+      RECORD_WAREHOUSE_EXPORT_TOKEN: ${RECORD_WAREHOUSE_EXPORT_TOKEN:?set a separate Record reporting credential}
+      MODERATION_WAREHOUSE_EXPORT_TOKEN: ${MODERATION_WAREHOUSE_EXPORT_TOKEN:?set a separate Moderation reporting credential}
+      DMS_WAREHOUSE_EXPORT_TOKEN: ${DMS_WAREHOUSE_EXPORT_TOKEN:?set a separate DMs reporting credential}
     depends_on:
       warehouse:
         condition: service_healthy
@@ -65,6 +69,38 @@ services:
       WAREHOUSE_EXPORT_TOKEN: ${RULES_WAREHOUSE_EXPORT_TOKEN:?set a separate Rules reporting credential}
   rules-service-2:
     <<: *warehouse-rules
+    profiles: [replicas]
+
+  applicant-service: &warehouse-applicant
+    image: ${WAREHOUSE_APPLICANT_IMAGE:?set the reviewed export-capable Applicant image}
+    environment:
+      WAREHOUSE_EXPORT_TOKEN: ${APPLICANT_WAREHOUSE_EXPORT_TOKEN:?set a separate Applicant reporting credential}
+  applicant-service-2:
+    <<: *warehouse-applicant
+    profiles: [replicas]
+
+  university-record-service: &warehouse-record
+    image: ${WAREHOUSE_RECORD_IMAGE:?set the reviewed export-capable Record image}
+    environment:
+      WAREHOUSE_EXPORT_TOKEN: ${RECORD_WAREHOUSE_EXPORT_TOKEN:?set a separate Record reporting credential}
+  university-record-service-2:
+    <<: *warehouse-record
+    profiles: [replicas]
+
+  moderation-service: &warehouse-moderation
+    image: ${WAREHOUSE_MODERATION_IMAGE:?set the reviewed export-capable Moderation image}
+    environment:
+      WAREHOUSE_EXPORT_TOKEN: ${MODERATION_WAREHOUSE_EXPORT_TOKEN:?set a separate Moderation reporting credential}
+  moderation-service-2:
+    <<: *warehouse-moderation
+    profiles: [replicas]
+
+  discord-dms-service: &warehouse-dms
+    image: ${WAREHOUSE_DMS_IMAGE:?set the reviewed export-capable DMs image}
+    environment:
+      WAREHOUSE_EXPORT_TOKEN: ${DMS_WAREHOUSE_EXPORT_TOKEN:?set a separate DMs reporting credential}
+  discord-dms-service-2:
+    <<: *warehouse-dms
     profiles: [replicas]
 
 networks:

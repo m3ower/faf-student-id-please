@@ -48,3 +48,39 @@ CREATE OR REPLACE VIEW rule_policy AS
 SELECT record_id AS rule_id, data->>'type' AS rule_type,
        data->>'severity' AS severity, (data->>'active')::boolean AS active
 FROM current_warehouse_records WHERE source='rules-service' AND dataset='rules';
+
+CREATE OR REPLACE VIEW applicant_claims AS
+SELECT record_id AS applicant_id, (data->>'year')::bigint AS claimed_year,
+       data->>'universityStatus' AS claimed_university_status, data->>'role' AS claimed_role,
+       (data->>'courseCount')::bigint AS claimed_course_count
+FROM current_warehouse_records WHERE source='applicant-service' AND dataset='applicants';
+
+CREATE OR REPLACE VIEW university_record_summary AS
+SELECT record_id AS record_id, data->>'status' AS university_status,
+       (data->>'courseCount')::bigint AS course_count,
+       (data->>'outlookGroupCount')::bigint AS outlook_group_count,
+       (data->>'fcimMessageCount')::bigint AS legacy_fcim_message_count
+FROM current_warehouse_records WHERE source='university-record-service' AND dataset='university-records';
+
+CREATE OR REPLACE VIEW moderation_decisions AS
+SELECT record_id AS decision_id, data->>'sessionId' AS session_id,
+       data->>'moderatorId' AS moderator_id, data->>'action' AS action,
+       data->>'expectedAction' AS expected_action, (data->>'correct')::boolean AS correct,
+       (data->>'penalty')::bigint AS penalty, (data->>'scoreDelta')::bigint AS score_delta,
+       (data->>'penaltyRefunded')::bigint AS penalty_refunded,
+       data->>'appealStatus' AS appeal_status, (data->>'violatedRuleCount')::bigint AS violated_rule_count,
+       (data->>'decidedAtEpochMs')::bigint AS decided_at_epoch_ms
+FROM current_warehouse_records WHERE source='moderation-service' AND dataset='decisions';
+
+CREATE OR REPLACE VIEW dms_channels AS
+SELECT record_id AS channel_key, data->>'sessionId' AS session_id, data->>'channel' AS channel,
+       (data->>'readOnly')::boolean AS read_only, (data->>'messageCount')::bigint AS message_count
+FROM current_warehouse_records WHERE source='discord-dms-service' AND dataset='channels';
+
+CREATE OR REPLACE VIEW dms_channel_activity AS
+SELECT record_id AS channel_day_key, data->>'sessionId' AS session_id,
+       data->>'channel' AS channel, data->>'day' AS utc_day,
+       (data->>'messages')::bigint AS messages, (data->>'playerMessages')::bigint AS player_messages,
+       (data->>'systemMessages')::bigint AS system_messages,
+       (data->>'distinctSenders')::bigint AS distinct_senders
+FROM current_warehouse_records WHERE source='discord-dms-service' AND dataset='channel-days';

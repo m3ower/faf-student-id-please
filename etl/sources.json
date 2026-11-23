@@ -30,5 +30,73 @@
     "datasets": {
       "rules": {"type":"string","severity":"string","active":"boolean"}
     }
+  },
+  {
+    "source": "applicant-service",
+    "url": "http://applicant-service:8080/internal/v1/analytics/snapshot",
+    "tokenEnv": "APPLICANT_WAREHOUSE_EXPORT_TOKEN",
+    "datasets": {
+      "applicants": {
+        "year": "integer",
+        "universityStatus": "string",
+        "role": "string",
+        "courseCount": "integer"
+      }
+    }
+  },
+  {
+    "source": "university-record-service",
+    "url": "http://university-record-service:8081/internal/v1/analytics/snapshot",
+    "tokenEnv": "RECORD_WAREHOUSE_EXPORT_TOKEN",
+    "datasets": {
+      "university-records": {
+        "status": "string",
+        "courseCount": "integer",
+        "outlookGroupCount": "integer",
+        "fcimMessageCount": "integer"
+      }
+    }
+  },
+  {
+    "source": "moderation-service",
+    "url": "http://moderation-service:8080/internal/v1/analytics/snapshot",
+    "tokenEnv": "MODERATION_WAREHOUSE_EXPORT_TOKEN",
+    "datasets": {
+      "decisions": {
+        "sessionId": "uuid",
+        "moderatorId": "uuid",
+        "action": "string",
+        "expectedAction": "string",
+        "correct": "boolean",
+        "penalty": "integer",
+        "scoreDelta": "integer",
+        "penaltyRefunded": "integer",
+        "appealStatus": "string",
+        "violatedRuleCount": "integer",
+        "decidedAtEpochMs": "integer"
+      }
+    }
+  },
+  {
+    "source": "discord-dms-service",
+    "url": "http://discord-dms-service:8080/internal/v1/analytics/snapshot",
+    "tokenEnv": "DMS_WAREHOUSE_EXPORT_TOKEN",
+    "datasets": {
+      "channels": {
+        "sessionId": "uuid",
+        "channel": "string",
+        "readOnly": "boolean",
+        "messageCount": "integer"
+      },
+      "channel-days": {
+        "sessionId": "uuid",
+        "channel": "string",
+        "day": "string",
+        "messages": "integer",
+        "playerMessages": "integer",
+        "systemMessages": "integer",
+        "distinctSenders": "integer"
+      }
+    }
   }
 ]
