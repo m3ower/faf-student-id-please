@@ -1,0 +1,27 @@
+name: owned postgres ha
+on:
+  pull_request:
+    branches: [dev, main]
+    paths:
+      - 'docker/owned-postgres-ha/**'
+      - 'docker-compose.owned-postgres-ha.yml'
+      - 'scripts/verify_owned_postgres_ha.py'
+      - 'tests/test_owned_postgres_ha.py'
+      - '.github/workflows/owned-postgres-ha.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  owned-postgres-ha-checks:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Validate owned HA configuration boundaries
+        run: |
+          python3 -m unittest tests.test_owned_postgres_ha -v
+          python3 -m py_compile docker/owned-postgres-ha/start.py docker/owned-postgres-ha/bootstrap.py scripts/verify_owned_postgres_ha.py
+      - name: Build infrastructure image without publishing
+        run: docker build -t owned-postgres-ha:ci docker/owned-postgres-ha
