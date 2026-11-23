@@ -3,13 +3,15 @@
 ## Lab 5 Warehouse and ETL candidate
 
 The [Warehouse extraction contract](docs/warehouse-extraction.md) and
-[ETL job](etl/README.md) configure service-owned reporting snapshots for Player,
-Session, Credential and Rules. The [owned export handoff](docs/owned-warehouse-exports.md)
-defines the two new privacy-minimized datasets. The opt-in `docker-compose.warehouse.yml` adds a persistent PostgreSQL
+[ETL job](etl/README.md) configure all eight services and nine reporting datasets.
+The [full integration guide](docs/warehouse-all-sources.md) links the reviewed
+owner handoffs and describes release prerequisites and acceptance checks.
+The opt-in `docker-compose.warehouse.yml` adds a persistent PostgreSQL
 Warehouse and a one-shot ETL job. No service reads another service's database;
 reporting HTTP is an explicitly documented operational extraction path.
-Other owners still need their own reviewed exports. Source changes do not imply
-published images or complete full-team integration. Existing image pins are preserved.
+Source configuration does not imply published images or full deployed acceptance.
+The overlay requires explicit export-capable images and eight distinct reporting
+tokens. Existing base image pins are preserved.
 
 ## Task 10 implementation
 

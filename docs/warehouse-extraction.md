@@ -3,8 +3,9 @@
 Shared candidate tracked by CPR issue #170, Player #34 and Session #41. The owned
 extension adds Credential inventory and Rules policy metadata to the initial
 Player/Session configuration; see [the owned handoff](owned-warehouse-exports.md).
-This is four-source configuration, not full-team extraction or publication. Other
-owners must agree their allowlisted data before their source is added. The PDF
+All eight services are now configured after the reviewed handoffs in #175/#176.
+See [all-source rollout and verification](warehouse-all-sources.md). Configuration
+does not claim full-team deployed acceptance or image publication. The PDF
 numbers Warehouse/ETL as Grade 4; the earlier handoff title used Grade 3.
 
 ## Ownership and communication

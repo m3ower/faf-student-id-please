@@ -4,3 +4,4 @@
 !run.py
 !schema.sql
 !sources.json
+!verify_exports.py
