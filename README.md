@@ -51,6 +51,10 @@ GET data and Session membership in Redis, opt-in through `docker-compose.cache.y
 opt-in private Redis read caches with transactional cross-replica invalidation
 and failure-closed Session-denial caching through `docker-compose.owned-cache.yml`.
 
+[Applicant and Record cache sharding](docs/applicant-record-cache-sharding.md)
+adds an opt-in client-side consistent-hash ring with virtual nodes and three
+independent private Redis shards per service.
+
 A distributed, microservice-based multiplayer game about moderating a university
 Discord server. A team of moderators receives applicants who want to join the
 FAF community server. Applicants present credentials that may be expired, forged,
