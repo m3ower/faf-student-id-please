@@ -20,3 +20,8 @@ are distinguished from tests of actual released service images.
 Secrets are environment-only. Source databases are never connected directly.
 Docker Compose selects an explicit ETL image, and its database volume persists.
 There is no publication workflow or automatically enabled scheduler in this change.
+
+Published release: `vasiok11/student-id-warehouse-etl:lab5-0.1.0`, built from CPR
+commit `90a6a2616788a33375140418e653994c6b76fbbd`. The Warehouse overlay defaults
+to its immutable digest; `WAREHOUSE_ETL_IMAGE` can explicitly override it.
+See [release details](../docs/warehouse-all-sources.md#published-etl-release).

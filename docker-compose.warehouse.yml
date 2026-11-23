@@ -17,7 +17,7 @@ services:
       retries: 10
 
   warehouse-etl:
-    image: ${WAREHOUSE_ETL_IMAGE:?set a built or published reviewed ETL image}
+    image: ${WAREHOUSE_ETL_IMAGE:-vasiok11/student-id-warehouse-etl:lab5-0.1.0@sha256:77bc3b0bd4cd16d3f4d2fef2d25e005f10c81f9d5dba84fe7dc40a700812de37}
     profiles: [warehouse-etl]
     networks: [default, applicant-net, record-net, warehouse-net]
     environment:

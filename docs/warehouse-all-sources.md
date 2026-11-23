@@ -34,8 +34,9 @@ credential document or authorization assignment is added.
 
 ## Release prerequisites
 
-Keep image values explicit in the private environment; `.env.warehouse.example`
-contains variable names only. Expected candidates from owner handoffs:
+Keep source-service image values explicit in the private environment;
+`.env.warehouse.example` leaves their selections and secrets blank, and selects
+the published ETL release below. Reviewed source images from owner handoffs:
 
 - Player `vasiok11/student-id-player-service:lab5-1.5.0-build.39`.
 - Session `vasiok11/student-id-session-service:lab5-1.5.0-build.45`.
@@ -46,8 +47,8 @@ contains variable names only. Expected candidates from owner handoffs:
 All eight tags were pulled successfully for the isolated acceptance below.
 Recheck digests and source revisions with owners before a later deployment. The known lab3
 prefixes are the owners' actual published naming, not an instruction to relabel
-their images. `WAREHOUSE_ETL_IMAGE` must include this eight-source configuration
-and nine views; rebuild the job image after integrating this change.
+their images. Any `WAREHOUSE_ETL_IMAGE` override must include this eight-source
+configuration and nine views; the pinned default already contains them.
 
 All eight configured sources must succeed, even if they return empty datasets.
 There is no silent skip for a missing image/token/service. A failed export leaves
@@ -129,6 +130,21 @@ Recorded image digests (the tags above) and OCI source revisions:
 | Discord DMs | `86f4510c972bc9ebf87df716a3cbb256aa9f730a17b0d32cab638f93e0f03b66` | `6ae837ef31fb3662760627bc95dff20c497b383b` |
 
 Revision labels record the publishers' source claims; this check did not audit
-inaccessible private repositories. The rebuilt ETL image was local only; shared
-deployment still needs an image containing these changes and private image/token
-configuration. Existing base release pins remain unchanged.
+inaccessible private repositories. At that acceptance run the ETL build was local;
+it has since been published as described below. Shared deployment still needs
+private source-image/token configuration. Existing base release pins remain unchanged.
+
+## Published ETL release
+
+Published `vasiok11/student-id-warehouse-etl:lab5-0.1.0` from merged CPR commit
+`90a6a2616788a33375140418e653994c6b76fbbd` (PR #178). Immutable image digest:
+`sha256:77bc3b0bd4cd16d3f4d2fef2d25e005f10c81f9d5dba84fe7dc40a700812de37`.
+The image contains all eight sources, nine datasets/views and `verify_exports.py`.
+Its OCI labels record the source revision and Lab 5 version. The release smoke
+check verified imports, source/dataset counts and the non-root user (UID 10001).
+
+The Warehouse Compose overlay and `.env.warehouse.example` select this digest.
+Existing non-empty private `WAREHOUSE_ETL_IMAGE` overrides still take precedence;
+update those deliberately when deploying. Source-service image choices and all
+credentials remain private configuration. Publishing/selecting this release does
+not start a stack or run a reporting job.
