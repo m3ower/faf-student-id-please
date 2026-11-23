@@ -1,0 +1,55 @@
+# Opt-in Grade 6 only for Applicant/Record. Append after the Broker, Warehouse and HA overlays.
+# Redis is disposable. Committed DB generations invalidate old entries across replicas.
+services:
+  applicant-read-cache:
+    image: redis:7.4-alpine@sha256:7f7d30b7fdd09467bac58198a1f166dd69789d348d4fe859cccb20e0cf287fbe
+    restart: unless-stopped
+    entrypoint: ["sh", "/owned-cache/start.sh"]
+    networks: [applicant-net]
+    environment:
+      CACHE_PASSWORD: ${APPLICANT_CACHE_PASSWORD:?set a distinct private cache credential}
+    volumes:
+      - ./docker/owned-cache/start.sh:/owned-cache/start.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "REDISCLI_AUTH=$$CACHE_PASSWORD redis-cli ping | grep -q PONG"]
+      interval: 5s
+      timeout: 2s
+      retries: 10
+  applicant-service:
+    image: ${CACHE_APPLICANT_IMAGE:?set a reviewed cache-capable applicant 1.6.0+ image}
+    environment:
+      CACHE_ENABLED: "true"
+      CACHE_REDIS_HOST: applicant-read-cache
+      CACHE_REDIS_PASSWORD: ${APPLICANT_CACHE_PASSWORD:?set a distinct private cache credential}
+  applicant-service-2:
+    image: ${CACHE_APPLICANT_IMAGE:?set a reviewed cache-capable applicant 1.6.0+ image}
+    environment:
+      CACHE_ENABLED: "true"
+      CACHE_REDIS_HOST: applicant-read-cache
+      CACHE_REDIS_PASSWORD: ${APPLICANT_CACHE_PASSWORD:?set a distinct private cache credential}
+  record-read-cache:
+    image: redis:7.4-alpine@sha256:7f7d30b7fdd09467bac58198a1f166dd69789d348d4fe859cccb20e0cf287fbe
+    restart: unless-stopped
+    entrypoint: ["sh", "/owned-cache/start.sh"]
+    networks: [record-net]
+    environment:
+      CACHE_PASSWORD: ${RECORD_CACHE_PASSWORD:?set a distinct private cache credential}
+    volumes:
+      - ./docker/owned-cache/start.sh:/owned-cache/start.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "REDISCLI_AUTH=$$CACHE_PASSWORD redis-cli ping | grep -q PONG"]
+      interval: 5s
+      timeout: 2s
+      retries: 10
+  university-record-service:
+    image: ${CACHE_RECORD_IMAGE:?set a reviewed cache-capable record 1.6.0+ image}
+    environment:
+      CACHE_ENABLED: "true"
+      CACHE_REDIS_ADDR: record-read-cache:6379
+      CACHE_REDIS_PASSWORD: ${RECORD_CACHE_PASSWORD:?set a distinct private cache credential}
+  university-record-service-2:
+    image: ${CACHE_RECORD_IMAGE:?set a reviewed cache-capable record 1.6.0+ image}
+    environment:
+      CACHE_ENABLED: "true"
+      CACHE_REDIS_ADDR: record-read-cache:6379
+      CACHE_REDIS_PASSWORD: ${RECORD_CACHE_PASSWORD:?set a distinct private cache credential}

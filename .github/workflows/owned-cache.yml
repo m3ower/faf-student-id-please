@@ -1,0 +1,31 @@
+name: owned cache checks
+
+on:
+  pull_request:
+    branches: [dev, main]
+  push:
+    branches: [dev, main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  owned-cache-configuration:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - name: Validate isolated drivers
+        run: python3 -m py_compile scripts/verify_owned_read_caches.py scripts/validate_owned_cache_compose.py
+      - name: Check Redis startup syntax and reject missing authentication
+        run: |
+          sh -n docker/owned-cache/start.sh
+          if env -u CACHE_PASSWORD sh docker/owned-cache/start.sh; then
+            echo 'Cache must reject missing authentication' >&2
+            exit 1
+          fi
+      - name: Validate synthetic Compose isolation and preservation
+        run: python3 scripts/validate_owned_cache_compose.py
