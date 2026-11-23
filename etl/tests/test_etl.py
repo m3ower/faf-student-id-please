@@ -48,7 +48,8 @@ class ExportPeer:
 
 class ExportTests(unittest.TestCase):
     def setUp(self):
-        self.sources = json.loads((ROOT / "sources.json").read_text())
+        self.sources = [s for s in json.loads((ROOT / "sources.json").read_text())
+                        if s["source"] in {"player-service", "session-service"}]
         self.env = patch.dict(os.environ, {s["tokenEnv"]: ("p" if i == 0 else "s") * 40 for i, s in enumerate(self.sources)})
         self.env.start(); self.addCleanup(self.env.stop)
 
@@ -103,7 +104,8 @@ class ExportTests(unittest.TestCase):
 @unittest.skipUnless(os.getenv("ETL_TEST_DSN"), "Use a disposable ETL_TEST_DSN")
 class WarehouseTests(unittest.TestCase):
     def setUp(self):
-        self.sources = json.loads((ROOT / "sources.json").read_text())
+        self.sources = [s for s in json.loads((ROOT / "sources.json").read_text())
+                        if s["source"] in {"player-service", "session-service"}]
         self.env = patch.dict(os.environ, {s["tokenEnv"]: ("p" if i == 0 else "s") * 40 for i, s in enumerate(self.sources)})
         self.env.start(); self.addCleanup(self.env.stop)
         self.admin = psycopg.connect(os.environ["ETL_TEST_DSN"], autocommit=True)

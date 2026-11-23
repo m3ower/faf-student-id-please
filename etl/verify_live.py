@@ -84,10 +84,13 @@ for host in ("player-service", "session-service"):
         command("player_test", f"INSERT INTO players(id,username,email,password_hash,level,xp,shifts_completed,accuracy_total,disciplinary_actions) VALUES('{player_id}','synthetic-warehouse','synthetic@example.test','unused-test-only',1,100,1,1,0)")
         command("session_test", f"INSERT INTO moderation_sessions(id,team_id,host_player_id,difficulty,state) VALUES('{session_id}','{team_id}','{player_id}','NORMAL','LOBBY')")
         def batch(run_id, expected=0):
+            # This acceptance scenario intentionally covers only Player/Session.
+            # Do not silently require new owners' images/tokens as sources grow.
+            scoped = "import json,os; from pathlib import Path; p=Path('/tmp/sources.json'); p.write_text(json.dumps([s for s in json.loads(Path('sources.json').read_text()) if s['source'] in {'player-service','session-service'}])); os.environ['ETL_SOURCES_FILE']=str(p); from run import main; raise SystemExit(main())"
             result = docker("run", "--rm", "--network", network,
                 "-e", "PGHOST="+pg, "-e", "PGDATABASE=warehouse_test", "-e", "PGUSER=lab_test", "-e", "PGPASSWORD="+password,
                 "-e", "PLAYER_WAREHOUSE_EXPORT_TOKEN="+ptoken, "-e", "SESSION_WAREHOUSE_EXPORT_TOKEN="+stoken,
-                "-e", "ETL_RUN_ID="+run_id, etl_image, check=False)
+                "-e", "ETL_RUN_ID="+run_id, "--entrypoint", "python", etl_image, "-c", scoped, check=False)
             if result.returncode != expected: raise RuntimeError("Live export/load result was unexpected")
             return json.loads(result.stdout)
         first = str(uuid4())

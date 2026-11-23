@@ -1,9 +1,11 @@
-# Lab 5 Grade 3: service-owned exports and Warehouse ETL
+# Lab 5 Grade 4: service-owned exports and Warehouse ETL
 
-Implementation candidate: CPR #170, Player #34 and Session #41. Only Player and
-Session are integrated initially; this is not full-team extraction or publication.
-Other owners must implement the contract below and agree their allowlisted data
-before their entry is added to `etl/sources.json`.
+Shared candidate tracked by CPR issue #170, Player #34 and Session #41. The owned
+extension adds Credential inventory and Rules policy metadata to the initial
+Player/Session configuration; see [the owned handoff](owned-warehouse-exports.md).
+This is four-source configuration, not full-team extraction or publication. Other
+owners must agree their allowlisted data before their source is added. The PDF
+numbers Warehouse/ETL as Grade 4; the earlier handoff title used Grade 3.
 
 ## Ownership and communication
 

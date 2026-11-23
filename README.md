@@ -3,8 +3,9 @@
 ## Lab 5 Warehouse and ETL candidate
 
 The [Warehouse extraction contract](docs/warehouse-extraction.md) and
-[ETL job](etl/README.md) implement service-owned reporting snapshots for Player
-and Session. The opt-in `docker-compose.warehouse.yml` adds a persistent PostgreSQL
+[ETL job](etl/README.md) configure service-owned reporting snapshots for Player,
+Session, Credential and Rules. The [owned export handoff](docs/owned-warehouse-exports.md)
+defines the two new privacy-minimized datasets. The opt-in `docker-compose.warehouse.yml` adds a persistent PostgreSQL
 Warehouse and a one-shot ETL job. No service reads another service's database;
 reporting HTTP is an explicitly documented operational extraction path.
 Other owners still need their own reviewed exports. Source changes do not imply
@@ -25,6 +26,10 @@ Compose/Postman checks, verified image publications and remaining PDF requiremen
 Use the base Compose file with `docker-compose.owned-broker.yml`; the base alone
 is not a complete Lab 4 deployment. See the [current architecture diagram](docs/lab4-architecture.md)
 and [shared collection instructions](postman/README.md).
+
+The [Applicant and Record Warehouse export contracts](docs/applicant-record-warehouse-exports.md)
+publish their reporting allowlists for the shared ETL owner's review. Shared
+Warehouse registration and released-image deployment remain separate.
 
 A distributed, microservice-based multiplayer game about moderating a university
 Discord server. A team of moderators receives applicants who want to join the

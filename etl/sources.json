@@ -14,5 +14,21 @@
     "datasets": {
       "sessions": {"teamId":"uuid","difficulty":"string","state":"string","applicationsProcessed":"integer","score":"integer","penalties":"integer","rulesetVersion":"integer","revision":"integer"}
     }
+  },
+  {
+    "source": "credential-service",
+    "url": "http://credential-service:8080/internal/v1/analytics/snapshot",
+    "tokenEnv": "CREDENTIAL_WAREHOUSE_EXPORT_TOKEN",
+    "datasets": {
+      "credential-inventory": {"credentialType":"string","documentCount":"integer","issuedDateCount":"integer","expiryDateCount":"integer"}
+    }
+  },
+  {
+    "source": "rules-service",
+    "url": "http://rules-service:8081/internal/v1/analytics/snapshot",
+    "tokenEnv": "RULES_WAREHOUSE_EXPORT_TOKEN",
+    "datasets": {
+      "rules": {"type":"string","severity":"string","active":"boolean"}
+    }
   }
 ]

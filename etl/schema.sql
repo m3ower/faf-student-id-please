@@ -36,3 +36,15 @@ SELECT record_id AS session_id, data->>'teamId' AS team_id,
        (data->>'rulesetVersion')::bigint AS ruleset_version,
        (data->>'revision')::bigint AS revision
 FROM current_warehouse_records WHERE source='session-service' AND dataset='sessions';
+
+CREATE OR REPLACE VIEW credential_inventory AS
+SELECT record_id AS credential_type_id, data->>'credentialType' AS credential_type,
+       (data->>'documentCount')::bigint AS document_count,
+       (data->>'issuedDateCount')::bigint AS issued_date_count,
+       (data->>'expiryDateCount')::bigint AS expiry_date_count
+FROM current_warehouse_records WHERE source='credential-service' AND dataset='credential-inventory';
+
+CREATE OR REPLACE VIEW rule_policy AS
+SELECT record_id AS rule_id, data->>'type' AS rule_type,
+       data->>'severity' AS severity, (data->>'active')::boolean AS active
+FROM current_warehouse_records WHERE source='rules-service' AND dataset='rules';

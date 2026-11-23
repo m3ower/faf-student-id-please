@@ -29,6 +29,8 @@ services:
       WAREHOUSE_RETAIN_RUNS: ${WAREHOUSE_RETAIN_RUNS:-30}
       PLAYER_WAREHOUSE_EXPORT_TOKEN: ${PLAYER_WAREHOUSE_EXPORT_TOKEN:?set a separate Player reporting credential}
       SESSION_WAREHOUSE_EXPORT_TOKEN: ${SESSION_WAREHOUSE_EXPORT_TOKEN:?set a separate Session reporting credential}
+      CREDENTIAL_WAREHOUSE_EXPORT_TOKEN: ${CREDENTIAL_WAREHOUSE_EXPORT_TOKEN:?set a separate Credential reporting credential}
+      RULES_WAREHOUSE_EXPORT_TOKEN: ${RULES_WAREHOUSE_EXPORT_TOKEN:?set a separate Rules reporting credential}
     depends_on:
       warehouse:
         condition: service_healthy
@@ -47,6 +49,22 @@ services:
       WAREHOUSE_EXPORT_TOKEN: ${SESSION_WAREHOUSE_EXPORT_TOKEN:?set a separate Session reporting credential}
   session-service-2:
     <<: *warehouse-session
+    profiles: [replicas]
+
+  credential-service: &warehouse-credential
+    image: ${WAREHOUSE_CREDENTIAL_IMAGE:?set the reviewed export-capable Credential image}
+    environment:
+      WAREHOUSE_EXPORT_TOKEN: ${CREDENTIAL_WAREHOUSE_EXPORT_TOKEN:?set a separate Credential reporting credential}
+  credential-service-2:
+    <<: *warehouse-credential
+    profiles: [replicas]
+
+  rules-service: &warehouse-rules
+    image: ${WAREHOUSE_RULES_IMAGE:?set the reviewed export-capable Rules image}
+    environment:
+      WAREHOUSE_EXPORT_TOKEN: ${RULES_WAREHOUSE_EXPORT_TOKEN:?set a separate Rules reporting credential}
+  rules-service-2:
+    <<: *warehouse-rules
     profiles: [replicas]
 
 networks:
