@@ -2050,3 +2050,11 @@ Work is tracked on the GitHub Project linked to this repository:
 
 Columns are **Backlog → In Progress → In Review → Done**. Every PR is linked to an
 issue, and every issue is assigned to the owner of the affected service.
+
+
+## Applicant and Record database replication
+
+The opt-in [owned PostgreSQL HA overlay](docs/applicant-record-postgres-ha.md) adds
+a primary and two replicas per service with quorum-backed Patroni failover. It
+uses new volumes and requires an explicit existing-data migration and reviewed
+service images; it does not deploy or alter the teammate replication setup.

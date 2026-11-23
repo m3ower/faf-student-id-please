@@ -1,1 +1,4 @@
 *.sh text eol=lf
+
+# Executable Patroni bootstrap Python must retain LF on Windows checkouts.
+docker/owned-postgres-ha/*.py text eol=lf
