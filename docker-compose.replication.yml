@@ -1,0 +1,230 @@
+# Lab 5: database replication and failover for Moderation (PostgreSQL) and Discord DMs (Redis).
+# Opt-in. Add after the base and owned-broker files, with the same private environment:
+#   docker compose --env-file .env -f docker-compose.yml -f docker-compose.owned-broker.yml \
+#     -f docker-compose.replication.yml up -d
+# See docs/moderation-dms-replication.md. Only official postgres and redis images are used;
+# the scripts in docker/moderation-db and docker/dms-redis decide each node's role.
+
+x-moderation-db-env: &moderation-db-env
+  POSTGRES_DB: ${MODERATION_DB_NAME:-moderation}
+  POSTGRES_USER: ${MODERATION_DB_USER:-moderation}
+  POSTGRES_PASSWORD: ${MODERATION_DB_PASSWORD:?set MODERATION_DB_PASSWORD in .env}
+  REPLICATION_USER: replicator
+  REPLICATION_PASSWORD: ${MODERATION_DB_REPLICATION_PASSWORD:?set a separate MODERATION_DB_REPLICATION_PASSWORD}
+  NODES: moderation-db:5432 moderation-db-2:5432 moderation-db-3:5432
+  INITIAL_PRIMARY: moderation-db:5432
+
+x-moderation-db-node: &moderation-db-node
+  image: postgres:16-alpine
+  restart: unless-stopped
+  entrypoint: ["sh", "/moderation-db/node.sh"]
+  healthcheck:
+    test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+    interval: 5s
+    timeout: 3s
+    retries: 10
+
+x-dms-redis-env: &dms-redis-env
+  INITIAL_MASTER: dms-redis:6379
+  MASTER_NAME: dms-redis
+  SENTINELS: dms-redis-sentinel-1:26379 dms-redis-sentinel-2:26379 dms-redis-sentinel-3:26379
+  REDIS_PASSWORD: ${DMS_REDIS_PASSWORD:?set DMS_REDIS_PASSWORD in .env}
+  SENTINEL_PASSWORD: ${DMS_REDIS_SENTINEL_PASSWORD:?set a separate DMS_REDIS_SENTINEL_PASSWORD}
+  # For the healthcheck's redis-cli.
+  REDISCLI_AUTH: ${DMS_REDIS_PASSWORD}
+
+x-dms-redis-node: &dms-redis-node
+  image: redis:7.4-alpine
+  restart: unless-stopped
+  entrypoint: ["sh", "/dms-redis/node.sh"]
+  healthcheck:
+    test: ["CMD", "redis-cli", "ping"]
+    interval: 5s
+    timeout: 3s
+    retries: 10
+
+x-dms-sentinel: &dms-sentinel
+  image: redis:7.4-alpine
+  restart: unless-stopped
+  entrypoint: ["sh", "/dms-redis/sentinel.sh"]
+  healthcheck:
+    test: ["CMD-SHELL", "REDISCLI_AUTH=$$SENTINEL_PASSWORD redis-cli -p 26379 ping | grep -q PONG"]
+    interval: 5s
+    timeout: 3s
+    retries: 10
+
+x-moderation-replicated-env: &moderation-replicated-env
+  # Every node; the driver connects to whichever is primary now (failover.sh promotes one).
+  DB_URL: jdbc:postgresql://moderation-db:5432,moderation-db-2:5432,moderation-db-3:5432/${MODERATION_DB_NAME:-moderation}?targetServerType=primary
+
+x-dms-replicated-env: &dms-replicated-env
+  # The Sentinels name the master; REDIS_ADDR is not used in this mode.
+  REDIS_SENTINEL_ADDRS: dms-redis-sentinel-1:26379,dms-redis-sentinel-2:26379,dms-redis-sentinel-3:26379
+  REDIS_MASTER_NAME: dms-redis
+  REDIS_SENTINEL_PASSWORD: ${DMS_REDIS_SENTINEL_PASSWORD:?set a separate DMS_REDIS_SENTINEL_PASSWORD}
+
+services:
+  # ---------------- Moderation: PostgreSQL primary + 2 streaming replicas ----------------
+  moderation-db:
+    <<: *moderation-db-node
+    environment:
+      <<: *moderation-db-env
+      SELF: moderation-db:5432
+    volumes:
+      - moderation-pg-data:/var/lib/postgresql/data
+      - ./docker/moderation-db:/moderation-db:ro
+      - ./docker/moderation-db/initdb/20-replication.sh:/docker-entrypoint-initdb.d/20-replication.sh:ro
+
+  moderation-db-2:
+    <<: *moderation-db-node
+    environment:
+      <<: *moderation-db-env
+      SELF: moderation-db-2:5432
+    volumes:
+      - moderation-pg-data-2:/var/lib/postgresql/data
+      - ./docker/moderation-db:/moderation-db:ro
+    depends_on:
+      moderation-db:
+        condition: service_started
+
+  moderation-db-3:
+    <<: *moderation-db-node
+    environment:
+      <<: *moderation-db-env
+      SELF: moderation-db-3:5432
+    volumes:
+      - moderation-pg-data-3:/var/lib/postgresql/data
+      - ./docker/moderation-db:/moderation-db:ro
+    depends_on:
+      moderation-db:
+        condition: service_started
+
+  # Promotes the most up-to-date replica when the primary is gone, re-points the others, and
+  # fences a former primary that comes back as a second primary.
+  moderation-db-failover:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    entrypoint: ["sh", "/moderation-db/failover.sh"]
+    environment:
+      <<: *moderation-db-env
+      CHECK_INTERVAL: "2"
+      FAILOVER_AFTER: "5"
+    volumes:
+      - ./docker/moderation-db:/moderation-db:ro
+    depends_on:
+      moderation-db:
+        condition: service_started
+
+  moderation-service:
+    image: ${DOCKERHUB_USER:-meow3r}/student-id-moderation-service:${REPLICATION_MODERATION_VERSION:?set a failover-aware Moderation version, lab3-0.11.0 or later}
+    environment:
+      <<: *moderation-replicated-env
+
+  moderation-service-2:
+    image: ${DOCKERHUB_USER:-meow3r}/student-id-moderation-service:${REPLICATION_MODERATION_VERSION:?set a failover-aware Moderation version, lab3-0.11.0 or later}
+    environment:
+      <<: *moderation-replicated-env
+
+  # ---------------- Discord DMs: Redis master + 2 replicas, 3 Sentinels (quorum 2) ----------------
+  dms-redis:
+    <<: *dms-redis-node
+    command: !reset []
+    environment:
+      <<: *dms-redis-env
+      SELF: dms-redis:6379
+    volumes:
+      - dms-redis-data:/data
+      - ./docker/dms-redis:/dms-redis:ro
+
+  dms-redis-2:
+    <<: *dms-redis-node
+    environment:
+      <<: *dms-redis-env
+      SELF: dms-redis-2:6379
+    volumes:
+      - dms-redis-data-2:/data
+      - ./docker/dms-redis:/dms-redis:ro
+    depends_on:
+      dms-redis:
+        condition: service_started
+
+  dms-redis-3:
+    <<: *dms-redis-node
+    environment:
+      <<: *dms-redis-env
+      SELF: dms-redis-3:6379
+    volumes:
+      - dms-redis-data-3:/data
+      - ./docker/dms-redis:/dms-redis:ro
+    depends_on:
+      dms-redis:
+        condition: service_started
+
+  dms-redis-sentinel-1:
+    <<: *dms-sentinel
+    environment:
+      <<: *dms-redis-env
+      SELF: dms-redis-sentinel-1:26379
+    volumes:
+      - dms-redis-sentinel-1:/data
+      - ./docker/dms-redis:/dms-redis:ro
+    depends_on:
+      dms-redis:
+        condition: service_started
+
+  dms-redis-sentinel-2:
+    <<: *dms-sentinel
+    environment:
+      <<: *dms-redis-env
+      SELF: dms-redis-sentinel-2:26379
+    volumes:
+      - dms-redis-sentinel-2:/data
+      - ./docker/dms-redis:/dms-redis:ro
+    depends_on:
+      dms-redis:
+        condition: service_started
+
+  dms-redis-sentinel-3:
+    <<: *dms-sentinel
+    environment:
+      <<: *dms-redis-env
+      SELF: dms-redis-sentinel-3:26379
+    volumes:
+      - dms-redis-sentinel-3:/data
+      - ./docker/dms-redis:/dms-redis:ro
+    depends_on:
+      dms-redis:
+        condition: service_started
+
+  discord-dms-service:
+    image: ${DOCKERHUB_USER:-meow3r}/student-id-discord-dms-service:${REPLICATION_DMS_VERSION:?set a Sentinel-capable DMs version, lab3-0.11.0 or later}
+    environment:
+      <<: *dms-replicated-env
+    depends_on:
+      dms-redis-sentinel-1:
+        condition: service_healthy
+      dms-redis-sentinel-2:
+        condition: service_healthy
+      dms-redis-sentinel-3:
+        condition: service_healthy
+
+  discord-dms-service-2:
+    image: ${DOCKERHUB_USER:-meow3r}/student-id-discord-dms-service:${REPLICATION_DMS_VERSION:?set a Sentinel-capable DMs version, lab3-0.11.0 or later}
+    environment:
+      <<: *dms-replicated-env
+    depends_on:
+      dms-redis-sentinel-1:
+        condition: service_healthy
+      dms-redis-sentinel-2:
+        condition: service_healthy
+      dms-redis-sentinel-3:
+        condition: service_healthy
+
+volumes:
+  moderation-pg-data-2:
+  moderation-pg-data-3:
+  dms-redis-data-2:
+  dms-redis-data-3:
+  dms-redis-sentinel-1:
+  dms-redis-sentinel-2:
+  dms-redis-sentinel-3:
