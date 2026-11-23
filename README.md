@@ -44,6 +44,11 @@ owner's review. Registration in `etl/sources.json` remains the ETL owner's step.
 runs each of their private databases as a primary with two replicas and automatic failover,
 opt-in through `docker-compose.replication.yml`.
 
+[Cache sharding with consistent hashing](docs/cache-consistent-hashing.md) researches consistent
+hashing, spreads the Moderation and Discord DMs caches over three nodes each with a client-side
+hash ring, and compares it in detail with Redis Cluster. Opt-in through
+`docker-compose.cache-sharding.yml`.
+
 A distributed, microservice-based multiplayer game about moderating a university
 Discord server. A team of moderators receives applicants who want to join the
 FAF community server. Applicants present credentials that may be expired, forged,
