@@ -1,5 +1,15 @@
 # Student ID, please
 
+## Lab 5 Warehouse and ETL candidate
+
+The [Warehouse extraction contract](docs/warehouse-extraction.md) and
+[ETL job](etl/README.md) implement service-owned reporting snapshots for Player
+and Session. The opt-in `docker-compose.warehouse.yml` adds a persistent PostgreSQL
+Warehouse and a one-shot ETL job. No service reads another service's database;
+reporting HTTP is an explicitly documented operational extraction path.
+Other owners still need their own reviewed exports. Source changes do not imply
+published images or complete full-team integration. Existing image pins are preserved.
+
 ## Task 10 implementation
 
 [Availability, live service-load routing and Prometheus/Grafana monitoring](docs/service-load-monitoring.md)

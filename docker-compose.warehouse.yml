@@ -1,0 +1,56 @@
+# Opt-in Lab 5 reporting. Add after base and owned-broker overlays.
+# Business RPCs still use Broker; only this documented operational export uses HTTP.
+services:
+  warehouse:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: warehouse
+      POSTGRES_USER: warehouse
+      POSTGRES_PASSWORD: ${WAREHOUSE_DB_PASSWORD:?set a private warehouse password}
+    volumes:
+      - warehouse-data:/var/lib/postgresql/data
+    networks: [warehouse-net]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U warehouse -d warehouse"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  warehouse-etl:
+    image: ${WAREHOUSE_ETL_IMAGE:?set a built or published reviewed ETL image}
+    profiles: [warehouse-etl]
+    networks: [default, warehouse-net]
+    environment:
+      PGHOST: warehouse
+      PGPORT: "5432"
+      PGDATABASE: warehouse
+      PGUSER: warehouse
+      PGPASSWORD: ${WAREHOUSE_DB_PASSWORD:?set a private warehouse password}
+      WAREHOUSE_RETAIN_RUNS: ${WAREHOUSE_RETAIN_RUNS:-30}
+      PLAYER_WAREHOUSE_EXPORT_TOKEN: ${PLAYER_WAREHOUSE_EXPORT_TOKEN:?set a separate Player reporting credential}
+      SESSION_WAREHOUSE_EXPORT_TOKEN: ${SESSION_WAREHOUSE_EXPORT_TOKEN:?set a separate Session reporting credential}
+    depends_on:
+      warehouse:
+        condition: service_healthy
+
+  player-service: &warehouse-player
+    image: ${WAREHOUSE_PLAYER_IMAGE:?set the reviewed lab5 Player export image}
+    environment:
+      WAREHOUSE_EXPORT_TOKEN: ${PLAYER_WAREHOUSE_EXPORT_TOKEN:?set a separate Player reporting credential}
+  player-service-2:
+    <<: *warehouse-player
+    profiles: [replicas]
+
+  session-service: &warehouse-session
+    image: ${WAREHOUSE_SESSION_IMAGE:?set the reviewed lab5 Session export image}
+    environment:
+      WAREHOUSE_EXPORT_TOKEN: ${SESSION_WAREHOUSE_EXPORT_TOKEN:?set a separate Session reporting credential}
+  session-service-2:
+    <<: *warehouse-session
+    profiles: [replicas]
+
+networks:
+  warehouse-net:
+    internal: true
+volumes:
+  warehouse-data:

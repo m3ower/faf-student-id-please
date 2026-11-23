@@ -1,0 +1,18 @@
+[
+  {
+    "source": "player-service",
+    "url": "http://player-service:8080/internal/v1/analytics/snapshot",
+    "tokenEnv": "PLAYER_WAREHOUSE_EXPORT_TOKEN",
+    "datasets": {
+      "players": {"level":"integer","xp":"integer","shiftsCompleted":"integer","accuracyTotal":"number","disciplinaryActions":"integer"}
+    }
+  },
+  {
+    "source": "session-service",
+    "url": "http://session-service:8080/internal/v1/analytics/snapshot",
+    "tokenEnv": "SESSION_WAREHOUSE_EXPORT_TOKEN",
+    "datasets": {
+      "sessions": {"teamId":"uuid","difficulty":"string","state":"string","applicationsProcessed":"integer","score":"integer","penalties":"integer","rulesetVersion":"integer","revision":"integer"}
+    }
+  }
+]
