@@ -44,6 +44,9 @@ owner's review. Registration in `etl/sources.json` remains the ETL owner's step.
 runs each of their private databases as a primary with two replicas and automatic failover,
 opt-in through `docker-compose.replication.yml`.
 
+[Moderation and Discord DMs caching](docs/moderation-dms-caching.md) caches their most-read
+GET data and Session membership in Redis, opt-in through `docker-compose.cache.yml`.
+
 [Cache sharding with consistent hashing](docs/cache-consistent-hashing.md) researches consistent
 hashing, spreads the Moderation and Discord DMs caches over three nodes each with a client-side
 hash ring, and compares it in detail with Redis Cluster. Opt-in through

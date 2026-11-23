@@ -1,0 +1,61 @@
+# Lab 5: caching for Moderation and Discord DMs. Opt-in. Add after the base and owned-broker
+# files (and after docker-compose.replication.yml when that is used too), with the same
+# private environment:
+#   docker compose --env-file .env -f docker-compose.yml -f docker-compose.owned-broker.yml \
+#     -f docker-compose.cache.yml up -d
+# See docs/moderation-dms-caching.md.
+
+x-moderation-cache-env: &moderation-cache-env
+  MODERATION_CACHE_URL: redis://moderation-cache:6379
+  MODERATION_CACHE_PASSWORD: ${MODERATION_CACHE_PASSWORD:?set a separate MODERATION_CACHE_PASSWORD (16+ characters)}
+  MODERATION_CACHE_TTL: ${MODERATION_CACHE_TTL:-60s}
+  MODERATION_MEMBERSHIP_CACHE_TTL: ${MODERATION_MEMBERSHIP_CACHE_TTL:-30s}
+  MODERATION_MEMBERSHIP_NEGATIVE_TTL: ${MODERATION_MEMBERSHIP_NEGATIVE_TTL:-5s}
+
+x-dms-cache-env: &dms-cache-env
+  # DMs caches in the Redis it already uses (single or Sentinel); nothing new to deploy.
+  MEMBERSHIP_CACHE_SECONDS: ${DMS_MEMBERSHIP_CACHE_SECONDS:-30}
+  MEMBERSHIP_NEGATIVE_CACHE_SECONDS: ${DMS_MEMBERSHIP_NEGATIVE_CACHE_SECONDS:-5}
+
+services:
+  # Moderation's cache: a Redis of its own, never shared with another service. Pure cache: no
+  # persistence, bounded memory, least-recently-used entries evicted first. Any
+  # Redis-compatible server (Valkey, DragonFly) works the same way.
+  moderation-cache:
+    image: redis:7.4-alpine
+    restart: unless-stopped
+    command: ["sh", "-c", "exec redis-server --requirepass \"$$CACHE_PASSWORD\" --save '' --appendonly no --maxmemory 64mb --maxmemory-policy allkeys-lru"]
+    environment:
+      CACHE_PASSWORD: ${MODERATION_CACHE_PASSWORD:?set a separate MODERATION_CACHE_PASSWORD (16+ characters)}
+      REDISCLI_AUTH: ${MODERATION_CACHE_PASSWORD:?set a separate MODERATION_CACHE_PASSWORD (16+ characters)}
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  moderation-service:
+    image: ${DOCKERHUB_USER:-meow3r}/student-id-moderation-service:${CACHE_MODERATION_VERSION:?set a cache-capable Moderation version, lab3-0.12.0 or later}
+    environment:
+      <<: *moderation-cache-env
+    depends_on:
+      moderation-cache:
+        condition: service_healthy
+
+  moderation-service-2:
+    image: ${DOCKERHUB_USER:-meow3r}/student-id-moderation-service:${CACHE_MODERATION_VERSION:?set a cache-capable Moderation version, lab3-0.12.0 or later}
+    environment:
+      <<: *moderation-cache-env
+    depends_on:
+      moderation-cache:
+        condition: service_healthy
+
+  discord-dms-service:
+    image: ${DOCKERHUB_USER:-meow3r}/student-id-discord-dms-service:${CACHE_DMS_VERSION:?set a cache-capable DMs version, lab3-0.12.0 or later}
+    environment:
+      <<: *dms-cache-env
+
+  discord-dms-service-2:
+    image: ${DOCKERHUB_USER:-meow3r}/student-id-discord-dms-service:${CACHE_DMS_VERSION:?set a cache-capable DMs version, lab3-0.12.0 or later}
+    environment:
+      <<: *dms-cache-env
