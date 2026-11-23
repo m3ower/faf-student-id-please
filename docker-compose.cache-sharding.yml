@@ -1,0 +1,88 @@
+# Lab 5: cache sharding with consistent hashing, for Moderation and Discord DMs. Opt-in, and
+# self-contained: use it INSTEAD of docker-compose.cache.yml (after the base and owned-broker
+# files, and after docker-compose.replication.yml when that is used too):
+#   docker compose --env-file .env -f docker-compose.yml -f docker-compose.owned-broker.yml \
+#     -f docker-compose.cache-sharding.yml up -d
+# Each service gets its own three cache nodes; the services place keys on them with a
+# client-side consistent-hash ring. See docs/cache-consistent-hashing.md.
+
+x-cache-node: &cache-node
+  image: redis:7.4-alpine
+  restart: unless-stopped
+  # A pure cache: password-protected, no persistence, bounded memory, LRU eviction. A node that
+  # restarts comes back empty, which the services treat as misses.
+  command: ["sh", "-c", "exec redis-server --requirepass \"$$CACHE_PASSWORD\" --save '' --appendonly no --maxmemory 64mb --maxmemory-policy allkeys-lru"]
+  healthcheck:
+    test: ["CMD", "redis-cli", "ping"]
+    interval: 5s
+    timeout: 3s
+    retries: 10
+
+x-moderation-node-env: &moderation-node-env
+  CACHE_PASSWORD: ${MODERATION_CACHE_PASSWORD:?set a separate MODERATION_CACHE_PASSWORD (16+ characters)}
+  REDISCLI_AUTH: ${MODERATION_CACHE_PASSWORD:?set a separate MODERATION_CACHE_PASSWORD (16+ characters)}
+
+x-dms-node-env: &dms-node-env
+  CACHE_PASSWORD: ${DMS_MEMBERSHIP_CACHE_PASSWORD:?set a separate DMS_MEMBERSHIP_CACHE_PASSWORD (32+ characters)}
+  REDISCLI_AUTH: ${DMS_MEMBERSHIP_CACHE_PASSWORD:?set a separate DMS_MEMBERSHIP_CACHE_PASSWORD (32+ characters)}
+
+x-moderation-ring-env: &moderation-ring-env
+  # The ring replaces a single cache URL; the service refuses both at once.
+  MODERATION_CACHE_URL: ""
+  MODERATION_CACHE_NODES: redis://moderation-cache-1:6379,redis://moderation-cache-2:6379,redis://moderation-cache-3:6379
+  MODERATION_CACHE_PASSWORD: ${MODERATION_CACHE_PASSWORD:?set a separate MODERATION_CACHE_PASSWORD (16+ characters)}
+  MODERATION_CACHE_VNODES: ${CACHE_VNODES:-160}
+  MODERATION_CACHE_TTL: ${MODERATION_CACHE_TTL:-60s}
+  MODERATION_MEMBERSHIP_CACHE_TTL: ${MODERATION_MEMBERSHIP_CACHE_TTL:-30s}
+  MODERATION_MEMBERSHIP_NEGATIVE_TTL: ${MODERATION_MEMBERSHIP_NEGATIVE_TTL:-5s}
+
+x-dms-ring-env: &dms-ring-env
+  MEMBERSHIP_CACHE_NODES: dms-cache-1:6379,dms-cache-2:6379,dms-cache-3:6379
+  MEMBERSHIP_CACHE_PASSWORD: ${DMS_MEMBERSHIP_CACHE_PASSWORD:?set a separate DMS_MEMBERSHIP_CACHE_PASSWORD (32+ characters)}
+  MEMBERSHIP_CACHE_VNODES: ${CACHE_VNODES:-160}
+  MEMBERSHIP_CACHE_SECONDS: ${DMS_MEMBERSHIP_CACHE_SECONDS:-30}
+  MEMBERSHIP_NEGATIVE_CACHE_SECONDS: ${DMS_MEMBERSHIP_NEGATIVE_CACHE_SECONDS:-5}
+
+# A service starts once its nodes have started, not when all are healthy: one node down must
+# never keep a service from starting (its keys are simply misses).
+x-moderation-nodes: &moderation-nodes
+  moderation-cache-1: { condition: service_started }
+  moderation-cache-2: { condition: service_started }
+  moderation-cache-3: { condition: service_started }
+
+x-dms-nodes: &dms-nodes
+  dms-cache-1: { condition: service_started }
+  dms-cache-2: { condition: service_started }
+  dms-cache-3: { condition: service_started }
+
+services:
+  moderation-cache-1: { <<: *cache-node, environment: *moderation-node-env }
+  moderation-cache-2: { <<: *cache-node, environment: *moderation-node-env }
+  moderation-cache-3: { <<: *cache-node, environment: *moderation-node-env }
+  dms-cache-1: { <<: *cache-node, environment: *dms-node-env }
+  dms-cache-2: { <<: *cache-node, environment: *dms-node-env }
+  dms-cache-3: { <<: *cache-node, environment: *dms-node-env }
+
+  moderation-service:
+    image: ${DOCKERHUB_USER:-meow3r}/student-id-moderation-service:${SHARDING_MODERATION_VERSION:?set a ring-capable Moderation version, lab3-0.13.0 or later}
+    environment:
+      <<: *moderation-ring-env
+    depends_on: *moderation-nodes
+
+  moderation-service-2:
+    image: ${DOCKERHUB_USER:-meow3r}/student-id-moderation-service:${SHARDING_MODERATION_VERSION:?set a ring-capable Moderation version, lab3-0.13.0 or later}
+    environment:
+      <<: *moderation-ring-env
+    depends_on: *moderation-nodes
+
+  discord-dms-service:
+    image: ${DOCKERHUB_USER:-meow3r}/student-id-discord-dms-service:${SHARDING_DMS_VERSION:?set a ring-capable DMs version, lab3-0.13.0 or later}
+    environment:
+      <<: *dms-ring-env
+    depends_on: *dms-nodes
+
+  discord-dms-service-2:
+    image: ${DOCKERHUB_USER:-meow3r}/student-id-discord-dms-service:${SHARDING_DMS_VERSION:?set a ring-capable DMs version, lab3-0.13.0 or later}
+    environment:
+      <<: *dms-ring-env
+    depends_on: *dms-nodes

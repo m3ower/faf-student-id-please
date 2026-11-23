@@ -47,6 +47,11 @@ opt-in through `docker-compose.replication.yml`.
 [Moderation and Discord DMs caching](docs/moderation-dms-caching.md) caches their most-read
 GET data and Session membership in Redis, opt-in through `docker-compose.cache.yml`.
 
+[Cache sharding with consistent hashing](docs/cache-consistent-hashing.md) researches consistent
+hashing, spreads the Moderation and Discord DMs caches over three nodes each with a client-side
+hash ring, and compares it in detail with Redis Cluster. Opt-in through
+`docker-compose.cache-sharding.yml`.
+
 A distributed, microservice-based multiplayer game about moderating a university
 Discord server. A team of moderators receives applicants who want to join the
 FAF community server. Applicants present credentials that may be expired, forged,
