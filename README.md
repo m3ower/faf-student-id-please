@@ -37,6 +37,10 @@ The [Moderation and Discord DMs Warehouse export handoff](docs/warehouse-moderat
 publishes their reporting allowlists, typed views and evidence for the shared ETL
 owner's review. Registration in `etl/sources.json` remains the ETL owner's step.
 
+[Moderation and Discord DMs replication and failover](docs/moderation-dms-replication.md)
+runs each of their private databases as a primary with two replicas and automatic failover,
+opt-in through `docker-compose.replication.yml`.
+
 A distributed, microservice-based multiplayer game about moderating a university
 Discord server. A team of moderators receives applicants who want to join the
 FAF community server. Applicants present credentials that may be expired, forged,
