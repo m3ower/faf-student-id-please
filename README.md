@@ -1,5 +1,13 @@
 # Student ID, please
 
+## Task 10 implementation
+
+[Availability, live service-load routing and Prometheus/Grafana monitoring](docs/service-load-monitoring.md)
+are prepared as coordinated source changes. Use the monitoring overlay only with
+reviewed Task 10 images. Credential and Rules add real shared HTTP/gRPC utilization;
+other owners must adopt the same additive `/status.load` fields. This is not a claim
+that Task 10 is deployed or that all teammate services already expose load.
+
 ## Current Lab 4 configuration review
 
 The [Lab 4 configuration review](docs/lab4-configuration-review.md) records the
@@ -201,7 +209,7 @@ flowchart TB
 
     subgraph Platform["Docker Compose — private service network"]
         Gateway["API Gateway<br/>JWT verification · verified player identity<br/>Public HTTP entry: localhost:8090"]
-        Broker["Custom Message Broker<br/>In-memory subscriber queues and business topics<br/>Round-robin selection · circuit breakers · deadlines"]
+        Broker["Custom Message Broker<br/>Durable queues and dead letters<br/>Load-aware selection · circuit breakers · deadlines"]
         Discovery["Service Discovery<br/>Instance addresses · subscriptions · readiness"]
 
         subgraph Domain["Domain services — replica-capable"]
@@ -250,6 +258,9 @@ flowchart TB
     Discovery -.->|"HTTP readiness polls"| Domain
     Broker -.->|"HTTP ready-subscriber lookup"| Discovery
     Broker -.->|"Standard gRPC consumer health"| RPC
+    Broker -.->|"Bounded live load sampling"| Domain
+    Prometheus["Prometheus<br/>Private metrics collection"] -->|"Scrape metrics"| Broker
+    Grafana["Grafana<br/>localhost:3000"] -->|"Query"| Prometheus
 
     Player -->|"SQL"| PlayerDB
     Session -->|"SQL"| SessionDB
@@ -263,7 +274,7 @@ flowchart TB
 
     classDef infrastructure fill:#e8efff,stroke:#385a91,color:#172b4d
     classDef service fill:#eaf6ed,stroke:#42754c,color:#173c20
-    class Gateway,Broker,Discovery infrastructure
+    class Gateway,Broker,Discovery,Prometheus,Grafana infrastructure
     class Player,Session,Applicant,Record,Credential,Rules,Moderation,DMs service
 ```
 

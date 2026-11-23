@@ -1,0 +1,51 @@
+# Add after the Lab 4 base and Broker overlay. Metrics stay off the public Gateway.
+services:
+  message-broker:
+    image: ${TASK10_BROKER_IMAGE:?set the reviewed published Task 10 Broker 0.8.0+ image}
+    environment:
+      BROKER_LOAD_BALANCING: "true"
+
+  credential-service:
+    image: ${TASK10_CREDENTIAL_IMAGE:?set the reviewed published Credential lab4-1.2.0+ image}
+
+  credential-service-2:
+    image: ${TASK10_CREDENTIAL_IMAGE:?set the reviewed published Credential lab4-1.2.0+ image}
+
+  rules-service:
+    image: ${TASK10_RULES_IMAGE:?set the reviewed published Rules lab4-1.2.0+ image}
+
+  rules-service-2:
+    image: ${TASK10_RULES_IMAGE:?set the reviewed published Rules lab4-1.2.0+ image}
+
+  prometheus:
+    image: prom/prometheus@sha256:e04987641b57704f408e31f6373ba4138ecf27cb4a165d24aabb6c38fddd0f06
+    command: ["--config.file=/etc/prometheus/prometheus.yml", "--storage.tsdb.path=/prometheus", "--storage.tsdb.retention.time=7d", "--storage.tsdb.retention.size=512MB"]
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitoring/alerts.yml:/etc/prometheus/alerts.yml:ro
+      - prometheus-data:/prometheus
+    ports: ["127.0.0.1:9090:9090"]
+    mem_limit: 256m
+    cpus: 0.5
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana@sha256:0615ec4fbd4072004b7d86b46ded63013a74b7d6eb1119273dd89e8fa25c13cf
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?set a private Grafana administrator password}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_AUTH_ANONYMOUS_ENABLED: "false"
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    ports: ["127.0.0.1:3000:3000"]
+    mem_limit: 256m
+    cpus: 0.5
+    restart: unless-stopped
+    depends_on: [prometheus]
+
+volumes:
+  prometheus-data:
+  grafana-data:
