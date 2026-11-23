@@ -1,0 +1,22 @@
+{
+  "source": "discord-dms-service",
+  "url": "http://discord-dms-service:8080/internal/v1/analytics/snapshot",
+  "tokenEnv": "DMS_WAREHOUSE_EXPORT_TOKEN",
+  "datasets": {
+    "channels": {
+      "sessionId": "uuid",
+      "channel": "string",
+      "readOnly": "boolean",
+      "messageCount": "integer"
+    },
+    "channel-days": {
+      "sessionId": "uuid",
+      "channel": "string",
+      "day": "string",
+      "messages": "integer",
+      "playerMessages": "integer",
+      "systemMessages": "integer",
+      "distinctSenders": "integer"
+    }
+  }
+}

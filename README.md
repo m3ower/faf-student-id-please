@@ -31,6 +31,10 @@ The [Applicant and Record Warehouse export contracts](docs/applicant-record-ware
 publish their reporting allowlists for the shared ETL owner's review. Shared
 Warehouse registration and released-image deployment remain separate.
 
+The [Moderation and Discord DMs Warehouse export handoff](docs/warehouse-moderation-dms-handoff.md)
+publishes their reporting allowlists, typed views and evidence for the shared ETL
+owner's review. Registration in `etl/sources.json` remains the ETL owner's step.
+
 A distributed, microservice-based multiplayer game about moderating a university
 Discord server. A team of moderators receives applicants who want to join the
 FAF community server. Applicants present credentials that may be expired, forged,

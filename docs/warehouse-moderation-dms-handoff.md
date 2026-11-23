@@ -6,8 +6,12 @@ publishes what the ETL owner needs for step 6: the schema, the canonical endpoin
 the source commits, the passing tests and the image tags.
 
 It changes no shared configuration. `etl/sources.json`, `etl/schema.sql`,
-`docker-compose.warehouse.yml` and the ETL tests belong to the ETL owner. The entries
-below are ready to paste once reviewed. Credential **variable names only** appear here.
+`docker-compose.warehouse.yml` and the ETL tests belong to the ETL owner. The proposed
+entries are published as machine-readable manifests for review:
+[moderation-service.json](../contracts/analytics/moderation-service.json) and
+[discord-dms-service.json](../contracts/analytics/discord-dms-service.json). They are
+not an alternative active `etl/sources.json`. Credential **variable names only** appear
+here.
 
 ## Status
 
@@ -17,8 +21,9 @@ below are ready to paste once reviewed. Credential **variable names only** appea
 | Source commit | `ea8d534` (`dev` merge `10dc7e0`) | `0e6530f` (`dev` merge `19cd9f5`) |
 | Image tag | `meow3r/student-id-moderation-service:lab3-0.10.0` | `meow3r/student-id-discord-dms-service:lab3-0.10.0` |
 | Release | moderation-service #48, `dev` to `main` | discord-dms-service #51, `dev` to `main` |
+| Proposed ETL schema | [moderation-service.json](../contracts/analytics/moderation-service.json) | [discord-dms-service.json](../contracts/analytics/discord-dms-service.json) |
 
-The images are published by each repository's `publish.yml` when its release PR merges.
+The images are published by each repository's publish workflow when its release PR merges.
 Until then, `lab3-0.10.0` does not exist on Docker Hub, and no current release pin
 changes.
 
@@ -45,7 +50,13 @@ changes.
 private REST port only, never on the public WebSocket port. Neither route is added to the
 Gateway or to the broker catalog.
 
+**GET bodies.** A body on the GET is ignored, not rejected. The contract defines no
+error code for one, and the ETL never sends one. Credential and Rules reject a body, so
+this is a known difference between owners.
+
 ## `etl/sources.json` entries
+
+These are the same two objects as the manifests in `contracts/analytics/`.
 
 ```json
 {
@@ -181,9 +192,11 @@ These mirror the Player and Session entries in `docker-compose.warehouse.yml`:
 `MODERATION_WAREHOUSE_EXPORT_TOKEN=`, `DMS_WAREHOUSE_EXPORT_TOKEN=`,
 `WAREHOUSE_MODERATION_IMAGE=` and `WAREHOUSE_DMS_IMAGE=`.
 
-**ETL test fixtures.** `etl/tests/test_etl.py` builds its fixtures for Player and Session
-only (one dataset per source, per-index tokens). Adding these sources needs fixture data
-for `decisions`, `channels` and `channel-days`, and a distinct token per source.
+**ETL tests.** `etl/tests/test_etl.py` is scoped to Player and Session. However,
+`etl/tests/test_owned_exports.py` asserts that the shared `sources.json` loads exactly
+four sources. Registering these two entries therefore needs that count updated, plus
+fixtures for `decisions`, `channels` (one dataset) and `channel-days` (a second dataset
+in the same source), with a distinct token per source.
 
 ## Verification
 
