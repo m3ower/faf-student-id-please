@@ -28,4 +28,4 @@ jobs:
             exit 1
           fi
       - name: Validate synthetic Compose isolation and preservation
-        run: python3 scripts/validate_owned_cache_compose.py
+        run: python3 scripts/validate_owned_cache_compose.py --ha-overlay docker-compose.owned-postgres-ha.yml

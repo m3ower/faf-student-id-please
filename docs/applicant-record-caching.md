@@ -45,8 +45,9 @@ Redis reads. Invalid, unavailable or oversized entries fall back to the source
 and increment error/miss counters as appropriate. Errors trigger a one-second
 cooldown. Database failure does not serve stale cached data.
 
-Applicant shares at most 50 ms of the remaining trusted deadline across cache
-work, with socket/connect waits capped at 15 ms and DNS off the business thread.
+Applicant shares a 50 ms Redis I/O budget within the trusted parent deadline,
+with socket/connect waits capped at 15 ms and DNS off the business thread.
+Generation queries retain the existing database/task deadline.
 Record caps Redis operations at 20 ms within the parent deadline, without
 retries; membership's one-second total budget includes cache and live Broker
 work. No business deadlines, payloads, allowlists or admission accounting change.
@@ -130,3 +131,12 @@ This does not rerun Patroni failover or establish end-to-end Gateway/Session
 business acceptance. Grade 5 CPR #188 is merged; owned HA/cache release
 publication plus coordinated deployment remain separate gates. The architecture
 diagram remains with its owner.
+
+## Review references
+
+- Applicant [issue #41](https://github.com/Andreiisthebest/student-id-applicant-service/issues/41), [PR #42](https://github.com/Andreiisthebest/student-id-applicant-service/pull/42), source `75c924eb8263a38319ad7822d14fe61593c121fc`.
+- Record [issue #41](https://github.com/Andreiisthebest/student-id-university-record-service/issues/41), [PR #42](https://github.com/Andreiisthebest/student-id-university-record-service/pull/42), source `c528526d596ec9a68b834debae9187a810b5fffa`.
+- Shared [issue #189](https://github.com/m3ower/faf-student-id-please/issues/189).
+
+These are feature source revisions, not release digests. The private source stays
+in its owner repositories; CPR contains configuration and public specifications.
