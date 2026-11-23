@@ -168,13 +168,14 @@ Exact private source candidates:
   issue #39, revision `291ed9d4a08095e5cef804a19ad7b26266c0012e`.
   Full isolated PostgreSQL suite: 63 tests, 94.16% application line coverage.
 - [Record PR #40](https://github.com/Andreiisthebest/student-id-university-record-service/pull/40),
-  issue #39, revision `d946b96fc9574f7dd73b3e05d74063e041cb1ee4`.
+  issue #39, revision `3b14aa382543699591eb3af073a5b50295e78d7f`.
   Full race/database suite: 78.2% line and 81.8% statement coverage.
 
 The live test identified and fixed a real Docker DNS failure mode: stopped node
 hostnames may disappear. Record now limits each multi-host DNS lookup to 200 ms
 and each connect to at most 500 ms inside the parent deadline, preserving time
-for a healthy fallback; single-host settings are unchanged. Query/task deadlines
+for a healthy fallback; single-host settings, including TLS prefer/allow fallbacks,
+are preserved by a focused compatibility test. Query/task deadlines
 are not enlarged and mutations are not automatically retried.
 
 Three configuration boundary tests pass (scope/host validation, distinct

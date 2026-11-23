@@ -3,6 +3,7 @@ on:
   pull_request:
     branches: [dev, main]
     paths:
+      - '.gitattributes'
       - 'docker/owned-postgres-ha/**'
       - 'docker-compose.owned-postgres-ha.yml'
       - 'scripts/verify_owned_postgres_ha.py'
