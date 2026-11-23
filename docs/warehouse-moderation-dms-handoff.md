@@ -20,12 +20,13 @@ here.
 | Source PR (private repo) | moderation-service #46, merged to `dev` | discord-dms-service #50 (and fix #49), merged to `dev` |
 | Source commit | `ea8d534` (`dev` merge `10dc7e0`) | `0e6530f` (`dev` merge `19cd9f5`) |
 | Image tag | `meow3r/student-id-moderation-service:lab3-0.10.0` | `meow3r/student-id-discord-dms-service:lab3-0.10.0` |
-| Release | moderation-service #48, `dev` to `main` | discord-dms-service #51, `dev` to `main` |
+| Release | moderation-service #48, merged to `main` | discord-dms-service #51, merged to `main` |
+| Image digest | `sha256:5272a96d0df2782a5c85e0e34c94942d9154980383d478eb6f2e58e110160280` | `sha256:86f4510c972bc9ebf87df716a3cbb256aa9f730a17b0d32cab638f93e0f03b66` |
 | Proposed ETL schema | [moderation-service.json](../contracts/analytics/moderation-service.json) | [discord-dms-service.json](../contracts/analytics/discord-dms-service.json) |
 
-The images are published by each repository's publish workflow when its release PR merges.
-Until then, `lab3-0.10.0` does not exist on Docker Hub, and no current release pin
-changes.
+Both images were published to Docker Hub by each repository's publish workflow, which
+runs the test suite first, when its release PR merged on 2026-11-23. No current CPR release
+pin changes here; selecting these images for the warehouse overlay is part of step 6.
 
 ## Endpoints
 
