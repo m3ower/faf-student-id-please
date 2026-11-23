@@ -12,6 +12,9 @@ reporting HTTP is an explicitly documented operational extraction path.
 Source configuration does not imply published images or full deployed acceptance.
 The overlay requires explicit export-capable images and eight distinct reporting
 tokens. Existing base image pins are preserved.
+The ETL image is published as `vasiok11/student-id-warehouse-etl:lab5-0.1.0`;
+the overlay selects its immutable digest. See the
+[release details](docs/warehouse-all-sources.md#published-etl-release).
 
 ## Task 10 implementation
 
