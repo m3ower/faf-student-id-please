@@ -3,6 +3,9 @@
 CLAUDE.local.md
 docs-local/
 __pycache__/
+.coverage
+coverage.xml
+htmlcov/
 
 # Private Lab 4 configuration; examples remain tracked.
 .env.lab4

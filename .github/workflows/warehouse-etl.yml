@@ -1,0 +1,39 @@
+name: warehouse ETL checks
+on:
+  pull_request:
+    branches: [dev, main]
+    paths: ['etl/**', 'docker-compose.warehouse.yml', '.env.warehouse.example', '.github/workflows/warehouse-etl.yml']
+  push:
+    branches: [dev, main]
+    paths: ['etl/**', 'docker-compose.warehouse.yml', '.github/workflows/warehouse-etl.yml']
+permissions:
+  contents: read
+jobs:
+  warehouse-etl:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      warehouse:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: warehouse_test
+          POSTGRES_USER: warehouse_test
+          POSTGRES_PASSWORD: disposable-etl-test-only
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U warehouse_test -d warehouse_test"
+          --health-interval 5s --health-timeout 3s --health-retries 10
+    env:
+      ETL_TEST_DSN: postgresql://warehouse_test:disposable-etl-test-only@127.0.0.1:5432/warehouse_test
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: etl/requirements.txt
+      - run: python -m pip install --only-binary=:all: -r etl/requirements.txt coverage==7.10.6
+      - run: |
+          python -m coverage run --source=etl.run -m unittest discover -s etl/tests -v
+          python -m coverage report --fail-under=70 --show-missing
+      - run: docker build -t student-id-warehouse-etl:ci etl
