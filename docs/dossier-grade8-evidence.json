@@ -1,0 +1,91 @@
+{
+  "date": "2026-11-25",
+  "grade": 8,
+  "protocol": "dossier-v1",
+  "sources": {
+    "applicant": {
+      "repository": "Andreiisthebest/student-id-applicant-service",
+      "branch": "feature/applicant-dossier-2pc",
+      "commit": "9e82416676698e67d3a0d36efbf2e3d7850a1c34",
+      "implementationCommit": "0034123"
+    },
+    "record": {
+      "repository": "Andreiisthebest/student-id-university-record-service",
+      "branch": "feature/record-dossier-2pc",
+      "commit": "e2fc6778b4b380cdb831b14dc57fa48666585b7a",
+      "implementationCommit": "75fc11f"
+    },
+    "broker": {
+      "repository": "Andreiisthebest/student-id-message-broker",
+      "branch": "feature/broker-dossier-2pc",
+      "commit": "2379726f4d6f602295213ef3531673b43a32502c"
+    },
+    "cpr": {
+      "repository": "m3ower/faf-student-id-please",
+      "branch": "feature/owned-dossier-2pc",
+      "commit": "7b0c2bcc635e26c1c413c91bfa3a2d1256f1ef8f"
+    }
+  },
+  "tests": {
+    "applicant": {
+      "tests": 79,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "coverageGate": "passed"
+    },
+    "record": {
+      "completeCiScript": "passed",
+      "raceDetector": "passed",
+      "lineCoveragePercent": 76.9,
+      "statementCoveragePercent": 81.1,
+      "dossierTests": 5
+    },
+    "broker": {
+      "applicationTests": 151,
+      "repositoryPolicyTests": 5,
+      "coveragePercent": 90,
+      "protoRegenerationCheck": "passed"
+    },
+    "cpr": {
+      "tests": 63,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "operations": 63,
+      "examples": 63,
+      "protobufCompilation": "passed"
+    },
+    "isolatedAcceptance": {
+      "checks": 44,
+      "result": "PASS",
+      "actualServices": [
+        "applicant-service",
+        "university-record-service",
+        "message-broker"
+      ],
+      "contractPeers": [
+        "credential-service",
+        "service-discovery"
+      ],
+      "credentialOwnerAcceptance": false,
+      "cases": [
+        "lost replies and success",
+        "source conflict and abort",
+        "process/database restart after COMMIT and expired deadline"
+      ]
+    }
+  },
+  "contractSha256": "13752763478ca4e655fb4347e59ff2045d65f116dc6563016f7a6841686b5c24",
+  "activation": {
+    "defaultEnabled": false,
+    "sharedDeploymentChanged": false,
+    "sharedImageOrSubmodulePinsChanged": false,
+    "credentialOwnerImplementationVerified": false
+  },
+  "limitations": [
+    "Credential document generation is represented by an explicit PostgreSQL contract peer; its owner must implement and jointly verify the real participant.",
+    "The existing HA deployment was not changed or certified for no-loss prepared-transaction promotion.",
+    "Grade 9 compensation is not implemented on this preserved Grade 8 branch."
+  ]
+}

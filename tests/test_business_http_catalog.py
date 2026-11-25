@@ -15,7 +15,7 @@ class BusinessCatalogTests(unittest.TestCase):
                 continue
             route = api['paths'][operation['path'].split('?')[0]][operation['method'].lower()]
             self.assertEqual(route['operationId'], operation['name'])
-            expected_status = ('candidate' if operation['name'].startswith('rules.shift.')
+            expected_status = ('candidate' if operation['name'].startswith(('rules.shift.','credential.dossier.'))
                                else 'implemented-pending-review')
             self.assertEqual(operation['status'], expected_status)
             self.assertTrue(route['security'])

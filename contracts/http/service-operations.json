@@ -1367,6 +1367,726 @@
         "504 TASK_TIMEOUT": "Receiver deadline exceeded"
       },
       "semantics": "Receiver-owned batch operation already implemented for Rules. Nonempty checks, matching applicant IDs and Record revision are required. A missing document set never becomes empty successful validation."
+    },
+    {
+      "name": "applicant.dossier.snapshot",
+      "status": "implemented-pending-review",
+      "statusEvidence": "Grade 8 dossier v1 candidate. Credential owner implementation is required; no whole-system deployment claim.",
+      "owner": "applicant-service",
+      "method": "POST",
+      "path": "/internal/v1/applicants/dossier/v1/snapshot",
+      "callers": [
+        "message-broker"
+      ],
+      "request": "dossierIdentityV1",
+      "response": "dossierSnapshotV1",
+      "semantics": "Dossier v1 resource manager command; exact workflow/initialization identity and input are immutable. PREPARED means actual PostgreSQL preparation; completion is separate from a transport acknowledgment.",
+      "budgetsMs": {
+        "target": 500,
+        "gateway": 750,
+        "broker": 750,
+        "caller": 1000
+      },
+      "idempotency": "Same workflow and input replays without duplicate effects; conflicting identity/input/decision is 409.",
+      "retry": "Only durable coordinator recovery replays the same command; uncertain prepared work never times out into a participant rollback.",
+      "errors": {
+        "400 INVALID_DOSSIER": "Malformed versioned input",
+        "401 UNAUTHENTICATED": "Target credential required",
+        "403 SERVICE_CALL_FORBIDDEN": "Coordinator identity required",
+        "409 DOSSIER_CONFLICT": "Immutable identity/input/decision or source-version conflict",
+        "503 DOSSIER_STORAGE_UNAVAILABLE": "Recover using the same workflow identity",
+        "504 TASK_TIMEOUT": "Command deadline, never a heuristic rollback"
+      }
+    },
+    {
+      "name": "applicant.dossier.prepare",
+      "status": "implemented-pending-review",
+      "statusEvidence": "Grade 8 dossier v1 candidate. Credential owner implementation is required; no whole-system deployment claim.",
+      "owner": "applicant-service",
+      "method": "POST",
+      "path": "/internal/v1/applicants/dossier/v1/prepare",
+      "callers": [
+        "message-broker"
+      ],
+      "request": "dossierPrepareV1",
+      "response": "dossierReceiptV1",
+      "semantics": "Dossier v1 resource manager command; exact workflow/initialization identity and input are immutable. PREPARED means actual PostgreSQL preparation; completion is separate from a transport acknowledgment.",
+      "budgetsMs": {
+        "target": 500,
+        "gateway": 750,
+        "broker": 750,
+        "caller": 1000
+      },
+      "idempotency": "Same workflow and input replays without duplicate effects; conflicting identity/input/decision is 409.",
+      "retry": "Only durable coordinator recovery replays the same command; uncertain prepared work never times out into a participant rollback.",
+      "errors": {
+        "400 INVALID_DOSSIER": "Malformed versioned input",
+        "401 UNAUTHENTICATED": "Target credential required",
+        "403 SERVICE_CALL_FORBIDDEN": "Coordinator identity required",
+        "409 DOSSIER_CONFLICT": "Immutable identity/input/decision or source-version conflict",
+        "503 DOSSIER_STORAGE_UNAVAILABLE": "Recover using the same workflow identity",
+        "504 TASK_TIMEOUT": "Command deadline, never a heuristic rollback"
+      }
+    },
+    {
+      "name": "applicant.dossier.commit",
+      "status": "implemented-pending-review",
+      "statusEvidence": "Grade 8 dossier v1 candidate. Credential owner implementation is required; no whole-system deployment claim.",
+      "owner": "applicant-service",
+      "method": "POST",
+      "path": "/internal/v1/applicants/dossier/v1/commit",
+      "callers": [
+        "message-broker"
+      ],
+      "request": "dossierIdentityV1",
+      "response": "dossierReceiptV1",
+      "semantics": "Dossier v1 resource manager command; exact workflow/initialization identity and input are immutable. PREPARED means actual PostgreSQL preparation; completion is separate from a transport acknowledgment.",
+      "budgetsMs": {
+        "target": 500,
+        "gateway": 750,
+        "broker": 750,
+        "caller": 1000
+      },
+      "idempotency": "Same workflow and input replays without duplicate effects; conflicting identity/input/decision is 409.",
+      "retry": "Only durable coordinator recovery replays the same command; uncertain prepared work never times out into a participant rollback.",
+      "errors": {
+        "400 INVALID_DOSSIER": "Malformed versioned input",
+        "401 UNAUTHENTICATED": "Target credential required",
+        "403 SERVICE_CALL_FORBIDDEN": "Coordinator identity required",
+        "409 DOSSIER_CONFLICT": "Immutable identity/input/decision or source-version conflict",
+        "503 DOSSIER_STORAGE_UNAVAILABLE": "Recover using the same workflow identity",
+        "504 TASK_TIMEOUT": "Command deadline, never a heuristic rollback"
+      }
+    },
+    {
+      "name": "applicant.dossier.abort",
+      "status": "implemented-pending-review",
+      "statusEvidence": "Grade 8 dossier v1 candidate. Credential owner implementation is required; no whole-system deployment claim.",
+      "owner": "applicant-service",
+      "method": "POST",
+      "path": "/internal/v1/applicants/dossier/v1/abort",
+      "callers": [
+        "message-broker"
+      ],
+      "request": "dossierIdentityV1",
+      "response": "dossierReceiptV1",
+      "semantics": "Dossier v1 resource manager command; exact workflow/initialization identity and input are immutable. PREPARED means actual PostgreSQL preparation; completion is separate from a transport acknowledgment.",
+      "budgetsMs": {
+        "target": 500,
+        "gateway": 750,
+        "broker": 750,
+        "caller": 1000
+      },
+      "idempotency": "Same workflow and input replays without duplicate effects; conflicting identity/input/decision is 409.",
+      "retry": "Only durable coordinator recovery replays the same command; uncertain prepared work never times out into a participant rollback.",
+      "errors": {
+        "400 INVALID_DOSSIER": "Malformed versioned input",
+        "401 UNAUTHENTICATED": "Target credential required",
+        "403 SERVICE_CALL_FORBIDDEN": "Coordinator identity required",
+        "409 DOSSIER_CONFLICT": "Immutable identity/input/decision or source-version conflict",
+        "503 DOSSIER_STORAGE_UNAVAILABLE": "Recover using the same workflow identity",
+        "504 TASK_TIMEOUT": "Command deadline, never a heuristic rollback"
+      }
+    },
+    {
+      "name": "applicant.dossier.status",
+      "status": "implemented-pending-review",
+      "statusEvidence": "Grade 8 dossier v1 candidate. Credential owner implementation is required; no whole-system deployment claim.",
+      "owner": "applicant-service",
+      "method": "POST",
+      "path": "/internal/v1/applicants/dossier/v1/status",
+      "callers": [
+        "message-broker"
+      ],
+      "request": "dossierIdentityV1",
+      "response": "dossierReceiptV1",
+      "semantics": "Dossier v1 resource manager command; exact workflow/initialization identity and input are immutable. PREPARED means actual PostgreSQL preparation; completion is separate from a transport acknowledgment.",
+      "budgetsMs": {
+        "target": 500,
+        "gateway": 750,
+        "broker": 750,
+        "caller": 1000
+      },
+      "idempotency": "Same workflow and input replays without duplicate effects; conflicting identity/input/decision is 409.",
+      "retry": "Only durable coordinator recovery replays the same command; uncertain prepared work never times out into a participant rollback.",
+      "errors": {
+        "400 INVALID_DOSSIER": "Malformed versioned input",
+        "401 UNAUTHENTICATED": "Target credential required",
+        "403 SERVICE_CALL_FORBIDDEN": "Coordinator identity required",
+        "409 DOSSIER_CONFLICT": "Immutable identity/input/decision or source-version conflict",
+        "503 DOSSIER_STORAGE_UNAVAILABLE": "Recover using the same workflow identity",
+        "504 TASK_TIMEOUT": "Command deadline, never a heuristic rollback"
+      }
+    },
+    {
+      "name": "applicant.dossier.acknowledge",
+      "status": "implemented-pending-review",
+      "statusEvidence": "Grade 8 dossier v1 candidate. Credential owner implementation is required; no whole-system deployment claim.",
+      "owner": "applicant-service",
+      "method": "POST",
+      "path": "/internal/v1/applicants/dossier/v1/acknowledge",
+      "callers": [
+        "message-broker"
+      ],
+      "request": "dossierIdentityV1",
+      "response": "dossierReceiptV1",
+      "semantics": "Dossier v1 resource manager command; exact workflow/initialization identity and input are immutable. PREPARED means actual PostgreSQL preparation; completion is separate from a transport acknowledgment.",
+      "budgetsMs": {
+        "target": 500,
+        "gateway": 750,
+        "broker": 750,
+        "caller": 1000
+      },
+      "idempotency": "Same workflow and input replays without duplicate effects; conflicting identity/input/decision is 409.",
+      "retry": "Only durable coordinator recovery replays the same command; uncertain prepared work never times out into a participant rollback.",
+      "errors": {
+        "400 INVALID_DOSSIER": "Malformed versioned input",
+        "401 UNAUTHENTICATED": "Target credential required",
+        "403 SERVICE_CALL_FORBIDDEN": "Coordinator identity required",
+        "409 DOSSIER_CONFLICT": "Immutable identity/input/decision or source-version conflict",
+        "503 DOSSIER_STORAGE_UNAVAILABLE": "Recover using the same workflow identity",
+        "504 TASK_TIMEOUT": "Command deadline, never a heuristic rollback"
+      }
+    },
+    {
+      "name": "applicant.dossier.release",
+      "status": "implemented-pending-review",
+      "statusEvidence": "Grade 8 dossier v1 candidate. Credential owner implementation is required; no whole-system deployment claim.",
+      "owner": "applicant-service",
+      "method": "POST",
+      "path": "/internal/v1/applicants/dossier/v1/release",
+      "callers": [
+        "message-broker"
+      ],
+      "request": "dossierIdentityV1",
+      "response": "dossierReceiptV1",
+      "semantics": "Dossier v1 resource manager command; exact workflow/initialization identity and input are immutable. PREPARED means actual PostgreSQL preparation; completion is separate from a transport acknowledgment.",
+      "budgetsMs": {
+        "target": 500,
+        "gateway": 750,
+        "broker": 750,
+        "caller": 1000
+      },
+      "idempotency": "Same workflow and input replays without duplicate effects; conflicting identity/input/decision is 409.",
+      "retry": "Only durable coordinator recovery replays the same command; uncertain prepared work never times out into a participant rollback.",
+      "errors": {
+        "400 INVALID_DOSSIER": "Malformed versioned input",
+        "401 UNAUTHENTICATED": "Target credential required",
+        "403 SERVICE_CALL_FORBIDDEN": "Coordinator identity required",
+        "409 DOSSIER_CONFLICT": "Immutable identity/input/decision or source-version conflict",
+        "503 DOSSIER_STORAGE_UNAVAILABLE": "Recover using the same workflow identity",
+        "504 TASK_TIMEOUT": "Command deadline, never a heuristic rollback"
+      }
+    },
+    {
+      "name": "applicant.dossier.pending",
+      "status": "implemented-pending-review",
+      "statusEvidence": "Grade 8 dossier v1 candidate. Credential owner implementation is required; no whole-system deployment claim.",
+      "owner": "applicant-service",
+      "method": "POST",
+      "path": "/internal/v1/applicants/dossier/v1/pending",
+      "callers": [
+        "message-broker"
+      ],
+      "request": "dossierEmptyV1",
+      "response": "dossierPendingV1",
+      "semantics": "Dossier v1 resource manager command; exact workflow/initialization identity and input are immutable. PREPARED means actual PostgreSQL preparation; completion is separate from a transport acknowledgment.",
+      "budgetsMs": {
+        "target": 500,
+        "gateway": 750,
+        "broker": 750,
+        "caller": 1000
+      },
+      "idempotency": "Same workflow and input replays without duplicate effects; conflicting identity/input/decision is 409.",
+      "retry": "Only durable coordinator recovery replays the same command; uncertain prepared work never times out into a participant rollback.",
+      "errors": {
+        "400 INVALID_DOSSIER": "Malformed versioned input",
+        "401 UNAUTHENTICATED": "Target credential required",
+        "403 SERVICE_CALL_FORBIDDEN": "Coordinator identity required",
+        "409 DOSSIER_CONFLICT": "Immutable identity/input/decision or source-version conflict",
+        "503 DOSSIER_STORAGE_UNAVAILABLE": "Recover using the same workflow identity",
+        "504 TASK_TIMEOUT": "Command deadline, never a heuristic rollback"
+      }
+    },
+    {
+      "name": "record.dossier.snapshot",
+      "status": "implemented-pending-review",
+      "statusEvidence": "Grade 8 dossier v1 candidate. Credential owner implementation is required; no whole-system deployment claim.",
+      "owner": "university-record-service",
+      "method": "POST",
+      "path": "/internal/v1/records/dossier/v1/snapshot",
+      "callers": [
+        "message-broker"
+      ],
+      "request": "dossierIdentityV1",
+      "response": "dossierSnapshotV1",
+      "semantics": "Dossier v1 resource manager command; exact workflow/initialization identity and input are immutable. PREPARED means actual PostgreSQL preparation; completion is separate from a transport acknowledgment.",
+      "budgetsMs": {
+        "target": 500,
+        "gateway": 750,
+        "broker": 750,
+        "caller": 1000
+      },
+      "idempotency": "Same workflow and input replays without duplicate effects; conflicting identity/input/decision is 409.",
+      "retry": "Only durable coordinator recovery replays the same command; uncertain prepared work never times out into a participant rollback.",
+      "errors": {
+        "400 INVALID_DOSSIER": "Malformed versioned input",
+        "401 UNAUTHENTICATED": "Target credential required",
+        "403 SERVICE_CALL_FORBIDDEN": "Coordinator identity required",
+        "409 DOSSIER_CONFLICT": "Immutable identity/input/decision or source-version conflict",
+        "503 DOSSIER_STORAGE_UNAVAILABLE": "Recover using the same workflow identity",
+        "504 TASK_TIMEOUT": "Command deadline, never a heuristic rollback"
+      }
+    },
+    {
+      "name": "record.dossier.prepare",
+      "status": "implemented-pending-review",
+      "statusEvidence": "Grade 8 dossier v1 candidate. Credential owner implementation is required; no whole-system deployment claim.",
+      "owner": "university-record-service",
+      "method": "POST",
+      "path": "/internal/v1/records/dossier/v1/prepare",
+      "callers": [
+        "message-broker"
+      ],
+      "request": "dossierPrepareV1",
+      "response": "dossierReceiptV1",
+      "semantics": "Dossier v1 resource manager command; exact workflow/initialization identity and input are immutable. PREPARED means actual PostgreSQL preparation; completion is separate from a transport acknowledgment.",
+      "budgetsMs": {
+        "target": 500,
+        "gateway": 750,
+        "broker": 750,
+        "caller": 1000
+      },
+      "idempotency": "Same workflow and input replays without duplicate effects; conflicting identity/input/decision is 409.",
+      "retry": "Only durable coordinator recovery replays the same command; uncertain prepared work never times out into a participant rollback.",
+      "errors": {
+        "400 INVALID_DOSSIER": "Malformed versioned input",
+        "401 UNAUTHENTICATED": "Target credential required",
+        "403 SERVICE_CALL_FORBIDDEN": "Coordinator identity required",
+        "409 DOSSIER_CONFLICT": "Immutable identity/input/decision or source-version conflict",
+        "503 DOSSIER_STORAGE_UNAVAILABLE": "Recover using the same workflow identity",
+        "504 TASK_TIMEOUT": "Command deadline, never a heuristic rollback"
+      }
+    },
+    {
+      "name": "record.dossier.commit",
+      "status": "implemented-pending-review",
+      "statusEvidence": "Grade 8 dossier v1 candidate. Credential owner implementation is required; no whole-system deployment claim.",
+      "owner": "university-record-service",
+      "method": "POST",
+      "path": "/internal/v1/records/dossier/v1/commit",
+      "callers": [
+        "message-broker"
+      ],
+      "request": "dossierIdentityV1",
+      "response": "dossierReceiptV1",
+      "semantics": "Dossier v1 resource manager command; exact workflow/initialization identity and input are immutable. PREPARED means actual PostgreSQL preparation; completion is separate from a transport acknowledgment.",
+      "budgetsMs": {
+        "target": 500,
+        "gateway": 750,
+        "broker": 750,
+        "caller": 1000
+      },
+      "idempotency": "Same workflow and input replays without duplicate effects; conflicting identity/input/decision is 409.",
+      "retry": "Only durable coordinator recovery replays the same command; uncertain prepared work never times out into a participant rollback.",
+      "errors": {
+        "400 INVALID_DOSSIER": "Malformed versioned input",
+        "401 UNAUTHENTICATED": "Target credential required",
+        "403 SERVICE_CALL_FORBIDDEN": "Coordinator identity required",
+        "409 DOSSIER_CONFLICT": "Immutable identity/input/decision or source-version conflict",
+        "503 DOSSIER_STORAGE_UNAVAILABLE": "Recover using the same workflow identity",
+        "504 TASK_TIMEOUT": "Command deadline, never a heuristic rollback"
+      }
+    },
+    {
+      "name": "record.dossier.abort",
+      "status": "implemented-pending-review",
+      "statusEvidence": "Grade 8 dossier v1 candidate. Credential owner implementation is required; no whole-system deployment claim.",
+      "owner": "university-record-service",
+      "method": "POST",
+      "path": "/internal/v1/records/dossier/v1/abort",
+      "callers": [
+        "message-broker"
+      ],
+      "request": "dossierIdentityV1",
+      "response": "dossierReceiptV1",
+      "semantics": "Dossier v1 resource manager command; exact workflow/initialization identity and input are immutable. PREPARED means actual PostgreSQL preparation; completion is separate from a transport acknowledgment.",
+      "budgetsMs": {
+        "target": 500,
+        "gateway": 750,
+        "broker": 750,
+        "caller": 1000
+      },
+      "idempotency": "Same workflow and input replays without duplicate effects; conflicting identity/input/decision is 409.",
+      "retry": "Only durable coordinator recovery replays the same command; uncertain prepared work never times out into a participant rollback.",
+      "errors": {
+        "400 INVALID_DOSSIER": "Malformed versioned input",
+        "401 UNAUTHENTICATED": "Target credential required",
+        "403 SERVICE_CALL_FORBIDDEN": "Coordinator identity required",
+        "409 DOSSIER_CONFLICT": "Immutable identity/input/decision or source-version conflict",
+        "503 DOSSIER_STORAGE_UNAVAILABLE": "Recover using the same workflow identity",
+        "504 TASK_TIMEOUT": "Command deadline, never a heuristic rollback"
+      }
+    },
+    {
+      "name": "record.dossier.status",
+      "status": "implemented-pending-review",
+      "statusEvidence": "Grade 8 dossier v1 candidate. Credential owner implementation is required; no whole-system deployment claim.",
+      "owner": "university-record-service",
+      "method": "POST",
+      "path": "/internal/v1/records/dossier/v1/status",
+      "callers": [
+        "message-broker"
+      ],
+      "request": "dossierIdentityV1",
+      "response": "dossierReceiptV1",
+      "semantics": "Dossier v1 resource manager command; exact workflow/initialization identity and input are immutable. PREPARED means actual PostgreSQL preparation; completion is separate from a transport acknowledgment.",
+      "budgetsMs": {
+        "target": 500,
+        "gateway": 750,
+        "broker": 750,
+        "caller": 1000
+      },
+      "idempotency": "Same workflow and input replays without duplicate effects; conflicting identity/input/decision is 409.",
+      "retry": "Only durable coordinator recovery replays the same command; uncertain prepared work never times out into a participant rollback.",
+      "errors": {
+        "400 INVALID_DOSSIER": "Malformed versioned input",
+        "401 UNAUTHENTICATED": "Target credential required",
+        "403 SERVICE_CALL_FORBIDDEN": "Coordinator identity required",
+        "409 DOSSIER_CONFLICT": "Immutable identity/input/decision or source-version conflict",
+        "503 DOSSIER_STORAGE_UNAVAILABLE": "Recover using the same workflow identity",
+        "504 TASK_TIMEOUT": "Command deadline, never a heuristic rollback"
+      }
+    },
+    {
+      "name": "record.dossier.acknowledge",
+      "status": "implemented-pending-review",
+      "statusEvidence": "Grade 8 dossier v1 candidate. Credential owner implementation is required; no whole-system deployment claim.",
+      "owner": "university-record-service",
+      "method": "POST",
+      "path": "/internal/v1/records/dossier/v1/acknowledge",
+      "callers": [
+        "message-broker"
+      ],
+      "request": "dossierIdentityV1",
+      "response": "dossierReceiptV1",
+      "semantics": "Dossier v1 resource manager command; exact workflow/initialization identity and input are immutable. PREPARED means actual PostgreSQL preparation; completion is separate from a transport acknowledgment.",
+      "budgetsMs": {
+        "target": 500,
+        "gateway": 750,
+        "broker": 750,
+        "caller": 1000
+      },
+      "idempotency": "Same workflow and input replays without duplicate effects; conflicting identity/input/decision is 409.",
+      "retry": "Only durable coordinator recovery replays the same command; uncertain prepared work never times out into a participant rollback.",
+      "errors": {
+        "400 INVALID_DOSSIER": "Malformed versioned input",
+        "401 UNAUTHENTICATED": "Target credential required",
+        "403 SERVICE_CALL_FORBIDDEN": "Coordinator identity required",
+        "409 DOSSIER_CONFLICT": "Immutable identity/input/decision or source-version conflict",
+        "503 DOSSIER_STORAGE_UNAVAILABLE": "Recover using the same workflow identity",
+        "504 TASK_TIMEOUT": "Command deadline, never a heuristic rollback"
+      }
+    },
+    {
+      "name": "record.dossier.release",
+      "status": "implemented-pending-review",
+      "statusEvidence": "Grade 8 dossier v1 candidate. Credential owner implementation is required; no whole-system deployment claim.",
+      "owner": "university-record-service",
+      "method": "POST",
+      "path": "/internal/v1/records/dossier/v1/release",
+      "callers": [
+        "message-broker"
+      ],
+      "request": "dossierIdentityV1",
+      "response": "dossierReceiptV1",
+      "semantics": "Dossier v1 resource manager command; exact workflow/initialization identity and input are immutable. PREPARED means actual PostgreSQL preparation; completion is separate from a transport acknowledgment.",
+      "budgetsMs": {
+        "target": 500,
+        "gateway": 750,
+        "broker": 750,
+        "caller": 1000
+      },
+      "idempotency": "Same workflow and input replays without duplicate effects; conflicting identity/input/decision is 409.",
+      "retry": "Only durable coordinator recovery replays the same command; uncertain prepared work never times out into a participant rollback.",
+      "errors": {
+        "400 INVALID_DOSSIER": "Malformed versioned input",
+        "401 UNAUTHENTICATED": "Target credential required",
+        "403 SERVICE_CALL_FORBIDDEN": "Coordinator identity required",
+        "409 DOSSIER_CONFLICT": "Immutable identity/input/decision or source-version conflict",
+        "503 DOSSIER_STORAGE_UNAVAILABLE": "Recover using the same workflow identity",
+        "504 TASK_TIMEOUT": "Command deadline, never a heuristic rollback"
+      }
+    },
+    {
+      "name": "record.dossier.pending",
+      "status": "implemented-pending-review",
+      "statusEvidence": "Grade 8 dossier v1 candidate. Credential owner implementation is required; no whole-system deployment claim.",
+      "owner": "university-record-service",
+      "method": "POST",
+      "path": "/internal/v1/records/dossier/v1/pending",
+      "callers": [
+        "message-broker"
+      ],
+      "request": "dossierEmptyV1",
+      "response": "dossierPendingV1",
+      "semantics": "Dossier v1 resource manager command; exact workflow/initialization identity and input are immutable. PREPARED means actual PostgreSQL preparation; completion is separate from a transport acknowledgment.",
+      "budgetsMs": {
+        "target": 500,
+        "gateway": 750,
+        "broker": 750,
+        "caller": 1000
+      },
+      "idempotency": "Same workflow and input replays without duplicate effects; conflicting identity/input/decision is 409.",
+      "retry": "Only durable coordinator recovery replays the same command; uncertain prepared work never times out into a participant rollback.",
+      "errors": {
+        "400 INVALID_DOSSIER": "Malformed versioned input",
+        "401 UNAUTHENTICATED": "Target credential required",
+        "403 SERVICE_CALL_FORBIDDEN": "Coordinator identity required",
+        "409 DOSSIER_CONFLICT": "Immutable identity/input/decision or source-version conflict",
+        "503 DOSSIER_STORAGE_UNAVAILABLE": "Recover using the same workflow identity",
+        "504 TASK_TIMEOUT": "Command deadline, never a heuristic rollback"
+      }
+    },
+    {
+      "name": "credential.dossier.snapshot",
+      "status": "candidate",
+      "statusEvidence": "Grade 8 dossier v1 candidate. Credential owner implementation is required; no whole-system deployment claim.",
+      "owner": "credential-service",
+      "method": "POST",
+      "path": "/internal/v1/credentials/dossier/v1/snapshot",
+      "callers": [
+        "message-broker"
+      ],
+      "request": "dossierIdentityV1",
+      "response": "dossierCredentialSnapshotV1",
+      "semantics": "Dossier v1 resource manager command; exact workflow/initialization identity and input are immutable. PREPARED means actual PostgreSQL preparation; completion is separate from a transport acknowledgment.",
+      "budgetsMs": {
+        "target": 500,
+        "gateway": 750,
+        "broker": 750,
+        "caller": 1000
+      },
+      "idempotency": "Same workflow and input replays without duplicate effects; conflicting identity/input/decision is 409.",
+      "retry": "Only durable coordinator recovery replays the same command; uncertain prepared work never times out into a participant rollback.",
+      "errors": {
+        "400 INVALID_DOSSIER": "Malformed versioned input",
+        "401 UNAUTHENTICATED": "Target credential required",
+        "403 SERVICE_CALL_FORBIDDEN": "Coordinator identity required",
+        "409 DOSSIER_CONFLICT": "Immutable identity/input/decision or source-version conflict",
+        "503 DOSSIER_STORAGE_UNAVAILABLE": "Recover using the same workflow identity",
+        "504 TASK_TIMEOUT": "Command deadline, never a heuristic rollback"
+      }
+    },
+    {
+      "name": "credential.dossier.prepare",
+      "status": "candidate",
+      "statusEvidence": "Grade 8 dossier v1 candidate. Credential owner implementation is required; no whole-system deployment claim.",
+      "owner": "credential-service",
+      "method": "POST",
+      "path": "/internal/v1/credentials/dossier/v1/prepare",
+      "callers": [
+        "message-broker"
+      ],
+      "request": "dossierCredentialPrepareV1",
+      "response": "dossierReceiptV1",
+      "semantics": "Dossier v1 resource manager command; exact workflow/initialization identity and input are immutable. PREPARED means actual PostgreSQL preparation; completion is separate from a transport acknowledgment.",
+      "budgetsMs": {
+        "target": 500,
+        "gateway": 750,
+        "broker": 750,
+        "caller": 1000
+      },
+      "idempotency": "Same workflow and input replays without duplicate effects; conflicting identity/input/decision is 409.",
+      "retry": "Only durable coordinator recovery replays the same command; uncertain prepared work never times out into a participant rollback.",
+      "errors": {
+        "400 INVALID_DOSSIER": "Malformed versioned input",
+        "401 UNAUTHENTICATED": "Target credential required",
+        "403 SERVICE_CALL_FORBIDDEN": "Coordinator identity required",
+        "409 DOSSIER_CONFLICT": "Immutable identity/input/decision or source-version conflict",
+        "503 DOSSIER_STORAGE_UNAVAILABLE": "Recover using the same workflow identity",
+        "504 TASK_TIMEOUT": "Command deadline, never a heuristic rollback"
+      }
+    },
+    {
+      "name": "credential.dossier.commit",
+      "status": "candidate",
+      "statusEvidence": "Grade 8 dossier v1 candidate. Credential owner implementation is required; no whole-system deployment claim.",
+      "owner": "credential-service",
+      "method": "POST",
+      "path": "/internal/v1/credentials/dossier/v1/commit",
+      "callers": [
+        "message-broker"
+      ],
+      "request": "dossierIdentityV1",
+      "response": "dossierReceiptV1",
+      "semantics": "Dossier v1 resource manager command; exact workflow/initialization identity and input are immutable. PREPARED means actual PostgreSQL preparation; completion is separate from a transport acknowledgment.",
+      "budgetsMs": {
+        "target": 500,
+        "gateway": 750,
+        "broker": 750,
+        "caller": 1000
+      },
+      "idempotency": "Same workflow and input replays without duplicate effects; conflicting identity/input/decision is 409.",
+      "retry": "Only durable coordinator recovery replays the same command; uncertain prepared work never times out into a participant rollback.",
+      "errors": {
+        "400 INVALID_DOSSIER": "Malformed versioned input",
+        "401 UNAUTHENTICATED": "Target credential required",
+        "403 SERVICE_CALL_FORBIDDEN": "Coordinator identity required",
+        "409 DOSSIER_CONFLICT": "Immutable identity/input/decision or source-version conflict",
+        "503 DOSSIER_STORAGE_UNAVAILABLE": "Recover using the same workflow identity",
+        "504 TASK_TIMEOUT": "Command deadline, never a heuristic rollback"
+      }
+    },
+    {
+      "name": "credential.dossier.abort",
+      "status": "candidate",
+      "statusEvidence": "Grade 8 dossier v1 candidate. Credential owner implementation is required; no whole-system deployment claim.",
+      "owner": "credential-service",
+      "method": "POST",
+      "path": "/internal/v1/credentials/dossier/v1/abort",
+      "callers": [
+        "message-broker"
+      ],
+      "request": "dossierIdentityV1",
+      "response": "dossierReceiptV1",
+      "semantics": "Dossier v1 resource manager command; exact workflow/initialization identity and input are immutable. PREPARED means actual PostgreSQL preparation; completion is separate from a transport acknowledgment.",
+      "budgetsMs": {
+        "target": 500,
+        "gateway": 750,
+        "broker": 750,
+        "caller": 1000
+      },
+      "idempotency": "Same workflow and input replays without duplicate effects; conflicting identity/input/decision is 409.",
+      "retry": "Only durable coordinator recovery replays the same command; uncertain prepared work never times out into a participant rollback.",
+      "errors": {
+        "400 INVALID_DOSSIER": "Malformed versioned input",
+        "401 UNAUTHENTICATED": "Target credential required",
+        "403 SERVICE_CALL_FORBIDDEN": "Coordinator identity required",
+        "409 DOSSIER_CONFLICT": "Immutable identity/input/decision or source-version conflict",
+        "503 DOSSIER_STORAGE_UNAVAILABLE": "Recover using the same workflow identity",
+        "504 TASK_TIMEOUT": "Command deadline, never a heuristic rollback"
+      }
+    },
+    {
+      "name": "credential.dossier.status",
+      "status": "candidate",
+      "statusEvidence": "Grade 8 dossier v1 candidate. Credential owner implementation is required; no whole-system deployment claim.",
+      "owner": "credential-service",
+      "method": "POST",
+      "path": "/internal/v1/credentials/dossier/v1/status",
+      "callers": [
+        "message-broker"
+      ],
+      "request": "dossierIdentityV1",
+      "response": "dossierReceiptV1",
+      "semantics": "Dossier v1 resource manager command; exact workflow/initialization identity and input are immutable. PREPARED means actual PostgreSQL preparation; completion is separate from a transport acknowledgment.",
+      "budgetsMs": {
+        "target": 500,
+        "gateway": 750,
+        "broker": 750,
+        "caller": 1000
+      },
+      "idempotency": "Same workflow and input replays without duplicate effects; conflicting identity/input/decision is 409.",
+      "retry": "Only durable coordinator recovery replays the same command; uncertain prepared work never times out into a participant rollback.",
+      "errors": {
+        "400 INVALID_DOSSIER": "Malformed versioned input",
+        "401 UNAUTHENTICATED": "Target credential required",
+        "403 SERVICE_CALL_FORBIDDEN": "Coordinator identity required",
+        "409 DOSSIER_CONFLICT": "Immutable identity/input/decision or source-version conflict",
+        "503 DOSSIER_STORAGE_UNAVAILABLE": "Recover using the same workflow identity",
+        "504 TASK_TIMEOUT": "Command deadline, never a heuristic rollback"
+      }
+    },
+    {
+      "name": "credential.dossier.acknowledge",
+      "status": "candidate",
+      "statusEvidence": "Grade 8 dossier v1 candidate. Credential owner implementation is required; no whole-system deployment claim.",
+      "owner": "credential-service",
+      "method": "POST",
+      "path": "/internal/v1/credentials/dossier/v1/acknowledge",
+      "callers": [
+        "message-broker"
+      ],
+      "request": "dossierIdentityV1",
+      "response": "dossierReceiptV1",
+      "semantics": "Dossier v1 resource manager command; exact workflow/initialization identity and input are immutable. PREPARED means actual PostgreSQL preparation; completion is separate from a transport acknowledgment.",
+      "budgetsMs": {
+        "target": 500,
+        "gateway": 750,
+        "broker": 750,
+        "caller": 1000
+      },
+      "idempotency": "Same workflow and input replays without duplicate effects; conflicting identity/input/decision is 409.",
+      "retry": "Only durable coordinator recovery replays the same command; uncertain prepared work never times out into a participant rollback.",
+      "errors": {
+        "400 INVALID_DOSSIER": "Malformed versioned input",
+        "401 UNAUTHENTICATED": "Target credential required",
+        "403 SERVICE_CALL_FORBIDDEN": "Coordinator identity required",
+        "409 DOSSIER_CONFLICT": "Immutable identity/input/decision or source-version conflict",
+        "503 DOSSIER_STORAGE_UNAVAILABLE": "Recover using the same workflow identity",
+        "504 TASK_TIMEOUT": "Command deadline, never a heuristic rollback"
+      }
+    },
+    {
+      "name": "credential.dossier.release",
+      "status": "candidate",
+      "statusEvidence": "Grade 8 dossier v1 candidate. Credential owner implementation is required; no whole-system deployment claim.",
+      "owner": "credential-service",
+      "method": "POST",
+      "path": "/internal/v1/credentials/dossier/v1/release",
+      "callers": [
+        "message-broker"
+      ],
+      "request": "dossierIdentityV1",
+      "response": "dossierReceiptV1",
+      "semantics": "Dossier v1 resource manager command; exact workflow/initialization identity and input are immutable. PREPARED means actual PostgreSQL preparation; completion is separate from a transport acknowledgment.",
+      "budgetsMs": {
+        "target": 500,
+        "gateway": 750,
+        "broker": 750,
+        "caller": 1000
+      },
+      "idempotency": "Same workflow and input replays without duplicate effects; conflicting identity/input/decision is 409.",
+      "retry": "Only durable coordinator recovery replays the same command; uncertain prepared work never times out into a participant rollback.",
+      "errors": {
+        "400 INVALID_DOSSIER": "Malformed versioned input",
+        "401 UNAUTHENTICATED": "Target credential required",
+        "403 SERVICE_CALL_FORBIDDEN": "Coordinator identity required",
+        "409 DOSSIER_CONFLICT": "Immutable identity/input/decision or source-version conflict",
+        "503 DOSSIER_STORAGE_UNAVAILABLE": "Recover using the same workflow identity",
+        "504 TASK_TIMEOUT": "Command deadline, never a heuristic rollback"
+      }
+    },
+    {
+      "name": "credential.dossier.pending",
+      "status": "candidate",
+      "statusEvidence": "Grade 8 dossier v1 candidate. Credential owner implementation is required; no whole-system deployment claim.",
+      "owner": "credential-service",
+      "method": "POST",
+      "path": "/internal/v1/credentials/dossier/v1/pending",
+      "callers": [
+        "message-broker"
+      ],
+      "request": "dossierEmptyV1",
+      "response": "dossierPendingV1",
+      "semantics": "Dossier v1 resource manager command; exact workflow/initialization identity and input are immutable. PREPARED means actual PostgreSQL preparation; completion is separate from a transport acknowledgment.",
+      "budgetsMs": {
+        "target": 500,
+        "gateway": 750,
+        "broker": 750,
+        "caller": 1000
+      },
+      "idempotency": "Same workflow and input replays without duplicate effects; conflicting identity/input/decision is 409.",
+      "retry": "Only durable coordinator recovery replays the same command; uncertain prepared work never times out into a participant rollback.",
+      "errors": {
+        "400 INVALID_DOSSIER": "Malformed versioned input",
+        "401 UNAUTHENTICATED": "Target credential required",
+        "403 SERVICE_CALL_FORBIDDEN": "Coordinator identity required",
+        "409 DOSSIER_CONFLICT": "Immutable identity/input/decision or source-version conflict",
+        "503 DOSSIER_STORAGE_UNAVAILABLE": "Recover using the same workflow identity",
+        "504 TASK_TIMEOUT": "Command deadline, never a heuristic rollback"
+      }
     }
   ],
   "schemas": {
@@ -3428,6 +4148,269 @@
           ]
         }
       }
+    },
+    "dossierIdentityV1": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "workflowId",
+        "initializationId",
+        "applicantId",
+        "stepId",
+        "fingerprint"
+      ],
+      "properties": {
+        "version": {
+          "const": 1
+        },
+        "workflowId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "initializationId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "applicantId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "stepId": {
+          "enum": [
+            "credential.generate.v1",
+            "record.attach.v1",
+            "applicant.attach.v1"
+          ]
+        },
+        "fingerprint": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      }
+    },
+    "dossierPrepareV1": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "identity",
+        "sourceVersion",
+        "credentialIds"
+      ],
+      "properties": {
+        "identity": {
+          "$ref": "dossierIdentityV1"
+        },
+        "sourceVersion": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "credentialIds": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "minItems": 1,
+          "maxItems": 32,
+          "uniqueItems": true
+        }
+      }
+    },
+    "dossierEmptyV1": {
+      "type": "object",
+      "properties": {},
+      "additionalProperties": false
+    },
+    "dossierSnapshotV1": {
+      "type": "object",
+      "required": [
+        "version",
+        "workflowId",
+        "initializationId",
+        "applicantId",
+        "participant",
+        "sourceVersion",
+        "facts"
+      ],
+      "properties": {
+        "version": {
+          "const": 1
+        },
+        "workflowId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "initializationId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "applicantId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "participant": {
+          "type": "string"
+        },
+        "sourceVersion": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "facts": {
+          "type": "object"
+        }
+      }
+    },
+    "dossierReceiptV1": {
+      "type": "object",
+      "required": [
+        "version",
+        "workflowId",
+        "initializationId",
+        "applicantId",
+        "participant",
+        "stepId",
+        "fingerprint",
+        "state",
+        "ready",
+        "completionAcknowledged"
+      ],
+      "properties": {
+        "version": {
+          "const": 1
+        },
+        "workflowId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "initializationId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "applicantId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "participant": {
+          "type": "string"
+        },
+        "stepId": {
+          "type": "string"
+        },
+        "fingerprint": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "state": {
+          "enum": [
+            "INTENT",
+            "PREPARED",
+            "COMMITTED",
+            "ABORTED",
+            "RELEASED"
+          ]
+        },
+        "ready": {
+          "type": "boolean"
+        },
+        "completionAcknowledged": {
+          "type": "boolean"
+        },
+        "credentialIds": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "minItems": 1,
+          "maxItems": 32,
+          "uniqueItems": true
+        }
+      }
+    },
+    "dossierPendingV1": {
+      "type": "object",
+      "required": [
+        "version",
+        "workflows"
+      ],
+      "properties": {
+        "version": {
+          "const": 1
+        },
+        "workflows": {
+          "type": "array",
+          "maxItems": 20,
+          "items": {
+            "$ref": "dossierReceiptV1"
+          }
+        }
+      }
+    },
+    "dossierCredentialPrepareV1": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "identity",
+        "sourceVersion",
+        "inputs",
+        "asOf"
+      ],
+      "properties": {
+        "identity": {
+          "$ref": "dossierIdentityV1"
+        },
+        "sourceVersion": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "inputs": {
+          "type": "object",
+          "required": [
+            "applicant-service",
+            "university-record-service"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "applicant-service": {
+              "$ref": "dossierSnapshotV1"
+            },
+            "university-record-service": {
+              "$ref": "dossierSnapshotV1"
+            }
+          }
+        },
+        "asOf": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "dossierCredentialSnapshotV1": {
+      "allOf": [
+        {
+          "$ref": "dossierSnapshotV1"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "facts": {
+              "type": "object",
+              "required": [
+                "generationPath"
+              ],
+              "properties": {
+                "generationPath": {
+                  "type": "string",
+                  "enum": [
+                    "DOSSIER_V1"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      ]
     }
   },
   "publicBackendCredentials": [
@@ -3683,5 +4666,11 @@
     },
     "sourceContextRequirement": "A seed-only message cannot invent a Session id or difficulty. Use the existing owned generate/warmup operation with complete Session context before Credential generation. Any owning caller, including Credential, may initiate those generation operations. Unknown context remains pending.",
     "runtimeEvidence": "Contract-peer tests do not establish current private Credential implementation readiness."
+  },
+  "coordinators": {
+    "message-broker": {
+      "protocol": "dossier-v1",
+      "externalCallerCredential": false
+    }
   }
 }

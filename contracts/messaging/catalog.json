@@ -578,6 +578,318 @@
         "rules-service"
       ],
       "budgetMs": 750
+    },
+    "operation.applicant.dossier.snapshot.v1": {
+      "operation": "applicant.dossier.snapshot",
+      "group": "applicant-service",
+      "method": "POST",
+      "path": "/internal/v1/applicants/dossier/v1/snapshot",
+      "query": "",
+      "arguments": [],
+      "bodySchema": "dossierIdentityV1",
+      "callers": [
+        "message-broker"
+      ],
+      "budgetMs": 750
+    },
+    "operation.applicant.dossier.prepare.v1": {
+      "operation": "applicant.dossier.prepare",
+      "group": "applicant-service",
+      "method": "POST",
+      "path": "/internal/v1/applicants/dossier/v1/prepare",
+      "query": "",
+      "arguments": [],
+      "bodySchema": "dossierPrepareV1",
+      "callers": [
+        "message-broker"
+      ],
+      "budgetMs": 750
+    },
+    "operation.applicant.dossier.commit.v1": {
+      "operation": "applicant.dossier.commit",
+      "group": "applicant-service",
+      "method": "POST",
+      "path": "/internal/v1/applicants/dossier/v1/commit",
+      "query": "",
+      "arguments": [],
+      "bodySchema": "dossierIdentityV1",
+      "callers": [
+        "message-broker"
+      ],
+      "budgetMs": 750
+    },
+    "operation.applicant.dossier.abort.v1": {
+      "operation": "applicant.dossier.abort",
+      "group": "applicant-service",
+      "method": "POST",
+      "path": "/internal/v1/applicants/dossier/v1/abort",
+      "query": "",
+      "arguments": [],
+      "bodySchema": "dossierIdentityV1",
+      "callers": [
+        "message-broker"
+      ],
+      "budgetMs": 750
+    },
+    "operation.applicant.dossier.status.v1": {
+      "operation": "applicant.dossier.status",
+      "group": "applicant-service",
+      "method": "POST",
+      "path": "/internal/v1/applicants/dossier/v1/status",
+      "query": "",
+      "arguments": [],
+      "bodySchema": "dossierIdentityV1",
+      "callers": [
+        "message-broker"
+      ],
+      "budgetMs": 750
+    },
+    "operation.applicant.dossier.acknowledge.v1": {
+      "operation": "applicant.dossier.acknowledge",
+      "group": "applicant-service",
+      "method": "POST",
+      "path": "/internal/v1/applicants/dossier/v1/acknowledge",
+      "query": "",
+      "arguments": [],
+      "bodySchema": "dossierIdentityV1",
+      "callers": [
+        "message-broker"
+      ],
+      "budgetMs": 750
+    },
+    "operation.applicant.dossier.release.v1": {
+      "operation": "applicant.dossier.release",
+      "group": "applicant-service",
+      "method": "POST",
+      "path": "/internal/v1/applicants/dossier/v1/release",
+      "query": "",
+      "arguments": [],
+      "bodySchema": "dossierIdentityV1",
+      "callers": [
+        "message-broker"
+      ],
+      "budgetMs": 750
+    },
+    "operation.applicant.dossier.pending.v1": {
+      "operation": "applicant.dossier.pending",
+      "group": "applicant-service",
+      "method": "POST",
+      "path": "/internal/v1/applicants/dossier/v1/pending",
+      "query": "",
+      "arguments": [],
+      "bodySchema": "dossierEmptyV1",
+      "callers": [
+        "message-broker"
+      ],
+      "budgetMs": 750
+    },
+    "operation.record.dossier.snapshot.v1": {
+      "operation": "record.dossier.snapshot",
+      "group": "university-record-service",
+      "method": "POST",
+      "path": "/internal/v1/records/dossier/v1/snapshot",
+      "query": "",
+      "arguments": [],
+      "bodySchema": "dossierIdentityV1",
+      "callers": [
+        "message-broker"
+      ],
+      "budgetMs": 750
+    },
+    "operation.record.dossier.prepare.v1": {
+      "operation": "record.dossier.prepare",
+      "group": "university-record-service",
+      "method": "POST",
+      "path": "/internal/v1/records/dossier/v1/prepare",
+      "query": "",
+      "arguments": [],
+      "bodySchema": "dossierPrepareV1",
+      "callers": [
+        "message-broker"
+      ],
+      "budgetMs": 750
+    },
+    "operation.record.dossier.commit.v1": {
+      "operation": "record.dossier.commit",
+      "group": "university-record-service",
+      "method": "POST",
+      "path": "/internal/v1/records/dossier/v1/commit",
+      "query": "",
+      "arguments": [],
+      "bodySchema": "dossierIdentityV1",
+      "callers": [
+        "message-broker"
+      ],
+      "budgetMs": 750
+    },
+    "operation.record.dossier.abort.v1": {
+      "operation": "record.dossier.abort",
+      "group": "university-record-service",
+      "method": "POST",
+      "path": "/internal/v1/records/dossier/v1/abort",
+      "query": "",
+      "arguments": [],
+      "bodySchema": "dossierIdentityV1",
+      "callers": [
+        "message-broker"
+      ],
+      "budgetMs": 750
+    },
+    "operation.record.dossier.status.v1": {
+      "operation": "record.dossier.status",
+      "group": "university-record-service",
+      "method": "POST",
+      "path": "/internal/v1/records/dossier/v1/status",
+      "query": "",
+      "arguments": [],
+      "bodySchema": "dossierIdentityV1",
+      "callers": [
+        "message-broker"
+      ],
+      "budgetMs": 750
+    },
+    "operation.record.dossier.acknowledge.v1": {
+      "operation": "record.dossier.acknowledge",
+      "group": "university-record-service",
+      "method": "POST",
+      "path": "/internal/v1/records/dossier/v1/acknowledge",
+      "query": "",
+      "arguments": [],
+      "bodySchema": "dossierIdentityV1",
+      "callers": [
+        "message-broker"
+      ],
+      "budgetMs": 750
+    },
+    "operation.record.dossier.release.v1": {
+      "operation": "record.dossier.release",
+      "group": "university-record-service",
+      "method": "POST",
+      "path": "/internal/v1/records/dossier/v1/release",
+      "query": "",
+      "arguments": [],
+      "bodySchema": "dossierIdentityV1",
+      "callers": [
+        "message-broker"
+      ],
+      "budgetMs": 750
+    },
+    "operation.record.dossier.pending.v1": {
+      "operation": "record.dossier.pending",
+      "group": "university-record-service",
+      "method": "POST",
+      "path": "/internal/v1/records/dossier/v1/pending",
+      "query": "",
+      "arguments": [],
+      "bodySchema": "dossierEmptyV1",
+      "callers": [
+        "message-broker"
+      ],
+      "budgetMs": 750
+    },
+    "operation.credential.dossier.snapshot.v1": {
+      "operation": "credential.dossier.snapshot",
+      "group": "credential-service",
+      "method": "POST",
+      "path": "/internal/v1/credentials/dossier/v1/snapshot",
+      "query": "",
+      "arguments": [],
+      "bodySchema": "dossierIdentityV1",
+      "callers": [
+        "message-broker"
+      ],
+      "budgetMs": 750
+    },
+    "operation.credential.dossier.prepare.v1": {
+      "operation": "credential.dossier.prepare",
+      "group": "credential-service",
+      "method": "POST",
+      "path": "/internal/v1/credentials/dossier/v1/prepare",
+      "query": "",
+      "arguments": [],
+      "bodySchema": "dossierCredentialPrepareV1",
+      "callers": [
+        "message-broker"
+      ],
+      "budgetMs": 750
+    },
+    "operation.credential.dossier.commit.v1": {
+      "operation": "credential.dossier.commit",
+      "group": "credential-service",
+      "method": "POST",
+      "path": "/internal/v1/credentials/dossier/v1/commit",
+      "query": "",
+      "arguments": [],
+      "bodySchema": "dossierIdentityV1",
+      "callers": [
+        "message-broker"
+      ],
+      "budgetMs": 750
+    },
+    "operation.credential.dossier.abort.v1": {
+      "operation": "credential.dossier.abort",
+      "group": "credential-service",
+      "method": "POST",
+      "path": "/internal/v1/credentials/dossier/v1/abort",
+      "query": "",
+      "arguments": [],
+      "bodySchema": "dossierIdentityV1",
+      "callers": [
+        "message-broker"
+      ],
+      "budgetMs": 750
+    },
+    "operation.credential.dossier.status.v1": {
+      "operation": "credential.dossier.status",
+      "group": "credential-service",
+      "method": "POST",
+      "path": "/internal/v1/credentials/dossier/v1/status",
+      "query": "",
+      "arguments": [],
+      "bodySchema": "dossierIdentityV1",
+      "callers": [
+        "message-broker"
+      ],
+      "budgetMs": 750
+    },
+    "operation.credential.dossier.acknowledge.v1": {
+      "operation": "credential.dossier.acknowledge",
+      "group": "credential-service",
+      "method": "POST",
+      "path": "/internal/v1/credentials/dossier/v1/acknowledge",
+      "query": "",
+      "arguments": [],
+      "bodySchema": "dossierIdentityV1",
+      "callers": [
+        "message-broker"
+      ],
+      "budgetMs": 750
+    },
+    "operation.credential.dossier.release.v1": {
+      "operation": "credential.dossier.release",
+      "group": "credential-service",
+      "method": "POST",
+      "path": "/internal/v1/credentials/dossier/v1/release",
+      "query": "",
+      "arguments": [],
+      "bodySchema": "dossierIdentityV1",
+      "callers": [
+        "message-broker"
+      ],
+      "budgetMs": 750
+    },
+    "operation.credential.dossier.pending.v1": {
+      "operation": "credential.dossier.pending",
+      "group": "credential-service",
+      "method": "POST",
+      "path": "/internal/v1/credentials/dossier/v1/pending",
+      "query": "",
+      "arguments": [],
+      "bodySchema": "dossierEmptyV1",
+      "callers": [
+        "message-broker"
+      ],
+      "budgetMs": 750
     }
   },
   "events": {

@@ -1,0 +1,37 @@
+{
+  "operation": "record.dossier.commit",
+  "note": "Dossier v1 candidate. Broker publishes internally using the target credential; no external Broker caller token exists. Credential is an owner implementation requirement.",
+  "request": {
+    "method": "POST",
+    "path": "/internal/v1/records/dossier/v1/commit",
+    "headers": {
+      "Authorization": "Bearer <target internal credential>",
+      "X-Service-Name": "message-broker",
+      "X-Trace-Id": "dossier-v1-example",
+      "Content-Type": "application/json"
+    },
+    "body": {
+      "version": 1,
+      "workflowId": "a0000000-0000-4000-8000-000000000001",
+      "initializationId": "a0000000-0000-4000-8000-000000000002",
+      "applicantId": "a0000000-0000-4000-8000-000000000003",
+      "stepId": "record.attach.v1",
+      "fingerprint": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    }
+  },
+  "response": {
+    "status": 200,
+    "body": {
+      "version": 1,
+      "workflowId": "a0000000-0000-4000-8000-000000000001",
+      "initializationId": "a0000000-0000-4000-8000-000000000002",
+      "applicantId": "a0000000-0000-4000-8000-000000000003",
+      "stepId": "record.attach.v1",
+      "fingerprint": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "participant": "university-record-service",
+      "state": "COMMITTED",
+      "ready": false,
+      "completionAcknowledged": false
+    }
+  }
+}

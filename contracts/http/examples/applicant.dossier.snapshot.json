@@ -1,0 +1,72 @@
+{
+  "operation": "applicant.dossier.snapshot",
+  "note": "Dossier v1 candidate. Broker publishes internally using the target credential; no external Broker caller token exists. Credential is an owner implementation requirement.",
+  "request": {
+    "method": "POST",
+    "path": "/internal/v1/applicants/dossier/v1/snapshot",
+    "headers": {
+      "Authorization": "Bearer <target internal credential>",
+      "X-Service-Name": "message-broker",
+      "X-Trace-Id": "dossier-v1-example",
+      "Content-Type": "application/json"
+    },
+    "body": {
+      "version": 1,
+      "workflowId": "a0000000-0000-4000-8000-000000000001",
+      "initializationId": "a0000000-0000-4000-8000-000000000002",
+      "applicantId": "a0000000-0000-4000-8000-000000000003",
+      "stepId": "applicant.attach.v1",
+      "fingerprint": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    }
+  },
+  "response": {
+    "status": 200,
+    "body": {
+      "version": 1,
+      "workflowId": "a0000000-0000-4000-8000-000000000001",
+      "initializationId": "a0000000-0000-4000-8000-000000000002",
+      "applicantId": "a0000000-0000-4000-8000-000000000003",
+      "participant": "applicant-service",
+      "sourceVersion": "a0000000-0000-4000-8000-000000000004",
+      "facts": {
+        "initialization": {
+          "eventId": "a0000000-0000-4000-8000-000000000002",
+          "type": "ApplicantInitialized",
+          "occurredAt": "2026-11-25T12:00:00.000Z",
+          "producer": "credential-service",
+          "version": 1,
+          "payload": {
+            "applicantId": "a0000000-0000-4000-8000-000000000003",
+            "seed": 1,
+            "initiator": "credential-service",
+            "identity": {
+              "name": "Dossier example",
+              "studentId": "PAD-EXAMPLE",
+              "year": 2
+            },
+            "deception": {
+              "type": "NONE",
+              "impersonatedStudentId": "",
+              "inconsistentFields": []
+            },
+            "sessionId": "a0000000-0000-4000-8000-000000000005"
+          }
+        },
+        "profile": {
+          "id": "a0000000-0000-4000-8000-000000000003",
+          "name": "Dossier example",
+          "student_id": "PAD-EXAMPLE",
+          "major": "FAF",
+          "study_year": 2,
+          "university_status": "ENROLLED",
+          "applicant_role": "STUDENT",
+          "created_at": "2026-11-25T12:00:00+00:00",
+          "updated_at": "2026-11-25T12:00:00+00:00"
+        },
+        "courses": [
+          "PAD"
+        ]
+      }
+    }
+  }
+}

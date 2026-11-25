@@ -121,6 +121,9 @@ def validate(value, schema: dict, schemas: dict, where: str = "$") -> list[str]:
 
 def check_catalog(catalog: dict) -> list[str]:
     problems: list[str] = []
+    coordinators=catalog.get("coordinators", {})
+    if coordinators and coordinators!={"message-broker":{"protocol":"dossier-v1","externalCallerCredential":False}}:
+        problems.append("coordinators: only the reserved internal dossier-v1 Broker identity is defined")
     targets = catalog["targets"]
     schemas = catalog["schemas"]
     legend = catalog["statusLegend"]
@@ -144,7 +147,7 @@ def check_catalog(catalog: dict) -> list[str]:
         if not op.get("callers"):
             problems.append(f"{name}: no callers")
         for caller in op.get("callers", []):
-            if caller not in targets:
+            if caller not in targets and caller not in catalog.get("coordinators", {}):
                 problems.append(f"{name}: caller {caller!r} is not a known service")
             if caller == op["owner"]:
                 problems.append(f"{name}: an owner does not call itself through the broker")
