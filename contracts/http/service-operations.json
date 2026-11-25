@@ -2087,6 +2087,708 @@
         "503 DOSSIER_STORAGE_UNAVAILABLE": "Recover using the same workflow identity",
         "504 TASK_TIMEOUT": "Command deadline, never a heuristic rollback"
       }
+    },
+    {
+      "name": "credential.dossierSaga.snapshot",
+      "status": "candidate",
+      "statusEvidence": "Task 9 executable contract; participant implementation/joint acceptance required.",
+      "owner": "credential-service",
+      "method": "POST",
+      "path": "/internal/v1/credentials/dossier/saga/v1/snapshot",
+      "callers": [
+        "message-broker"
+      ],
+      "request": "dossierSagaIdentityV1",
+      "response": "dossierSagaSnapshotV1",
+      "semantics": "dossier-saga-v1 ordinary local transaction; see contracts/dossier/saga-v1.json for exact durable outcomes.",
+      "budgetsMs": {
+        "target": 500,
+        "gateway": 750,
+        "broker": 750,
+        "caller": 1000
+      },
+      "idempotency": "Serialize commands per workflow. Persist immutable identity and first successful apply input. Same input returns current persisted outcome including terminal tombstones; different identity/input returns 409 SAGA_CONFLICT. Snapshot retry returns original snapshot, not changed facts. status for unseen identity creates NEW journal only. compensate for unseen/snapshotted work creates durable COMPENSATED tombstone; late snapshot/apply/acknowledge/release cannot revive it. A late identical apply returns COMPENSATED/CONFLICT, never COMMITTED.",
+      "retry": "Before each dispatch persist exact request, attempt count, next retry instant, trace and receipts; fsync local journal before admission/progress acknowledgment. 429/5xx/timeout/disconnect/invalid receipt are ambiguous: status query or identical replay, never immediate rollback. 409 SAGA_BUSY is retryable. Deterministic rejection is followed by reverse compensation and terminal tombstones. Workflow deadline may initiate compensation only after outcome resolution; per-command budgets remain independent. Persist exponential backoff capped at 60 seconds and recover after restart. No wall-clock participant rollback.",
+      "errors": {
+        "400 INVALID_SAGA": "Malformed protocol/identity/input/fingerprint",
+        "401 UNAUTHENTICATED": "Target credential required",
+        "403 SERVICE_CALL_FORBIDDEN": "Only message-broker may drive participants",
+        "409 SAGA_CONFLICT": "Immutable identity/input mismatch",
+        "409 SAGA_BUSY": "Retry serialized command",
+        "409 INITIALIZATION_REQUIRED": "Existing persisted initialization required",
+        "409 GENERATION_PATH_CONFLICT": "Another path/workflow owns generation",
+        "409 SOURCE_VERSION_CONFLICT": "Current authoritative source changed",
+        "409 SAGA_TERMINAL": "Terminal workflow cannot acknowledge/release/snapshot",
+        "409 NOT_COMMITTED": "Business effect required",
+        "409 COMPLETION_PENDING": "Completion acknowledgment required",
+        "409 COMPENSATION_CONFLICT": "Persisted conflict requires intervention",
+        "409 ALREADY_RELEASED": "Finalized work cannot compensate",
+        "503 SAGA_STORAGE_UNAVAILABLE": "Ambiguous: resolve by status/replay",
+        "504 TASK_TIMEOUT": "Ambiguous command deadline"
+      }
+    },
+    {
+      "name": "credential.dossierSaga.apply",
+      "status": "candidate",
+      "statusEvidence": "Task 9 executable contract; participant implementation/joint acceptance required.",
+      "owner": "credential-service",
+      "method": "POST",
+      "path": "/internal/v1/credentials/dossier/saga/v1/apply",
+      "callers": [
+        "message-broker"
+      ],
+      "request": "dossierSagaApplyV1",
+      "response": "dossierSagaReceiptV1",
+      "semantics": "dossier-saga-v1 ordinary local transaction; see contracts/dossier/saga-v1.json for exact durable outcomes.",
+      "budgetsMs": {
+        "target": 500,
+        "gateway": 750,
+        "broker": 750,
+        "caller": 1000
+      },
+      "idempotency": "Serialize commands per workflow. Persist immutable identity and first successful apply input. Same input returns current persisted outcome including terminal tombstones; different identity/input returns 409 SAGA_CONFLICT. Snapshot retry returns original snapshot, not changed facts. status for unseen identity creates NEW journal only. compensate for unseen/snapshotted work creates durable COMPENSATED tombstone; late snapshot/apply/acknowledge/release cannot revive it. A late identical apply returns COMPENSATED/CONFLICT, never COMMITTED.",
+      "retry": "Before each dispatch persist exact request, attempt count, next retry instant, trace and receipts; fsync local journal before admission/progress acknowledgment. 429/5xx/timeout/disconnect/invalid receipt are ambiguous: status query or identical replay, never immediate rollback. 409 SAGA_BUSY is retryable. Deterministic rejection is followed by reverse compensation and terminal tombstones. Workflow deadline may initiate compensation only after outcome resolution; per-command budgets remain independent. Persist exponential backoff capped at 60 seconds and recover after restart. No wall-clock participant rollback.",
+      "errors": {
+        "400 INVALID_SAGA": "Malformed protocol/identity/input/fingerprint",
+        "401 UNAUTHENTICATED": "Target credential required",
+        "403 SERVICE_CALL_FORBIDDEN": "Only message-broker may drive participants",
+        "409 SAGA_CONFLICT": "Immutable identity/input mismatch",
+        "409 SAGA_BUSY": "Retry serialized command",
+        "409 INITIALIZATION_REQUIRED": "Existing persisted initialization required",
+        "409 GENERATION_PATH_CONFLICT": "Another path/workflow owns generation",
+        "409 SOURCE_VERSION_CONFLICT": "Current authoritative source changed",
+        "409 SAGA_TERMINAL": "Terminal workflow cannot acknowledge/release/snapshot",
+        "409 NOT_COMMITTED": "Business effect required",
+        "409 COMPLETION_PENDING": "Completion acknowledgment required",
+        "409 COMPENSATION_CONFLICT": "Persisted conflict requires intervention",
+        "409 ALREADY_RELEASED": "Finalized work cannot compensate",
+        "503 SAGA_STORAGE_UNAVAILABLE": "Ambiguous: resolve by status/replay",
+        "504 TASK_TIMEOUT": "Ambiguous command deadline"
+      }
+    },
+    {
+      "name": "credential.dossierSaga.status",
+      "status": "candidate",
+      "statusEvidence": "Task 9 executable contract; participant implementation/joint acceptance required.",
+      "owner": "credential-service",
+      "method": "POST",
+      "path": "/internal/v1/credentials/dossier/saga/v1/status",
+      "callers": [
+        "message-broker"
+      ],
+      "request": "dossierSagaIdentityV1",
+      "response": "dossierSagaReceiptV1",
+      "semantics": "dossier-saga-v1 ordinary local transaction; see contracts/dossier/saga-v1.json for exact durable outcomes.",
+      "budgetsMs": {
+        "target": 500,
+        "gateway": 750,
+        "broker": 750,
+        "caller": 1000
+      },
+      "idempotency": "Serialize commands per workflow. Persist immutable identity and first successful apply input. Same input returns current persisted outcome including terminal tombstones; different identity/input returns 409 SAGA_CONFLICT. Snapshot retry returns original snapshot, not changed facts. status for unseen identity creates NEW journal only. compensate for unseen/snapshotted work creates durable COMPENSATED tombstone; late snapshot/apply/acknowledge/release cannot revive it. A late identical apply returns COMPENSATED/CONFLICT, never COMMITTED.",
+      "retry": "Before each dispatch persist exact request, attempt count, next retry instant, trace and receipts; fsync local journal before admission/progress acknowledgment. 429/5xx/timeout/disconnect/invalid receipt are ambiguous: status query or identical replay, never immediate rollback. 409 SAGA_BUSY is retryable. Deterministic rejection is followed by reverse compensation and terminal tombstones. Workflow deadline may initiate compensation only after outcome resolution; per-command budgets remain independent. Persist exponential backoff capped at 60 seconds and recover after restart. No wall-clock participant rollback.",
+      "errors": {
+        "400 INVALID_SAGA": "Malformed protocol/identity/input/fingerprint",
+        "401 UNAUTHENTICATED": "Target credential required",
+        "403 SERVICE_CALL_FORBIDDEN": "Only message-broker may drive participants",
+        "409 SAGA_CONFLICT": "Immutable identity/input mismatch",
+        "409 SAGA_BUSY": "Retry serialized command",
+        "409 INITIALIZATION_REQUIRED": "Existing persisted initialization required",
+        "409 GENERATION_PATH_CONFLICT": "Another path/workflow owns generation",
+        "409 SOURCE_VERSION_CONFLICT": "Current authoritative source changed",
+        "409 SAGA_TERMINAL": "Terminal workflow cannot acknowledge/release/snapshot",
+        "409 NOT_COMMITTED": "Business effect required",
+        "409 COMPLETION_PENDING": "Completion acknowledgment required",
+        "409 COMPENSATION_CONFLICT": "Persisted conflict requires intervention",
+        "409 ALREADY_RELEASED": "Finalized work cannot compensate",
+        "503 SAGA_STORAGE_UNAVAILABLE": "Ambiguous: resolve by status/replay",
+        "504 TASK_TIMEOUT": "Ambiguous command deadline"
+      }
+    },
+    {
+      "name": "credential.dossierSaga.compensate",
+      "status": "candidate",
+      "statusEvidence": "Task 9 executable contract; participant implementation/joint acceptance required.",
+      "owner": "credential-service",
+      "method": "POST",
+      "path": "/internal/v1/credentials/dossier/saga/v1/compensate",
+      "callers": [
+        "message-broker"
+      ],
+      "request": "dossierSagaIdentityV1",
+      "response": "dossierSagaReceiptV1",
+      "semantics": "dossier-saga-v1 ordinary local transaction; see contracts/dossier/saga-v1.json for exact durable outcomes.",
+      "budgetsMs": {
+        "target": 500,
+        "gateway": 750,
+        "broker": 750,
+        "caller": 1000
+      },
+      "idempotency": "Serialize commands per workflow. Persist immutable identity and first successful apply input. Same input returns current persisted outcome including terminal tombstones; different identity/input returns 409 SAGA_CONFLICT. Snapshot retry returns original snapshot, not changed facts. status for unseen identity creates NEW journal only. compensate for unseen/snapshotted work creates durable COMPENSATED tombstone; late snapshot/apply/acknowledge/release cannot revive it. A late identical apply returns COMPENSATED/CONFLICT, never COMMITTED.",
+      "retry": "Before each dispatch persist exact request, attempt count, next retry instant, trace and receipts; fsync local journal before admission/progress acknowledgment. 429/5xx/timeout/disconnect/invalid receipt are ambiguous: status query or identical replay, never immediate rollback. 409 SAGA_BUSY is retryable. Deterministic rejection is followed by reverse compensation and terminal tombstones. Workflow deadline may initiate compensation only after outcome resolution; per-command budgets remain independent. Persist exponential backoff capped at 60 seconds and recover after restart. No wall-clock participant rollback.",
+      "errors": {
+        "400 INVALID_SAGA": "Malformed protocol/identity/input/fingerprint",
+        "401 UNAUTHENTICATED": "Target credential required",
+        "403 SERVICE_CALL_FORBIDDEN": "Only message-broker may drive participants",
+        "409 SAGA_CONFLICT": "Immutable identity/input mismatch",
+        "409 SAGA_BUSY": "Retry serialized command",
+        "409 INITIALIZATION_REQUIRED": "Existing persisted initialization required",
+        "409 GENERATION_PATH_CONFLICT": "Another path/workflow owns generation",
+        "409 SOURCE_VERSION_CONFLICT": "Current authoritative source changed",
+        "409 SAGA_TERMINAL": "Terminal workflow cannot acknowledge/release/snapshot",
+        "409 NOT_COMMITTED": "Business effect required",
+        "409 COMPLETION_PENDING": "Completion acknowledgment required",
+        "409 COMPENSATION_CONFLICT": "Persisted conflict requires intervention",
+        "409 ALREADY_RELEASED": "Finalized work cannot compensate",
+        "503 SAGA_STORAGE_UNAVAILABLE": "Ambiguous: resolve by status/replay",
+        "504 TASK_TIMEOUT": "Ambiguous command deadline"
+      }
+    },
+    {
+      "name": "credential.dossierSaga.acknowledge",
+      "status": "candidate",
+      "statusEvidence": "Task 9 executable contract; participant implementation/joint acceptance required.",
+      "owner": "credential-service",
+      "method": "POST",
+      "path": "/internal/v1/credentials/dossier/saga/v1/acknowledge",
+      "callers": [
+        "message-broker"
+      ],
+      "request": "dossierSagaIdentityV1",
+      "response": "dossierSagaReceiptV1",
+      "semantics": "dossier-saga-v1 ordinary local transaction; see contracts/dossier/saga-v1.json for exact durable outcomes.",
+      "budgetsMs": {
+        "target": 500,
+        "gateway": 750,
+        "broker": 750,
+        "caller": 1000
+      },
+      "idempotency": "Serialize commands per workflow. Persist immutable identity and first successful apply input. Same input returns current persisted outcome including terminal tombstones; different identity/input returns 409 SAGA_CONFLICT. Snapshot retry returns original snapshot, not changed facts. status for unseen identity creates NEW journal only. compensate for unseen/snapshotted work creates durable COMPENSATED tombstone; late snapshot/apply/acknowledge/release cannot revive it. A late identical apply returns COMPENSATED/CONFLICT, never COMMITTED.",
+      "retry": "Before each dispatch persist exact request, attempt count, next retry instant, trace and receipts; fsync local journal before admission/progress acknowledgment. 429/5xx/timeout/disconnect/invalid receipt are ambiguous: status query or identical replay, never immediate rollback. 409 SAGA_BUSY is retryable. Deterministic rejection is followed by reverse compensation and terminal tombstones. Workflow deadline may initiate compensation only after outcome resolution; per-command budgets remain independent. Persist exponential backoff capped at 60 seconds and recover after restart. No wall-clock participant rollback.",
+      "errors": {
+        "400 INVALID_SAGA": "Malformed protocol/identity/input/fingerprint",
+        "401 UNAUTHENTICATED": "Target credential required",
+        "403 SERVICE_CALL_FORBIDDEN": "Only message-broker may drive participants",
+        "409 SAGA_CONFLICT": "Immutable identity/input mismatch",
+        "409 SAGA_BUSY": "Retry serialized command",
+        "409 INITIALIZATION_REQUIRED": "Existing persisted initialization required",
+        "409 GENERATION_PATH_CONFLICT": "Another path/workflow owns generation",
+        "409 SOURCE_VERSION_CONFLICT": "Current authoritative source changed",
+        "409 SAGA_TERMINAL": "Terminal workflow cannot acknowledge/release/snapshot",
+        "409 NOT_COMMITTED": "Business effect required",
+        "409 COMPLETION_PENDING": "Completion acknowledgment required",
+        "409 COMPENSATION_CONFLICT": "Persisted conflict requires intervention",
+        "409 ALREADY_RELEASED": "Finalized work cannot compensate",
+        "503 SAGA_STORAGE_UNAVAILABLE": "Ambiguous: resolve by status/replay",
+        "504 TASK_TIMEOUT": "Ambiguous command deadline"
+      }
+    },
+    {
+      "name": "credential.dossierSaga.release",
+      "status": "candidate",
+      "statusEvidence": "Task 9 executable contract; participant implementation/joint acceptance required.",
+      "owner": "credential-service",
+      "method": "POST",
+      "path": "/internal/v1/credentials/dossier/saga/v1/release",
+      "callers": [
+        "message-broker"
+      ],
+      "request": "dossierSagaIdentityV1",
+      "response": "dossierSagaReceiptV1",
+      "semantics": "dossier-saga-v1 ordinary local transaction; see contracts/dossier/saga-v1.json for exact durable outcomes.",
+      "budgetsMs": {
+        "target": 500,
+        "gateway": 750,
+        "broker": 750,
+        "caller": 1000
+      },
+      "idempotency": "Serialize commands per workflow. Persist immutable identity and first successful apply input. Same input returns current persisted outcome including terminal tombstones; different identity/input returns 409 SAGA_CONFLICT. Snapshot retry returns original snapshot, not changed facts. status for unseen identity creates NEW journal only. compensate for unseen/snapshotted work creates durable COMPENSATED tombstone; late snapshot/apply/acknowledge/release cannot revive it. A late identical apply returns COMPENSATED/CONFLICT, never COMMITTED.",
+      "retry": "Before each dispatch persist exact request, attempt count, next retry instant, trace and receipts; fsync local journal before admission/progress acknowledgment. 429/5xx/timeout/disconnect/invalid receipt are ambiguous: status query or identical replay, never immediate rollback. 409 SAGA_BUSY is retryable. Deterministic rejection is followed by reverse compensation and terminal tombstones. Workflow deadline may initiate compensation only after outcome resolution; per-command budgets remain independent. Persist exponential backoff capped at 60 seconds and recover after restart. No wall-clock participant rollback.",
+      "errors": {
+        "400 INVALID_SAGA": "Malformed protocol/identity/input/fingerprint",
+        "401 UNAUTHENTICATED": "Target credential required",
+        "403 SERVICE_CALL_FORBIDDEN": "Only message-broker may drive participants",
+        "409 SAGA_CONFLICT": "Immutable identity/input mismatch",
+        "409 SAGA_BUSY": "Retry serialized command",
+        "409 INITIALIZATION_REQUIRED": "Existing persisted initialization required",
+        "409 GENERATION_PATH_CONFLICT": "Another path/workflow owns generation",
+        "409 SOURCE_VERSION_CONFLICT": "Current authoritative source changed",
+        "409 SAGA_TERMINAL": "Terminal workflow cannot acknowledge/release/snapshot",
+        "409 NOT_COMMITTED": "Business effect required",
+        "409 COMPLETION_PENDING": "Completion acknowledgment required",
+        "409 COMPENSATION_CONFLICT": "Persisted conflict requires intervention",
+        "409 ALREADY_RELEASED": "Finalized work cannot compensate",
+        "503 SAGA_STORAGE_UNAVAILABLE": "Ambiguous: resolve by status/replay",
+        "504 TASK_TIMEOUT": "Ambiguous command deadline"
+      }
+    },
+    {
+      "name": "record.dossierSaga.snapshot",
+      "status": "candidate",
+      "statusEvidence": "Task 9 executable contract; participant implementation/joint acceptance required.",
+      "owner": "university-record-service",
+      "method": "POST",
+      "path": "/internal/v1/records/dossier/saga/v1/snapshot",
+      "callers": [
+        "message-broker"
+      ],
+      "request": "dossierSagaIdentityV1",
+      "response": "dossierSagaSnapshotV1",
+      "semantics": "dossier-saga-v1 ordinary local transaction; see contracts/dossier/saga-v1.json for exact durable outcomes.",
+      "budgetsMs": {
+        "target": 500,
+        "gateway": 750,
+        "broker": 750,
+        "caller": 1000
+      },
+      "idempotency": "Serialize commands per workflow. Persist immutable identity and first successful apply input. Same input returns current persisted outcome including terminal tombstones; different identity/input returns 409 SAGA_CONFLICT. Snapshot retry returns original snapshot, not changed facts. status for unseen identity creates NEW journal only. compensate for unseen/snapshotted work creates durable COMPENSATED tombstone; late snapshot/apply/acknowledge/release cannot revive it. A late identical apply returns COMPENSATED/CONFLICT, never COMMITTED.",
+      "retry": "Before each dispatch persist exact request, attempt count, next retry instant, trace and receipts; fsync local journal before admission/progress acknowledgment. 429/5xx/timeout/disconnect/invalid receipt are ambiguous: status query or identical replay, never immediate rollback. 409 SAGA_BUSY is retryable. Deterministic rejection is followed by reverse compensation and terminal tombstones. Workflow deadline may initiate compensation only after outcome resolution; per-command budgets remain independent. Persist exponential backoff capped at 60 seconds and recover after restart. No wall-clock participant rollback.",
+      "errors": {
+        "400 INVALID_SAGA": "Malformed protocol/identity/input/fingerprint",
+        "401 UNAUTHENTICATED": "Target credential required",
+        "403 SERVICE_CALL_FORBIDDEN": "Only message-broker may drive participants",
+        "409 SAGA_CONFLICT": "Immutable identity/input mismatch",
+        "409 SAGA_BUSY": "Retry serialized command",
+        "409 INITIALIZATION_REQUIRED": "Existing persisted initialization required",
+        "409 GENERATION_PATH_CONFLICT": "Another path/workflow owns generation",
+        "409 SOURCE_VERSION_CONFLICT": "Current authoritative source changed",
+        "409 SAGA_TERMINAL": "Terminal workflow cannot acknowledge/release/snapshot",
+        "409 NOT_COMMITTED": "Business effect required",
+        "409 COMPLETION_PENDING": "Completion acknowledgment required",
+        "409 COMPENSATION_CONFLICT": "Persisted conflict requires intervention",
+        "409 ALREADY_RELEASED": "Finalized work cannot compensate",
+        "503 SAGA_STORAGE_UNAVAILABLE": "Ambiguous: resolve by status/replay",
+        "504 TASK_TIMEOUT": "Ambiguous command deadline"
+      }
+    },
+    {
+      "name": "record.dossierSaga.apply",
+      "status": "candidate",
+      "statusEvidence": "Task 9 executable contract; participant implementation/joint acceptance required.",
+      "owner": "university-record-service",
+      "method": "POST",
+      "path": "/internal/v1/records/dossier/saga/v1/apply",
+      "callers": [
+        "message-broker"
+      ],
+      "request": "dossierSagaApplyV1",
+      "response": "dossierSagaReceiptV1",
+      "semantics": "dossier-saga-v1 ordinary local transaction; see contracts/dossier/saga-v1.json for exact durable outcomes.",
+      "budgetsMs": {
+        "target": 500,
+        "gateway": 750,
+        "broker": 750,
+        "caller": 1000
+      },
+      "idempotency": "Serialize commands per workflow. Persist immutable identity and first successful apply input. Same input returns current persisted outcome including terminal tombstones; different identity/input returns 409 SAGA_CONFLICT. Snapshot retry returns original snapshot, not changed facts. status for unseen identity creates NEW journal only. compensate for unseen/snapshotted work creates durable COMPENSATED tombstone; late snapshot/apply/acknowledge/release cannot revive it. A late identical apply returns COMPENSATED/CONFLICT, never COMMITTED.",
+      "retry": "Before each dispatch persist exact request, attempt count, next retry instant, trace and receipts; fsync local journal before admission/progress acknowledgment. 429/5xx/timeout/disconnect/invalid receipt are ambiguous: status query or identical replay, never immediate rollback. 409 SAGA_BUSY is retryable. Deterministic rejection is followed by reverse compensation and terminal tombstones. Workflow deadline may initiate compensation only after outcome resolution; per-command budgets remain independent. Persist exponential backoff capped at 60 seconds and recover after restart. No wall-clock participant rollback.",
+      "errors": {
+        "400 INVALID_SAGA": "Malformed protocol/identity/input/fingerprint",
+        "401 UNAUTHENTICATED": "Target credential required",
+        "403 SERVICE_CALL_FORBIDDEN": "Only message-broker may drive participants",
+        "409 SAGA_CONFLICT": "Immutable identity/input mismatch",
+        "409 SAGA_BUSY": "Retry serialized command",
+        "409 INITIALIZATION_REQUIRED": "Existing persisted initialization required",
+        "409 GENERATION_PATH_CONFLICT": "Another path/workflow owns generation",
+        "409 SOURCE_VERSION_CONFLICT": "Current authoritative source changed",
+        "409 SAGA_TERMINAL": "Terminal workflow cannot acknowledge/release/snapshot",
+        "409 NOT_COMMITTED": "Business effect required",
+        "409 COMPLETION_PENDING": "Completion acknowledgment required",
+        "409 COMPENSATION_CONFLICT": "Persisted conflict requires intervention",
+        "409 ALREADY_RELEASED": "Finalized work cannot compensate",
+        "503 SAGA_STORAGE_UNAVAILABLE": "Ambiguous: resolve by status/replay",
+        "504 TASK_TIMEOUT": "Ambiguous command deadline"
+      }
+    },
+    {
+      "name": "record.dossierSaga.status",
+      "status": "candidate",
+      "statusEvidence": "Task 9 executable contract; participant implementation/joint acceptance required.",
+      "owner": "university-record-service",
+      "method": "POST",
+      "path": "/internal/v1/records/dossier/saga/v1/status",
+      "callers": [
+        "message-broker"
+      ],
+      "request": "dossierSagaIdentityV1",
+      "response": "dossierSagaReceiptV1",
+      "semantics": "dossier-saga-v1 ordinary local transaction; see contracts/dossier/saga-v1.json for exact durable outcomes.",
+      "budgetsMs": {
+        "target": 500,
+        "gateway": 750,
+        "broker": 750,
+        "caller": 1000
+      },
+      "idempotency": "Serialize commands per workflow. Persist immutable identity and first successful apply input. Same input returns current persisted outcome including terminal tombstones; different identity/input returns 409 SAGA_CONFLICT. Snapshot retry returns original snapshot, not changed facts. status for unseen identity creates NEW journal only. compensate for unseen/snapshotted work creates durable COMPENSATED tombstone; late snapshot/apply/acknowledge/release cannot revive it. A late identical apply returns COMPENSATED/CONFLICT, never COMMITTED.",
+      "retry": "Before each dispatch persist exact request, attempt count, next retry instant, trace and receipts; fsync local journal before admission/progress acknowledgment. 429/5xx/timeout/disconnect/invalid receipt are ambiguous: status query or identical replay, never immediate rollback. 409 SAGA_BUSY is retryable. Deterministic rejection is followed by reverse compensation and terminal tombstones. Workflow deadline may initiate compensation only after outcome resolution; per-command budgets remain independent. Persist exponential backoff capped at 60 seconds and recover after restart. No wall-clock participant rollback.",
+      "errors": {
+        "400 INVALID_SAGA": "Malformed protocol/identity/input/fingerprint",
+        "401 UNAUTHENTICATED": "Target credential required",
+        "403 SERVICE_CALL_FORBIDDEN": "Only message-broker may drive participants",
+        "409 SAGA_CONFLICT": "Immutable identity/input mismatch",
+        "409 SAGA_BUSY": "Retry serialized command",
+        "409 INITIALIZATION_REQUIRED": "Existing persisted initialization required",
+        "409 GENERATION_PATH_CONFLICT": "Another path/workflow owns generation",
+        "409 SOURCE_VERSION_CONFLICT": "Current authoritative source changed",
+        "409 SAGA_TERMINAL": "Terminal workflow cannot acknowledge/release/snapshot",
+        "409 NOT_COMMITTED": "Business effect required",
+        "409 COMPLETION_PENDING": "Completion acknowledgment required",
+        "409 COMPENSATION_CONFLICT": "Persisted conflict requires intervention",
+        "409 ALREADY_RELEASED": "Finalized work cannot compensate",
+        "503 SAGA_STORAGE_UNAVAILABLE": "Ambiguous: resolve by status/replay",
+        "504 TASK_TIMEOUT": "Ambiguous command deadline"
+      }
+    },
+    {
+      "name": "record.dossierSaga.compensate",
+      "status": "candidate",
+      "statusEvidence": "Task 9 executable contract; participant implementation/joint acceptance required.",
+      "owner": "university-record-service",
+      "method": "POST",
+      "path": "/internal/v1/records/dossier/saga/v1/compensate",
+      "callers": [
+        "message-broker"
+      ],
+      "request": "dossierSagaIdentityV1",
+      "response": "dossierSagaReceiptV1",
+      "semantics": "dossier-saga-v1 ordinary local transaction; see contracts/dossier/saga-v1.json for exact durable outcomes.",
+      "budgetsMs": {
+        "target": 500,
+        "gateway": 750,
+        "broker": 750,
+        "caller": 1000
+      },
+      "idempotency": "Serialize commands per workflow. Persist immutable identity and first successful apply input. Same input returns current persisted outcome including terminal tombstones; different identity/input returns 409 SAGA_CONFLICT. Snapshot retry returns original snapshot, not changed facts. status for unseen identity creates NEW journal only. compensate for unseen/snapshotted work creates durable COMPENSATED tombstone; late snapshot/apply/acknowledge/release cannot revive it. A late identical apply returns COMPENSATED/CONFLICT, never COMMITTED.",
+      "retry": "Before each dispatch persist exact request, attempt count, next retry instant, trace and receipts; fsync local journal before admission/progress acknowledgment. 429/5xx/timeout/disconnect/invalid receipt are ambiguous: status query or identical replay, never immediate rollback. 409 SAGA_BUSY is retryable. Deterministic rejection is followed by reverse compensation and terminal tombstones. Workflow deadline may initiate compensation only after outcome resolution; per-command budgets remain independent. Persist exponential backoff capped at 60 seconds and recover after restart. No wall-clock participant rollback.",
+      "errors": {
+        "400 INVALID_SAGA": "Malformed protocol/identity/input/fingerprint",
+        "401 UNAUTHENTICATED": "Target credential required",
+        "403 SERVICE_CALL_FORBIDDEN": "Only message-broker may drive participants",
+        "409 SAGA_CONFLICT": "Immutable identity/input mismatch",
+        "409 SAGA_BUSY": "Retry serialized command",
+        "409 INITIALIZATION_REQUIRED": "Existing persisted initialization required",
+        "409 GENERATION_PATH_CONFLICT": "Another path/workflow owns generation",
+        "409 SOURCE_VERSION_CONFLICT": "Current authoritative source changed",
+        "409 SAGA_TERMINAL": "Terminal workflow cannot acknowledge/release/snapshot",
+        "409 NOT_COMMITTED": "Business effect required",
+        "409 COMPLETION_PENDING": "Completion acknowledgment required",
+        "409 COMPENSATION_CONFLICT": "Persisted conflict requires intervention",
+        "409 ALREADY_RELEASED": "Finalized work cannot compensate",
+        "503 SAGA_STORAGE_UNAVAILABLE": "Ambiguous: resolve by status/replay",
+        "504 TASK_TIMEOUT": "Ambiguous command deadline"
+      }
+    },
+    {
+      "name": "record.dossierSaga.acknowledge",
+      "status": "candidate",
+      "statusEvidence": "Task 9 executable contract; participant implementation/joint acceptance required.",
+      "owner": "university-record-service",
+      "method": "POST",
+      "path": "/internal/v1/records/dossier/saga/v1/acknowledge",
+      "callers": [
+        "message-broker"
+      ],
+      "request": "dossierSagaIdentityV1",
+      "response": "dossierSagaReceiptV1",
+      "semantics": "dossier-saga-v1 ordinary local transaction; see contracts/dossier/saga-v1.json for exact durable outcomes.",
+      "budgetsMs": {
+        "target": 500,
+        "gateway": 750,
+        "broker": 750,
+        "caller": 1000
+      },
+      "idempotency": "Serialize commands per workflow. Persist immutable identity and first successful apply input. Same input returns current persisted outcome including terminal tombstones; different identity/input returns 409 SAGA_CONFLICT. Snapshot retry returns original snapshot, not changed facts. status for unseen identity creates NEW journal only. compensate for unseen/snapshotted work creates durable COMPENSATED tombstone; late snapshot/apply/acknowledge/release cannot revive it. A late identical apply returns COMPENSATED/CONFLICT, never COMMITTED.",
+      "retry": "Before each dispatch persist exact request, attempt count, next retry instant, trace and receipts; fsync local journal before admission/progress acknowledgment. 429/5xx/timeout/disconnect/invalid receipt are ambiguous: status query or identical replay, never immediate rollback. 409 SAGA_BUSY is retryable. Deterministic rejection is followed by reverse compensation and terminal tombstones. Workflow deadline may initiate compensation only after outcome resolution; per-command budgets remain independent. Persist exponential backoff capped at 60 seconds and recover after restart. No wall-clock participant rollback.",
+      "errors": {
+        "400 INVALID_SAGA": "Malformed protocol/identity/input/fingerprint",
+        "401 UNAUTHENTICATED": "Target credential required",
+        "403 SERVICE_CALL_FORBIDDEN": "Only message-broker may drive participants",
+        "409 SAGA_CONFLICT": "Immutable identity/input mismatch",
+        "409 SAGA_BUSY": "Retry serialized command",
+        "409 INITIALIZATION_REQUIRED": "Existing persisted initialization required",
+        "409 GENERATION_PATH_CONFLICT": "Another path/workflow owns generation",
+        "409 SOURCE_VERSION_CONFLICT": "Current authoritative source changed",
+        "409 SAGA_TERMINAL": "Terminal workflow cannot acknowledge/release/snapshot",
+        "409 NOT_COMMITTED": "Business effect required",
+        "409 COMPLETION_PENDING": "Completion acknowledgment required",
+        "409 COMPENSATION_CONFLICT": "Persisted conflict requires intervention",
+        "409 ALREADY_RELEASED": "Finalized work cannot compensate",
+        "503 SAGA_STORAGE_UNAVAILABLE": "Ambiguous: resolve by status/replay",
+        "504 TASK_TIMEOUT": "Ambiguous command deadline"
+      }
+    },
+    {
+      "name": "record.dossierSaga.release",
+      "status": "candidate",
+      "statusEvidence": "Task 9 executable contract; participant implementation/joint acceptance required.",
+      "owner": "university-record-service",
+      "method": "POST",
+      "path": "/internal/v1/records/dossier/saga/v1/release",
+      "callers": [
+        "message-broker"
+      ],
+      "request": "dossierSagaIdentityV1",
+      "response": "dossierSagaReceiptV1",
+      "semantics": "dossier-saga-v1 ordinary local transaction; see contracts/dossier/saga-v1.json for exact durable outcomes.",
+      "budgetsMs": {
+        "target": 500,
+        "gateway": 750,
+        "broker": 750,
+        "caller": 1000
+      },
+      "idempotency": "Serialize commands per workflow. Persist immutable identity and first successful apply input. Same input returns current persisted outcome including terminal tombstones; different identity/input returns 409 SAGA_CONFLICT. Snapshot retry returns original snapshot, not changed facts. status for unseen identity creates NEW journal only. compensate for unseen/snapshotted work creates durable COMPENSATED tombstone; late snapshot/apply/acknowledge/release cannot revive it. A late identical apply returns COMPENSATED/CONFLICT, never COMMITTED.",
+      "retry": "Before each dispatch persist exact request, attempt count, next retry instant, trace and receipts; fsync local journal before admission/progress acknowledgment. 429/5xx/timeout/disconnect/invalid receipt are ambiguous: status query or identical replay, never immediate rollback. 409 SAGA_BUSY is retryable. Deterministic rejection is followed by reverse compensation and terminal tombstones. Workflow deadline may initiate compensation only after outcome resolution; per-command budgets remain independent. Persist exponential backoff capped at 60 seconds and recover after restart. No wall-clock participant rollback.",
+      "errors": {
+        "400 INVALID_SAGA": "Malformed protocol/identity/input/fingerprint",
+        "401 UNAUTHENTICATED": "Target credential required",
+        "403 SERVICE_CALL_FORBIDDEN": "Only message-broker may drive participants",
+        "409 SAGA_CONFLICT": "Immutable identity/input mismatch",
+        "409 SAGA_BUSY": "Retry serialized command",
+        "409 INITIALIZATION_REQUIRED": "Existing persisted initialization required",
+        "409 GENERATION_PATH_CONFLICT": "Another path/workflow owns generation",
+        "409 SOURCE_VERSION_CONFLICT": "Current authoritative source changed",
+        "409 SAGA_TERMINAL": "Terminal workflow cannot acknowledge/release/snapshot",
+        "409 NOT_COMMITTED": "Business effect required",
+        "409 COMPLETION_PENDING": "Completion acknowledgment required",
+        "409 COMPENSATION_CONFLICT": "Persisted conflict requires intervention",
+        "409 ALREADY_RELEASED": "Finalized work cannot compensate",
+        "503 SAGA_STORAGE_UNAVAILABLE": "Ambiguous: resolve by status/replay",
+        "504 TASK_TIMEOUT": "Ambiguous command deadline"
+      }
+    },
+    {
+      "name": "applicant.dossierSaga.snapshot",
+      "status": "candidate",
+      "statusEvidence": "Task 9 executable contract; participant implementation/joint acceptance required.",
+      "owner": "applicant-service",
+      "method": "POST",
+      "path": "/internal/v1/applicants/dossier/saga/v1/snapshot",
+      "callers": [
+        "message-broker"
+      ],
+      "request": "dossierSagaIdentityV1",
+      "response": "dossierSagaSnapshotV1",
+      "semantics": "dossier-saga-v1 ordinary local transaction; see contracts/dossier/saga-v1.json for exact durable outcomes.",
+      "budgetsMs": {
+        "target": 500,
+        "gateway": 750,
+        "broker": 750,
+        "caller": 1000
+      },
+      "idempotency": "Serialize commands per workflow. Persist immutable identity and first successful apply input. Same input returns current persisted outcome including terminal tombstones; different identity/input returns 409 SAGA_CONFLICT. Snapshot retry returns original snapshot, not changed facts. status for unseen identity creates NEW journal only. compensate for unseen/snapshotted work creates durable COMPENSATED tombstone; late snapshot/apply/acknowledge/release cannot revive it. A late identical apply returns COMPENSATED/CONFLICT, never COMMITTED.",
+      "retry": "Before each dispatch persist exact request, attempt count, next retry instant, trace and receipts; fsync local journal before admission/progress acknowledgment. 429/5xx/timeout/disconnect/invalid receipt are ambiguous: status query or identical replay, never immediate rollback. 409 SAGA_BUSY is retryable. Deterministic rejection is followed by reverse compensation and terminal tombstones. Workflow deadline may initiate compensation only after outcome resolution; per-command budgets remain independent. Persist exponential backoff capped at 60 seconds and recover after restart. No wall-clock participant rollback.",
+      "errors": {
+        "400 INVALID_SAGA": "Malformed protocol/identity/input/fingerprint",
+        "401 UNAUTHENTICATED": "Target credential required",
+        "403 SERVICE_CALL_FORBIDDEN": "Only message-broker may drive participants",
+        "409 SAGA_CONFLICT": "Immutable identity/input mismatch",
+        "409 SAGA_BUSY": "Retry serialized command",
+        "409 INITIALIZATION_REQUIRED": "Existing persisted initialization required",
+        "409 GENERATION_PATH_CONFLICT": "Another path/workflow owns generation",
+        "409 SOURCE_VERSION_CONFLICT": "Current authoritative source changed",
+        "409 SAGA_TERMINAL": "Terminal workflow cannot acknowledge/release/snapshot",
+        "409 NOT_COMMITTED": "Business effect required",
+        "409 COMPLETION_PENDING": "Completion acknowledgment required",
+        "409 COMPENSATION_CONFLICT": "Persisted conflict requires intervention",
+        "409 ALREADY_RELEASED": "Finalized work cannot compensate",
+        "503 SAGA_STORAGE_UNAVAILABLE": "Ambiguous: resolve by status/replay",
+        "504 TASK_TIMEOUT": "Ambiguous command deadline"
+      }
+    },
+    {
+      "name": "applicant.dossierSaga.apply",
+      "status": "candidate",
+      "statusEvidence": "Task 9 executable contract; participant implementation/joint acceptance required.",
+      "owner": "applicant-service",
+      "method": "POST",
+      "path": "/internal/v1/applicants/dossier/saga/v1/apply",
+      "callers": [
+        "message-broker"
+      ],
+      "request": "dossierSagaApplyV1",
+      "response": "dossierSagaReceiptV1",
+      "semantics": "dossier-saga-v1 ordinary local transaction; see contracts/dossier/saga-v1.json for exact durable outcomes.",
+      "budgetsMs": {
+        "target": 500,
+        "gateway": 750,
+        "broker": 750,
+        "caller": 1000
+      },
+      "idempotency": "Serialize commands per workflow. Persist immutable identity and first successful apply input. Same input returns current persisted outcome including terminal tombstones; different identity/input returns 409 SAGA_CONFLICT. Snapshot retry returns original snapshot, not changed facts. status for unseen identity creates NEW journal only. compensate for unseen/snapshotted work creates durable COMPENSATED tombstone; late snapshot/apply/acknowledge/release cannot revive it. A late identical apply returns COMPENSATED/CONFLICT, never COMMITTED.",
+      "retry": "Before each dispatch persist exact request, attempt count, next retry instant, trace and receipts; fsync local journal before admission/progress acknowledgment. 429/5xx/timeout/disconnect/invalid receipt are ambiguous: status query or identical replay, never immediate rollback. 409 SAGA_BUSY is retryable. Deterministic rejection is followed by reverse compensation and terminal tombstones. Workflow deadline may initiate compensation only after outcome resolution; per-command budgets remain independent. Persist exponential backoff capped at 60 seconds and recover after restart. No wall-clock participant rollback.",
+      "errors": {
+        "400 INVALID_SAGA": "Malformed protocol/identity/input/fingerprint",
+        "401 UNAUTHENTICATED": "Target credential required",
+        "403 SERVICE_CALL_FORBIDDEN": "Only message-broker may drive participants",
+        "409 SAGA_CONFLICT": "Immutable identity/input mismatch",
+        "409 SAGA_BUSY": "Retry serialized command",
+        "409 INITIALIZATION_REQUIRED": "Existing persisted initialization required",
+        "409 GENERATION_PATH_CONFLICT": "Another path/workflow owns generation",
+        "409 SOURCE_VERSION_CONFLICT": "Current authoritative source changed",
+        "409 SAGA_TERMINAL": "Terminal workflow cannot acknowledge/release/snapshot",
+        "409 NOT_COMMITTED": "Business effect required",
+        "409 COMPLETION_PENDING": "Completion acknowledgment required",
+        "409 COMPENSATION_CONFLICT": "Persisted conflict requires intervention",
+        "409 ALREADY_RELEASED": "Finalized work cannot compensate",
+        "503 SAGA_STORAGE_UNAVAILABLE": "Ambiguous: resolve by status/replay",
+        "504 TASK_TIMEOUT": "Ambiguous command deadline"
+      }
+    },
+    {
+      "name": "applicant.dossierSaga.status",
+      "status": "candidate",
+      "statusEvidence": "Task 9 executable contract; participant implementation/joint acceptance required.",
+      "owner": "applicant-service",
+      "method": "POST",
+      "path": "/internal/v1/applicants/dossier/saga/v1/status",
+      "callers": [
+        "message-broker"
+      ],
+      "request": "dossierSagaIdentityV1",
+      "response": "dossierSagaReceiptV1",
+      "semantics": "dossier-saga-v1 ordinary local transaction; see contracts/dossier/saga-v1.json for exact durable outcomes.",
+      "budgetsMs": {
+        "target": 500,
+        "gateway": 750,
+        "broker": 750,
+        "caller": 1000
+      },
+      "idempotency": "Serialize commands per workflow. Persist immutable identity and first successful apply input. Same input returns current persisted outcome including terminal tombstones; different identity/input returns 409 SAGA_CONFLICT. Snapshot retry returns original snapshot, not changed facts. status for unseen identity creates NEW journal only. compensate for unseen/snapshotted work creates durable COMPENSATED tombstone; late snapshot/apply/acknowledge/release cannot revive it. A late identical apply returns COMPENSATED/CONFLICT, never COMMITTED.",
+      "retry": "Before each dispatch persist exact request, attempt count, next retry instant, trace and receipts; fsync local journal before admission/progress acknowledgment. 429/5xx/timeout/disconnect/invalid receipt are ambiguous: status query or identical replay, never immediate rollback. 409 SAGA_BUSY is retryable. Deterministic rejection is followed by reverse compensation and terminal tombstones. Workflow deadline may initiate compensation only after outcome resolution; per-command budgets remain independent. Persist exponential backoff capped at 60 seconds and recover after restart. No wall-clock participant rollback.",
+      "errors": {
+        "400 INVALID_SAGA": "Malformed protocol/identity/input/fingerprint",
+        "401 UNAUTHENTICATED": "Target credential required",
+        "403 SERVICE_CALL_FORBIDDEN": "Only message-broker may drive participants",
+        "409 SAGA_CONFLICT": "Immutable identity/input mismatch",
+        "409 SAGA_BUSY": "Retry serialized command",
+        "409 INITIALIZATION_REQUIRED": "Existing persisted initialization required",
+        "409 GENERATION_PATH_CONFLICT": "Another path/workflow owns generation",
+        "409 SOURCE_VERSION_CONFLICT": "Current authoritative source changed",
+        "409 SAGA_TERMINAL": "Terminal workflow cannot acknowledge/release/snapshot",
+        "409 NOT_COMMITTED": "Business effect required",
+        "409 COMPLETION_PENDING": "Completion acknowledgment required",
+        "409 COMPENSATION_CONFLICT": "Persisted conflict requires intervention",
+        "409 ALREADY_RELEASED": "Finalized work cannot compensate",
+        "503 SAGA_STORAGE_UNAVAILABLE": "Ambiguous: resolve by status/replay",
+        "504 TASK_TIMEOUT": "Ambiguous command deadline"
+      }
+    },
+    {
+      "name": "applicant.dossierSaga.compensate",
+      "status": "candidate",
+      "statusEvidence": "Task 9 executable contract; participant implementation/joint acceptance required.",
+      "owner": "applicant-service",
+      "method": "POST",
+      "path": "/internal/v1/applicants/dossier/saga/v1/compensate",
+      "callers": [
+        "message-broker"
+      ],
+      "request": "dossierSagaIdentityV1",
+      "response": "dossierSagaReceiptV1",
+      "semantics": "dossier-saga-v1 ordinary local transaction; see contracts/dossier/saga-v1.json for exact durable outcomes.",
+      "budgetsMs": {
+        "target": 500,
+        "gateway": 750,
+        "broker": 750,
+        "caller": 1000
+      },
+      "idempotency": "Serialize commands per workflow. Persist immutable identity and first successful apply input. Same input returns current persisted outcome including terminal tombstones; different identity/input returns 409 SAGA_CONFLICT. Snapshot retry returns original snapshot, not changed facts. status for unseen identity creates NEW journal only. compensate for unseen/snapshotted work creates durable COMPENSATED tombstone; late snapshot/apply/acknowledge/release cannot revive it. A late identical apply returns COMPENSATED/CONFLICT, never COMMITTED.",
+      "retry": "Before each dispatch persist exact request, attempt count, next retry instant, trace and receipts; fsync local journal before admission/progress acknowledgment. 429/5xx/timeout/disconnect/invalid receipt are ambiguous: status query or identical replay, never immediate rollback. 409 SAGA_BUSY is retryable. Deterministic rejection is followed by reverse compensation and terminal tombstones. Workflow deadline may initiate compensation only after outcome resolution; per-command budgets remain independent. Persist exponential backoff capped at 60 seconds and recover after restart. No wall-clock participant rollback.",
+      "errors": {
+        "400 INVALID_SAGA": "Malformed protocol/identity/input/fingerprint",
+        "401 UNAUTHENTICATED": "Target credential required",
+        "403 SERVICE_CALL_FORBIDDEN": "Only message-broker may drive participants",
+        "409 SAGA_CONFLICT": "Immutable identity/input mismatch",
+        "409 SAGA_BUSY": "Retry serialized command",
+        "409 INITIALIZATION_REQUIRED": "Existing persisted initialization required",
+        "409 GENERATION_PATH_CONFLICT": "Another path/workflow owns generation",
+        "409 SOURCE_VERSION_CONFLICT": "Current authoritative source changed",
+        "409 SAGA_TERMINAL": "Terminal workflow cannot acknowledge/release/snapshot",
+        "409 NOT_COMMITTED": "Business effect required",
+        "409 COMPLETION_PENDING": "Completion acknowledgment required",
+        "409 COMPENSATION_CONFLICT": "Persisted conflict requires intervention",
+        "409 ALREADY_RELEASED": "Finalized work cannot compensate",
+        "503 SAGA_STORAGE_UNAVAILABLE": "Ambiguous: resolve by status/replay",
+        "504 TASK_TIMEOUT": "Ambiguous command deadline"
+      }
+    },
+    {
+      "name": "applicant.dossierSaga.acknowledge",
+      "status": "candidate",
+      "statusEvidence": "Task 9 executable contract; participant implementation/joint acceptance required.",
+      "owner": "applicant-service",
+      "method": "POST",
+      "path": "/internal/v1/applicants/dossier/saga/v1/acknowledge",
+      "callers": [
+        "message-broker"
+      ],
+      "request": "dossierSagaIdentityV1",
+      "response": "dossierSagaReceiptV1",
+      "semantics": "dossier-saga-v1 ordinary local transaction; see contracts/dossier/saga-v1.json for exact durable outcomes.",
+      "budgetsMs": {
+        "target": 500,
+        "gateway": 750,
+        "broker": 750,
+        "caller": 1000
+      },
+      "idempotency": "Serialize commands per workflow. Persist immutable identity and first successful apply input. Same input returns current persisted outcome including terminal tombstones; different identity/input returns 409 SAGA_CONFLICT. Snapshot retry returns original snapshot, not changed facts. status for unseen identity creates NEW journal only. compensate for unseen/snapshotted work creates durable COMPENSATED tombstone; late snapshot/apply/acknowledge/release cannot revive it. A late identical apply returns COMPENSATED/CONFLICT, never COMMITTED.",
+      "retry": "Before each dispatch persist exact request, attempt count, next retry instant, trace and receipts; fsync local journal before admission/progress acknowledgment. 429/5xx/timeout/disconnect/invalid receipt are ambiguous: status query or identical replay, never immediate rollback. 409 SAGA_BUSY is retryable. Deterministic rejection is followed by reverse compensation and terminal tombstones. Workflow deadline may initiate compensation only after outcome resolution; per-command budgets remain independent. Persist exponential backoff capped at 60 seconds and recover after restart. No wall-clock participant rollback.",
+      "errors": {
+        "400 INVALID_SAGA": "Malformed protocol/identity/input/fingerprint",
+        "401 UNAUTHENTICATED": "Target credential required",
+        "403 SERVICE_CALL_FORBIDDEN": "Only message-broker may drive participants",
+        "409 SAGA_CONFLICT": "Immutable identity/input mismatch",
+        "409 SAGA_BUSY": "Retry serialized command",
+        "409 INITIALIZATION_REQUIRED": "Existing persisted initialization required",
+        "409 GENERATION_PATH_CONFLICT": "Another path/workflow owns generation",
+        "409 SOURCE_VERSION_CONFLICT": "Current authoritative source changed",
+        "409 SAGA_TERMINAL": "Terminal workflow cannot acknowledge/release/snapshot",
+        "409 NOT_COMMITTED": "Business effect required",
+        "409 COMPLETION_PENDING": "Completion acknowledgment required",
+        "409 COMPENSATION_CONFLICT": "Persisted conflict requires intervention",
+        "409 ALREADY_RELEASED": "Finalized work cannot compensate",
+        "503 SAGA_STORAGE_UNAVAILABLE": "Ambiguous: resolve by status/replay",
+        "504 TASK_TIMEOUT": "Ambiguous command deadline"
+      }
+    },
+    {
+      "name": "applicant.dossierSaga.release",
+      "status": "candidate",
+      "statusEvidence": "Task 9 executable contract; participant implementation/joint acceptance required.",
+      "owner": "applicant-service",
+      "method": "POST",
+      "path": "/internal/v1/applicants/dossier/saga/v1/release",
+      "callers": [
+        "message-broker"
+      ],
+      "request": "dossierSagaIdentityV1",
+      "response": "dossierSagaReceiptV1",
+      "semantics": "dossier-saga-v1 ordinary local transaction; see contracts/dossier/saga-v1.json for exact durable outcomes.",
+      "budgetsMs": {
+        "target": 500,
+        "gateway": 750,
+        "broker": 750,
+        "caller": 1000
+      },
+      "idempotency": "Serialize commands per workflow. Persist immutable identity and first successful apply input. Same input returns current persisted outcome including terminal tombstones; different identity/input returns 409 SAGA_CONFLICT. Snapshot retry returns original snapshot, not changed facts. status for unseen identity creates NEW journal only. compensate for unseen/snapshotted work creates durable COMPENSATED tombstone; late snapshot/apply/acknowledge/release cannot revive it. A late identical apply returns COMPENSATED/CONFLICT, never COMMITTED.",
+      "retry": "Before each dispatch persist exact request, attempt count, next retry instant, trace and receipts; fsync local journal before admission/progress acknowledgment. 429/5xx/timeout/disconnect/invalid receipt are ambiguous: status query or identical replay, never immediate rollback. 409 SAGA_BUSY is retryable. Deterministic rejection is followed by reverse compensation and terminal tombstones. Workflow deadline may initiate compensation only after outcome resolution; per-command budgets remain independent. Persist exponential backoff capped at 60 seconds and recover after restart. No wall-clock participant rollback.",
+      "errors": {
+        "400 INVALID_SAGA": "Malformed protocol/identity/input/fingerprint",
+        "401 UNAUTHENTICATED": "Target credential required",
+        "403 SERVICE_CALL_FORBIDDEN": "Only message-broker may drive participants",
+        "409 SAGA_CONFLICT": "Immutable identity/input mismatch",
+        "409 SAGA_BUSY": "Retry serialized command",
+        "409 INITIALIZATION_REQUIRED": "Existing persisted initialization required",
+        "409 GENERATION_PATH_CONFLICT": "Another path/workflow owns generation",
+        "409 SOURCE_VERSION_CONFLICT": "Current authoritative source changed",
+        "409 SAGA_TERMINAL": "Terminal workflow cannot acknowledge/release/snapshot",
+        "409 NOT_COMMITTED": "Business effect required",
+        "409 COMPLETION_PENDING": "Completion acknowledgment required",
+        "409 COMPENSATION_CONFLICT": "Persisted conflict requires intervention",
+        "409 ALREADY_RELEASED": "Finalized work cannot compensate",
+        "503 SAGA_STORAGE_UNAVAILABLE": "Ambiguous: resolve by status/replay",
+        "504 TASK_TIMEOUT": "Ambiguous command deadline"
+      }
     }
   ],
   "schemas": {
@@ -4411,6 +5113,283 @@
           }
         }
       ]
+    },
+    "dossierSagaIdentityV1": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "protocol",
+        "version",
+        "workflowId",
+        "initializationId",
+        "applicantId",
+        "stepId",
+        "fingerprint"
+      ],
+      "properties": {
+        "protocol": {
+          "const": "dossier-saga-v1"
+        },
+        "version": {
+          "const": 1
+        },
+        "workflowId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "initializationId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "applicantId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "stepId": {
+          "enum": [
+            "credential.create.saga.v1",
+            "record.attach.saga.v1",
+            "applicant.attach.saga.v1"
+          ]
+        },
+        "fingerprint": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      }
+    },
+    "dossierSagaApplyV1": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "identity",
+        "sourceVersion",
+        "asOf",
+        "inputsJson",
+        "credentialIds",
+        "inputFingerprint"
+      ],
+      "properties": {
+        "identity": {
+          "$ref": "dossierSagaIdentityV1"
+        },
+        "sourceVersion": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "asOf": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "inputsJson": {
+          "type": "string",
+          "maxLength": 48000
+        },
+        "credentialIds": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "maxItems": 32,
+          "uniqueItems": true
+        },
+        "inputFingerprint": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      }
+    },
+    "dossierSagaReceiptV1": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "protocol",
+        "version",
+        "workflowId",
+        "initializationId",
+        "applicantId",
+        "stepId",
+        "fingerprint",
+        "participant",
+        "state",
+        "inputFingerprint",
+        "effectVersion",
+        "credentialIds",
+        "completionAcknowledged",
+        "ready",
+        "errorCode"
+      ],
+      "properties": {
+        "protocol": {
+          "const": "dossier-saga-v1"
+        },
+        "version": {
+          "const": 1
+        },
+        "workflowId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "initializationId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "applicantId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "stepId": {
+          "enum": [
+            "credential.create.saga.v1",
+            "record.attach.saga.v1",
+            "applicant.attach.saga.v1"
+          ]
+        },
+        "fingerprint": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "participant": {
+          "enum": [
+            "credential-service",
+            "university-record-service",
+            "applicant-service"
+          ]
+        },
+        "state": {
+          "enum": [
+            "NEW",
+            "SNAPSHOTTED",
+            "COMMITTED",
+            "ACKNOWLEDGED",
+            "RELEASED",
+            "COMPENSATED",
+            "CONFLICT"
+          ]
+        },
+        "inputFingerprint": {
+          "type": "string"
+        },
+        "effectVersion": {
+          "type": "string"
+        },
+        "credentialIds": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "maxItems": 32,
+          "uniqueItems": true
+        },
+        "completionAcknowledged": {
+          "type": "boolean"
+        },
+        "ready": {
+          "type": "boolean"
+        },
+        "errorCode": {
+          "type": "string"
+        }
+      }
+    },
+    "dossierSagaSnapshotV1": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "protocol",
+        "version",
+        "workflowId",
+        "initializationId",
+        "applicantId",
+        "stepId",
+        "fingerprint",
+        "participant",
+        "sourceVersion",
+        "facts"
+      ],
+      "properties": {
+        "protocol": {
+          "const": "dossier-saga-v1"
+        },
+        "version": {
+          "const": 1
+        },
+        "workflowId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "initializationId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "applicantId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "stepId": {
+          "enum": [
+            "credential.create.saga.v1",
+            "record.attach.saga.v1",
+            "applicant.attach.saga.v1"
+          ]
+        },
+        "fingerprint": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "participant": {
+          "enum": [
+            "credential-service",
+            "university-record-service",
+            "applicant-service"
+          ]
+        },
+        "sourceVersion": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "facts": {
+          "type": "object"
+        }
+      }
+    },
+    "dossierSagaStartV1": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "protocol",
+        "version",
+        "workflowId",
+        "initializationId",
+        "applicantId",
+        "deadlineAt"
+      ],
+      "properties": {
+        "protocol": {
+          "const": "dossier-saga-v1"
+        },
+        "version": {
+          "const": 1
+        },
+        "workflowId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "initializationId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "applicantId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "deadlineAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
     }
   },
   "publicBackendCredentials": [

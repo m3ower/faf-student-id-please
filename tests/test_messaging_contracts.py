@@ -38,10 +38,10 @@ class MessagingContractsTests(unittest.TestCase):
                     validate_topics(root)
 
     def test_current_catalog_and_per_owner_subscriptions(self):
-        self.assertEqual(check(), (63, 5, 8))
+        self.assertEqual(check(), (81, 5, 8))
         groups = subscriptions(generate(self.http))
-        self.assertEqual(len(groups["applicant-service"]), 20)
-        self.assertEqual(len(groups["university-record-service"]), 17)
+        self.assertEqual(len(groups["applicant-service"]), 26)
+        self.assertEqual(len(groups["university-record-service"]), 23)
         self.assertEqual(len(groups["session-service"]), 7)
         self.assertEqual(len(groups["player-service"]), 4)
         self.assertTrue(all(s["group"] == g for g, entries in groups.items() for s in entries))
@@ -93,4 +93,4 @@ class MessagingContractsTests(unittest.TestCase):
                 check(root, broker.parent)
             (broker / "messaging.json").write_text(json.dumps(policy), encoding="utf-8")
             (broker / "service-operations.json").write_text(json.dumps(self.http), encoding="utf-8")
-            self.assertEqual(check(root, broker.parent), (63, 5, 8))
+            self.assertEqual(check(root, broker.parent), (81, 5, 8))

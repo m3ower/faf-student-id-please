@@ -890,6 +890,240 @@
         "message-broker"
       ],
       "budgetMs": 750
+    },
+    "operation.credential.dossierSaga.snapshot.v1": {
+      "operation": "credential.dossierSaga.snapshot",
+      "group": "credential-service",
+      "method": "POST",
+      "path": "/internal/v1/credentials/dossier/saga/v1/snapshot",
+      "query": "",
+      "arguments": [],
+      "bodySchema": "dossierSagaIdentityV1",
+      "callers": [
+        "message-broker"
+      ],
+      "budgetMs": 750
+    },
+    "operation.credential.dossierSaga.apply.v1": {
+      "operation": "credential.dossierSaga.apply",
+      "group": "credential-service",
+      "method": "POST",
+      "path": "/internal/v1/credentials/dossier/saga/v1/apply",
+      "query": "",
+      "arguments": [],
+      "bodySchema": "dossierSagaApplyV1",
+      "callers": [
+        "message-broker"
+      ],
+      "budgetMs": 750
+    },
+    "operation.credential.dossierSaga.status.v1": {
+      "operation": "credential.dossierSaga.status",
+      "group": "credential-service",
+      "method": "POST",
+      "path": "/internal/v1/credentials/dossier/saga/v1/status",
+      "query": "",
+      "arguments": [],
+      "bodySchema": "dossierSagaIdentityV1",
+      "callers": [
+        "message-broker"
+      ],
+      "budgetMs": 750
+    },
+    "operation.credential.dossierSaga.compensate.v1": {
+      "operation": "credential.dossierSaga.compensate",
+      "group": "credential-service",
+      "method": "POST",
+      "path": "/internal/v1/credentials/dossier/saga/v1/compensate",
+      "query": "",
+      "arguments": [],
+      "bodySchema": "dossierSagaIdentityV1",
+      "callers": [
+        "message-broker"
+      ],
+      "budgetMs": 750
+    },
+    "operation.credential.dossierSaga.acknowledge.v1": {
+      "operation": "credential.dossierSaga.acknowledge",
+      "group": "credential-service",
+      "method": "POST",
+      "path": "/internal/v1/credentials/dossier/saga/v1/acknowledge",
+      "query": "",
+      "arguments": [],
+      "bodySchema": "dossierSagaIdentityV1",
+      "callers": [
+        "message-broker"
+      ],
+      "budgetMs": 750
+    },
+    "operation.credential.dossierSaga.release.v1": {
+      "operation": "credential.dossierSaga.release",
+      "group": "credential-service",
+      "method": "POST",
+      "path": "/internal/v1/credentials/dossier/saga/v1/release",
+      "query": "",
+      "arguments": [],
+      "bodySchema": "dossierSagaIdentityV1",
+      "callers": [
+        "message-broker"
+      ],
+      "budgetMs": 750
+    },
+    "operation.record.dossierSaga.snapshot.v1": {
+      "operation": "record.dossierSaga.snapshot",
+      "group": "university-record-service",
+      "method": "POST",
+      "path": "/internal/v1/records/dossier/saga/v1/snapshot",
+      "query": "",
+      "arguments": [],
+      "bodySchema": "dossierSagaIdentityV1",
+      "callers": [
+        "message-broker"
+      ],
+      "budgetMs": 750
+    },
+    "operation.record.dossierSaga.apply.v1": {
+      "operation": "record.dossierSaga.apply",
+      "group": "university-record-service",
+      "method": "POST",
+      "path": "/internal/v1/records/dossier/saga/v1/apply",
+      "query": "",
+      "arguments": [],
+      "bodySchema": "dossierSagaApplyV1",
+      "callers": [
+        "message-broker"
+      ],
+      "budgetMs": 750
+    },
+    "operation.record.dossierSaga.status.v1": {
+      "operation": "record.dossierSaga.status",
+      "group": "university-record-service",
+      "method": "POST",
+      "path": "/internal/v1/records/dossier/saga/v1/status",
+      "query": "",
+      "arguments": [],
+      "bodySchema": "dossierSagaIdentityV1",
+      "callers": [
+        "message-broker"
+      ],
+      "budgetMs": 750
+    },
+    "operation.record.dossierSaga.compensate.v1": {
+      "operation": "record.dossierSaga.compensate",
+      "group": "university-record-service",
+      "method": "POST",
+      "path": "/internal/v1/records/dossier/saga/v1/compensate",
+      "query": "",
+      "arguments": [],
+      "bodySchema": "dossierSagaIdentityV1",
+      "callers": [
+        "message-broker"
+      ],
+      "budgetMs": 750
+    },
+    "operation.record.dossierSaga.acknowledge.v1": {
+      "operation": "record.dossierSaga.acknowledge",
+      "group": "university-record-service",
+      "method": "POST",
+      "path": "/internal/v1/records/dossier/saga/v1/acknowledge",
+      "query": "",
+      "arguments": [],
+      "bodySchema": "dossierSagaIdentityV1",
+      "callers": [
+        "message-broker"
+      ],
+      "budgetMs": 750
+    },
+    "operation.record.dossierSaga.release.v1": {
+      "operation": "record.dossierSaga.release",
+      "group": "university-record-service",
+      "method": "POST",
+      "path": "/internal/v1/records/dossier/saga/v1/release",
+      "query": "",
+      "arguments": [],
+      "bodySchema": "dossierSagaIdentityV1",
+      "callers": [
+        "message-broker"
+      ],
+      "budgetMs": 750
+    },
+    "operation.applicant.dossierSaga.snapshot.v1": {
+      "operation": "applicant.dossierSaga.snapshot",
+      "group": "applicant-service",
+      "method": "POST",
+      "path": "/internal/v1/applicants/dossier/saga/v1/snapshot",
+      "query": "",
+      "arguments": [],
+      "bodySchema": "dossierSagaIdentityV1",
+      "callers": [
+        "message-broker"
+      ],
+      "budgetMs": 750
+    },
+    "operation.applicant.dossierSaga.apply.v1": {
+      "operation": "applicant.dossierSaga.apply",
+      "group": "applicant-service",
+      "method": "POST",
+      "path": "/internal/v1/applicants/dossier/saga/v1/apply",
+      "query": "",
+      "arguments": [],
+      "bodySchema": "dossierSagaApplyV1",
+      "callers": [
+        "message-broker"
+      ],
+      "budgetMs": 750
+    },
+    "operation.applicant.dossierSaga.status.v1": {
+      "operation": "applicant.dossierSaga.status",
+      "group": "applicant-service",
+      "method": "POST",
+      "path": "/internal/v1/applicants/dossier/saga/v1/status",
+      "query": "",
+      "arguments": [],
+      "bodySchema": "dossierSagaIdentityV1",
+      "callers": [
+        "message-broker"
+      ],
+      "budgetMs": 750
+    },
+    "operation.applicant.dossierSaga.compensate.v1": {
+      "operation": "applicant.dossierSaga.compensate",
+      "group": "applicant-service",
+      "method": "POST",
+      "path": "/internal/v1/applicants/dossier/saga/v1/compensate",
+      "query": "",
+      "arguments": [],
+      "bodySchema": "dossierSagaIdentityV1",
+      "callers": [
+        "message-broker"
+      ],
+      "budgetMs": 750
+    },
+    "operation.applicant.dossierSaga.acknowledge.v1": {
+      "operation": "applicant.dossierSaga.acknowledge",
+      "group": "applicant-service",
+      "method": "POST",
+      "path": "/internal/v1/applicants/dossier/saga/v1/acknowledge",
+      "query": "",
+      "arguments": [],
+      "bodySchema": "dossierSagaIdentityV1",
+      "callers": [
+        "message-broker"
+      ],
+      "budgetMs": 750
+    },
+    "operation.applicant.dossierSaga.release.v1": {
+      "operation": "applicant.dossierSaga.release",
+      "group": "applicant-service",
+      "method": "POST",
+      "path": "/internal/v1/applicants/dossier/saga/v1/release",
+      "query": "",
+      "arguments": [],
+      "bodySchema": "dossierSagaIdentityV1",
+      "callers": [
+        "message-broker"
+      ],
+      "budgetMs": 750
     }
   },
   "events": {

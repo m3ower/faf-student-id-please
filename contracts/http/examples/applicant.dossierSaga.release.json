@@ -1,0 +1,45 @@
+{
+  "operation": "applicant.dossierSaga.release",
+  "note": "Synthetic shape/fingerprint example. For Credential apply, inputsJson must contain actual complete Applicant/Record snapshots; {} is not executable business data.",
+  "request": {
+    "method": "POST",
+    "path": "/internal/v1/applicants/dossier/saga/v1/release",
+    "headers": {
+      "Authorization": "Bearer <target internal credential>",
+      "X-Service-Name": "message-broker",
+      "X-Trace-Id": "dossier-saga-v1-example",
+      "Content-Type": "application/json"
+    },
+    "body": {
+      "protocol": "dossier-saga-v1",
+      "version": 1,
+      "workflowId": "a0000000-0000-4000-8000-000000000001",
+      "initializationId": "a0000000-0000-4000-8000-000000000002",
+      "applicantId": "a0000000-0000-4000-8000-000000000003",
+      "stepId": "applicant.attach.saga.v1",
+      "fingerprint": "f7a4bd092e7cd5b5c23c7a99b40489f834d0a805eb168ba13eb5e73521ed4850"
+    }
+  },
+  "response": {
+    "status": 200,
+    "body": {
+      "protocol": "dossier-saga-v1",
+      "version": 1,
+      "workflowId": "a0000000-0000-4000-8000-000000000001",
+      "initializationId": "a0000000-0000-4000-8000-000000000002",
+      "applicantId": "a0000000-0000-4000-8000-000000000003",
+      "stepId": "applicant.attach.saga.v1",
+      "fingerprint": "f7a4bd092e7cd5b5c23c7a99b40489f834d0a805eb168ba13eb5e73521ed4850",
+      "participant": "applicant-service",
+      "state": "RELEASED",
+      "inputFingerprint": "5157f9c64f70b4fbf4c76b381e27831b38d53e6a4f1402c81358d083d6328b14",
+      "effectVersion": "a0000000-0000-4000-8000-000000000004",
+      "credentialIds": [
+        "c0000000-0000-4000-8000-000000000001"
+      ],
+      "completionAcknowledged": true,
+      "ready": true,
+      "errorCode": ""
+    }
+  }
+}

@@ -137,6 +137,732 @@
         }
       }
     },
+    "/internal/v1/applicants/dossier/saga/v1/acknowledge": {
+      "post": {
+        "operationId": "applicant.dossierSaga.acknowledge",
+        "summary": "dossier-saga-v1 ordinary local transaction; see contracts/dossier/saga-v1.json for exact durable outcomes.",
+        "x-owner": "applicant-service",
+        "x-status": "candidate",
+        "x-callers": [
+          "message-broker"
+        ],
+        "x-idempotency": "Serialize commands per workflow. Persist immutable identity and first successful apply input. Same input returns current persisted outcome including terminal tombstones; different identity/input returns 409 SAGA_CONFLICT. Snapshot retry returns original snapshot, not changed facts. status for unseen identity creates NEW journal only. compensate for unseen/snapshotted work creates durable COMPENSATED tombstone; late snapshot/apply/acknowledge/release cannot revive it. A late identical apply returns COMPENSATED/CONFLICT, never COMMITTED.",
+        "security": [
+          {
+            "brokerServiceCredential": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Trace-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Service-Name",
+            "in": "header",
+            "required": true,
+            "description": "set by the message broker to the authenticated caller",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "message-broker"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/dossierSagaReceiptV1"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "400 INVALID_SAGA: Malformed protocol/identity/input/fingerprint",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "401 UNAUTHENTICATED: Target credential required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "403 SERVICE_CALL_FORBIDDEN: Only message-broker may drive participants",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "409 ALREADY_RELEASED: Finalized work cannot compensate",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "503 SAGA_STORAGE_UNAVAILABLE: Ambiguous: resolve by status/replay",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "504 TASK_TIMEOUT: Ambiguous command deadline",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/dossierSagaIdentityV1"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/applicants/dossier/saga/v1/apply": {
+      "post": {
+        "operationId": "applicant.dossierSaga.apply",
+        "summary": "dossier-saga-v1 ordinary local transaction; see contracts/dossier/saga-v1.json for exact durable outcomes.",
+        "x-owner": "applicant-service",
+        "x-status": "candidate",
+        "x-callers": [
+          "message-broker"
+        ],
+        "x-idempotency": "Serialize commands per workflow. Persist immutable identity and first successful apply input. Same input returns current persisted outcome including terminal tombstones; different identity/input returns 409 SAGA_CONFLICT. Snapshot retry returns original snapshot, not changed facts. status for unseen identity creates NEW journal only. compensate for unseen/snapshotted work creates durable COMPENSATED tombstone; late snapshot/apply/acknowledge/release cannot revive it. A late identical apply returns COMPENSATED/CONFLICT, never COMMITTED.",
+        "security": [
+          {
+            "brokerServiceCredential": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Trace-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Service-Name",
+            "in": "header",
+            "required": true,
+            "description": "set by the message broker to the authenticated caller",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "message-broker"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/dossierSagaReceiptV1"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "400 INVALID_SAGA: Malformed protocol/identity/input/fingerprint",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "401 UNAUTHENTICATED: Target credential required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "403 SERVICE_CALL_FORBIDDEN: Only message-broker may drive participants",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "409 ALREADY_RELEASED: Finalized work cannot compensate",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "503 SAGA_STORAGE_UNAVAILABLE: Ambiguous: resolve by status/replay",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "504 TASK_TIMEOUT: Ambiguous command deadline",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/dossierSagaApplyV1"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/applicants/dossier/saga/v1/compensate": {
+      "post": {
+        "operationId": "applicant.dossierSaga.compensate",
+        "summary": "dossier-saga-v1 ordinary local transaction; see contracts/dossier/saga-v1.json for exact durable outcomes.",
+        "x-owner": "applicant-service",
+        "x-status": "candidate",
+        "x-callers": [
+          "message-broker"
+        ],
+        "x-idempotency": "Serialize commands per workflow. Persist immutable identity and first successful apply input. Same input returns current persisted outcome including terminal tombstones; different identity/input returns 409 SAGA_CONFLICT. Snapshot retry returns original snapshot, not changed facts. status for unseen identity creates NEW journal only. compensate for unseen/snapshotted work creates durable COMPENSATED tombstone; late snapshot/apply/acknowledge/release cannot revive it. A late identical apply returns COMPENSATED/CONFLICT, never COMMITTED.",
+        "security": [
+          {
+            "brokerServiceCredential": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Trace-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Service-Name",
+            "in": "header",
+            "required": true,
+            "description": "set by the message broker to the authenticated caller",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "message-broker"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/dossierSagaReceiptV1"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "400 INVALID_SAGA: Malformed protocol/identity/input/fingerprint",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "401 UNAUTHENTICATED: Target credential required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "403 SERVICE_CALL_FORBIDDEN: Only message-broker may drive participants",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "409 ALREADY_RELEASED: Finalized work cannot compensate",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "503 SAGA_STORAGE_UNAVAILABLE: Ambiguous: resolve by status/replay",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "504 TASK_TIMEOUT: Ambiguous command deadline",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/dossierSagaIdentityV1"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/applicants/dossier/saga/v1/release": {
+      "post": {
+        "operationId": "applicant.dossierSaga.release",
+        "summary": "dossier-saga-v1 ordinary local transaction; see contracts/dossier/saga-v1.json for exact durable outcomes.",
+        "x-owner": "applicant-service",
+        "x-status": "candidate",
+        "x-callers": [
+          "message-broker"
+        ],
+        "x-idempotency": "Serialize commands per workflow. Persist immutable identity and first successful apply input. Same input returns current persisted outcome including terminal tombstones; different identity/input returns 409 SAGA_CONFLICT. Snapshot retry returns original snapshot, not changed facts. status for unseen identity creates NEW journal only. compensate for unseen/snapshotted work creates durable COMPENSATED tombstone; late snapshot/apply/acknowledge/release cannot revive it. A late identical apply returns COMPENSATED/CONFLICT, never COMMITTED.",
+        "security": [
+          {
+            "brokerServiceCredential": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Trace-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Service-Name",
+            "in": "header",
+            "required": true,
+            "description": "set by the message broker to the authenticated caller",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "message-broker"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/dossierSagaReceiptV1"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "400 INVALID_SAGA: Malformed protocol/identity/input/fingerprint",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "401 UNAUTHENTICATED: Target credential required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "403 SERVICE_CALL_FORBIDDEN: Only message-broker may drive participants",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "409 ALREADY_RELEASED: Finalized work cannot compensate",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "503 SAGA_STORAGE_UNAVAILABLE: Ambiguous: resolve by status/replay",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "504 TASK_TIMEOUT: Ambiguous command deadline",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/dossierSagaIdentityV1"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/applicants/dossier/saga/v1/snapshot": {
+      "post": {
+        "operationId": "applicant.dossierSaga.snapshot",
+        "summary": "dossier-saga-v1 ordinary local transaction; see contracts/dossier/saga-v1.json for exact durable outcomes.",
+        "x-owner": "applicant-service",
+        "x-status": "candidate",
+        "x-callers": [
+          "message-broker"
+        ],
+        "x-idempotency": "Serialize commands per workflow. Persist immutable identity and first successful apply input. Same input returns current persisted outcome including terminal tombstones; different identity/input returns 409 SAGA_CONFLICT. Snapshot retry returns original snapshot, not changed facts. status for unseen identity creates NEW journal only. compensate for unseen/snapshotted work creates durable COMPENSATED tombstone; late snapshot/apply/acknowledge/release cannot revive it. A late identical apply returns COMPENSATED/CONFLICT, never COMMITTED.",
+        "security": [
+          {
+            "brokerServiceCredential": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Trace-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Service-Name",
+            "in": "header",
+            "required": true,
+            "description": "set by the message broker to the authenticated caller",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "message-broker"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/dossierSagaSnapshotV1"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "400 INVALID_SAGA: Malformed protocol/identity/input/fingerprint",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "401 UNAUTHENTICATED: Target credential required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "403 SERVICE_CALL_FORBIDDEN: Only message-broker may drive participants",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "409 ALREADY_RELEASED: Finalized work cannot compensate",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "503 SAGA_STORAGE_UNAVAILABLE: Ambiguous: resolve by status/replay",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "504 TASK_TIMEOUT: Ambiguous command deadline",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/dossierSagaIdentityV1"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/applicants/dossier/saga/v1/status": {
+      "post": {
+        "operationId": "applicant.dossierSaga.status",
+        "summary": "dossier-saga-v1 ordinary local transaction; see contracts/dossier/saga-v1.json for exact durable outcomes.",
+        "x-owner": "applicant-service",
+        "x-status": "candidate",
+        "x-callers": [
+          "message-broker"
+        ],
+        "x-idempotency": "Serialize commands per workflow. Persist immutable identity and first successful apply input. Same input returns current persisted outcome including terminal tombstones; different identity/input returns 409 SAGA_CONFLICT. Snapshot retry returns original snapshot, not changed facts. status for unseen identity creates NEW journal only. compensate for unseen/snapshotted work creates durable COMPENSATED tombstone; late snapshot/apply/acknowledge/release cannot revive it. A late identical apply returns COMPENSATED/CONFLICT, never COMMITTED.",
+        "security": [
+          {
+            "brokerServiceCredential": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Trace-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Service-Name",
+            "in": "header",
+            "required": true,
+            "description": "set by the message broker to the authenticated caller",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "message-broker"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/dossierSagaReceiptV1"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "400 INVALID_SAGA: Malformed protocol/identity/input/fingerprint",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "401 UNAUTHENTICATED: Target credential required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "403 SERVICE_CALL_FORBIDDEN: Only message-broker may drive participants",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "409 ALREADY_RELEASED: Finalized work cannot compensate",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "503 SAGA_STORAGE_UNAVAILABLE: Ambiguous: resolve by status/replay",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "504 TASK_TIMEOUT: Ambiguous command deadline",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/dossierSagaIdentityV1"
+              }
+            }
+          }
+        }
+      }
+    },
     "/internal/v1/applicants/dossier/v1/abort": {
       "post": {
         "operationId": "applicant.dossier.abort",
@@ -2897,6 +3623,732 @@
         }
       }
     },
+    "/internal/v1/credentials/dossier/saga/v1/acknowledge": {
+      "post": {
+        "operationId": "credential.dossierSaga.acknowledge",
+        "summary": "dossier-saga-v1 ordinary local transaction; see contracts/dossier/saga-v1.json for exact durable outcomes.",
+        "x-owner": "credential-service",
+        "x-status": "candidate",
+        "x-callers": [
+          "message-broker"
+        ],
+        "x-idempotency": "Serialize commands per workflow. Persist immutable identity and first successful apply input. Same input returns current persisted outcome including terminal tombstones; different identity/input returns 409 SAGA_CONFLICT. Snapshot retry returns original snapshot, not changed facts. status for unseen identity creates NEW journal only. compensate for unseen/snapshotted work creates durable COMPENSATED tombstone; late snapshot/apply/acknowledge/release cannot revive it. A late identical apply returns COMPENSATED/CONFLICT, never COMMITTED.",
+        "security": [
+          {
+            "brokerServiceCredential": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Trace-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Service-Name",
+            "in": "header",
+            "required": true,
+            "description": "set by the message broker to the authenticated caller",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "message-broker"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/dossierSagaReceiptV1"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "400 INVALID_SAGA: Malformed protocol/identity/input/fingerprint",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "401 UNAUTHENTICATED: Target credential required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "403 SERVICE_CALL_FORBIDDEN: Only message-broker may drive participants",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "409 ALREADY_RELEASED: Finalized work cannot compensate",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "503 SAGA_STORAGE_UNAVAILABLE: Ambiguous: resolve by status/replay",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "504 TASK_TIMEOUT: Ambiguous command deadline",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/dossierSagaIdentityV1"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/credentials/dossier/saga/v1/apply": {
+      "post": {
+        "operationId": "credential.dossierSaga.apply",
+        "summary": "dossier-saga-v1 ordinary local transaction; see contracts/dossier/saga-v1.json for exact durable outcomes.",
+        "x-owner": "credential-service",
+        "x-status": "candidate",
+        "x-callers": [
+          "message-broker"
+        ],
+        "x-idempotency": "Serialize commands per workflow. Persist immutable identity and first successful apply input. Same input returns current persisted outcome including terminal tombstones; different identity/input returns 409 SAGA_CONFLICT. Snapshot retry returns original snapshot, not changed facts. status for unseen identity creates NEW journal only. compensate for unseen/snapshotted work creates durable COMPENSATED tombstone; late snapshot/apply/acknowledge/release cannot revive it. A late identical apply returns COMPENSATED/CONFLICT, never COMMITTED.",
+        "security": [
+          {
+            "brokerServiceCredential": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Trace-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Service-Name",
+            "in": "header",
+            "required": true,
+            "description": "set by the message broker to the authenticated caller",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "message-broker"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/dossierSagaReceiptV1"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "400 INVALID_SAGA: Malformed protocol/identity/input/fingerprint",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "401 UNAUTHENTICATED: Target credential required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "403 SERVICE_CALL_FORBIDDEN: Only message-broker may drive participants",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "409 ALREADY_RELEASED: Finalized work cannot compensate",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "503 SAGA_STORAGE_UNAVAILABLE: Ambiguous: resolve by status/replay",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "504 TASK_TIMEOUT: Ambiguous command deadline",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/dossierSagaApplyV1"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/credentials/dossier/saga/v1/compensate": {
+      "post": {
+        "operationId": "credential.dossierSaga.compensate",
+        "summary": "dossier-saga-v1 ordinary local transaction; see contracts/dossier/saga-v1.json for exact durable outcomes.",
+        "x-owner": "credential-service",
+        "x-status": "candidate",
+        "x-callers": [
+          "message-broker"
+        ],
+        "x-idempotency": "Serialize commands per workflow. Persist immutable identity and first successful apply input. Same input returns current persisted outcome including terminal tombstones; different identity/input returns 409 SAGA_CONFLICT. Snapshot retry returns original snapshot, not changed facts. status for unseen identity creates NEW journal only. compensate for unseen/snapshotted work creates durable COMPENSATED tombstone; late snapshot/apply/acknowledge/release cannot revive it. A late identical apply returns COMPENSATED/CONFLICT, never COMMITTED.",
+        "security": [
+          {
+            "brokerServiceCredential": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Trace-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Service-Name",
+            "in": "header",
+            "required": true,
+            "description": "set by the message broker to the authenticated caller",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "message-broker"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/dossierSagaReceiptV1"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "400 INVALID_SAGA: Malformed protocol/identity/input/fingerprint",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "401 UNAUTHENTICATED: Target credential required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "403 SERVICE_CALL_FORBIDDEN: Only message-broker may drive participants",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "409 ALREADY_RELEASED: Finalized work cannot compensate",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "503 SAGA_STORAGE_UNAVAILABLE: Ambiguous: resolve by status/replay",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "504 TASK_TIMEOUT: Ambiguous command deadline",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/dossierSagaIdentityV1"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/credentials/dossier/saga/v1/release": {
+      "post": {
+        "operationId": "credential.dossierSaga.release",
+        "summary": "dossier-saga-v1 ordinary local transaction; see contracts/dossier/saga-v1.json for exact durable outcomes.",
+        "x-owner": "credential-service",
+        "x-status": "candidate",
+        "x-callers": [
+          "message-broker"
+        ],
+        "x-idempotency": "Serialize commands per workflow. Persist immutable identity and first successful apply input. Same input returns current persisted outcome including terminal tombstones; different identity/input returns 409 SAGA_CONFLICT. Snapshot retry returns original snapshot, not changed facts. status for unseen identity creates NEW journal only. compensate for unseen/snapshotted work creates durable COMPENSATED tombstone; late snapshot/apply/acknowledge/release cannot revive it. A late identical apply returns COMPENSATED/CONFLICT, never COMMITTED.",
+        "security": [
+          {
+            "brokerServiceCredential": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Trace-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Service-Name",
+            "in": "header",
+            "required": true,
+            "description": "set by the message broker to the authenticated caller",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "message-broker"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/dossierSagaReceiptV1"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "400 INVALID_SAGA: Malformed protocol/identity/input/fingerprint",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "401 UNAUTHENTICATED: Target credential required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "403 SERVICE_CALL_FORBIDDEN: Only message-broker may drive participants",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "409 ALREADY_RELEASED: Finalized work cannot compensate",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "503 SAGA_STORAGE_UNAVAILABLE: Ambiguous: resolve by status/replay",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "504 TASK_TIMEOUT: Ambiguous command deadline",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/dossierSagaIdentityV1"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/credentials/dossier/saga/v1/snapshot": {
+      "post": {
+        "operationId": "credential.dossierSaga.snapshot",
+        "summary": "dossier-saga-v1 ordinary local transaction; see contracts/dossier/saga-v1.json for exact durable outcomes.",
+        "x-owner": "credential-service",
+        "x-status": "candidate",
+        "x-callers": [
+          "message-broker"
+        ],
+        "x-idempotency": "Serialize commands per workflow. Persist immutable identity and first successful apply input. Same input returns current persisted outcome including terminal tombstones; different identity/input returns 409 SAGA_CONFLICT. Snapshot retry returns original snapshot, not changed facts. status for unseen identity creates NEW journal only. compensate for unseen/snapshotted work creates durable COMPENSATED tombstone; late snapshot/apply/acknowledge/release cannot revive it. A late identical apply returns COMPENSATED/CONFLICT, never COMMITTED.",
+        "security": [
+          {
+            "brokerServiceCredential": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Trace-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Service-Name",
+            "in": "header",
+            "required": true,
+            "description": "set by the message broker to the authenticated caller",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "message-broker"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/dossierSagaSnapshotV1"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "400 INVALID_SAGA: Malformed protocol/identity/input/fingerprint",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "401 UNAUTHENTICATED: Target credential required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "403 SERVICE_CALL_FORBIDDEN: Only message-broker may drive participants",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "409 ALREADY_RELEASED: Finalized work cannot compensate",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "503 SAGA_STORAGE_UNAVAILABLE: Ambiguous: resolve by status/replay",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "504 TASK_TIMEOUT: Ambiguous command deadline",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/dossierSagaIdentityV1"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/credentials/dossier/saga/v1/status": {
+      "post": {
+        "operationId": "credential.dossierSaga.status",
+        "summary": "dossier-saga-v1 ordinary local transaction; see contracts/dossier/saga-v1.json for exact durable outcomes.",
+        "x-owner": "credential-service",
+        "x-status": "candidate",
+        "x-callers": [
+          "message-broker"
+        ],
+        "x-idempotency": "Serialize commands per workflow. Persist immutable identity and first successful apply input. Same input returns current persisted outcome including terminal tombstones; different identity/input returns 409 SAGA_CONFLICT. Snapshot retry returns original snapshot, not changed facts. status for unseen identity creates NEW journal only. compensate for unseen/snapshotted work creates durable COMPENSATED tombstone; late snapshot/apply/acknowledge/release cannot revive it. A late identical apply returns COMPENSATED/CONFLICT, never COMMITTED.",
+        "security": [
+          {
+            "brokerServiceCredential": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Trace-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Service-Name",
+            "in": "header",
+            "required": true,
+            "description": "set by the message broker to the authenticated caller",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "message-broker"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/dossierSagaReceiptV1"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "400 INVALID_SAGA: Malformed protocol/identity/input/fingerprint",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "401 UNAUTHENTICATED: Target credential required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "403 SERVICE_CALL_FORBIDDEN: Only message-broker may drive participants",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "409 ALREADY_RELEASED: Finalized work cannot compensate",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "503 SAGA_STORAGE_UNAVAILABLE: Ambiguous: resolve by status/replay",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "504 TASK_TIMEOUT: Ambiguous command deadline",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/dossierSagaIdentityV1"
+              }
+            }
+          }
+        }
+      }
+    },
     "/internal/v1/credentials/dossier/v1/abort": {
       "post": {
         "operationId": "credential.dossier.abort",
@@ -4992,6 +6444,732 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/playerRef"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/records/dossier/saga/v1/acknowledge": {
+      "post": {
+        "operationId": "record.dossierSaga.acknowledge",
+        "summary": "dossier-saga-v1 ordinary local transaction; see contracts/dossier/saga-v1.json for exact durable outcomes.",
+        "x-owner": "university-record-service",
+        "x-status": "candidate",
+        "x-callers": [
+          "message-broker"
+        ],
+        "x-idempotency": "Serialize commands per workflow. Persist immutable identity and first successful apply input. Same input returns current persisted outcome including terminal tombstones; different identity/input returns 409 SAGA_CONFLICT. Snapshot retry returns original snapshot, not changed facts. status for unseen identity creates NEW journal only. compensate for unseen/snapshotted work creates durable COMPENSATED tombstone; late snapshot/apply/acknowledge/release cannot revive it. A late identical apply returns COMPENSATED/CONFLICT, never COMMITTED.",
+        "security": [
+          {
+            "brokerServiceCredential": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Trace-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Service-Name",
+            "in": "header",
+            "required": true,
+            "description": "set by the message broker to the authenticated caller",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "message-broker"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/dossierSagaReceiptV1"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "400 INVALID_SAGA: Malformed protocol/identity/input/fingerprint",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "401 UNAUTHENTICATED: Target credential required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "403 SERVICE_CALL_FORBIDDEN: Only message-broker may drive participants",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "409 ALREADY_RELEASED: Finalized work cannot compensate",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "503 SAGA_STORAGE_UNAVAILABLE: Ambiguous: resolve by status/replay",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "504 TASK_TIMEOUT: Ambiguous command deadline",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/dossierSagaIdentityV1"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/records/dossier/saga/v1/apply": {
+      "post": {
+        "operationId": "record.dossierSaga.apply",
+        "summary": "dossier-saga-v1 ordinary local transaction; see contracts/dossier/saga-v1.json for exact durable outcomes.",
+        "x-owner": "university-record-service",
+        "x-status": "candidate",
+        "x-callers": [
+          "message-broker"
+        ],
+        "x-idempotency": "Serialize commands per workflow. Persist immutable identity and first successful apply input. Same input returns current persisted outcome including terminal tombstones; different identity/input returns 409 SAGA_CONFLICT. Snapshot retry returns original snapshot, not changed facts. status for unseen identity creates NEW journal only. compensate for unseen/snapshotted work creates durable COMPENSATED tombstone; late snapshot/apply/acknowledge/release cannot revive it. A late identical apply returns COMPENSATED/CONFLICT, never COMMITTED.",
+        "security": [
+          {
+            "brokerServiceCredential": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Trace-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Service-Name",
+            "in": "header",
+            "required": true,
+            "description": "set by the message broker to the authenticated caller",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "message-broker"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/dossierSagaReceiptV1"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "400 INVALID_SAGA: Malformed protocol/identity/input/fingerprint",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "401 UNAUTHENTICATED: Target credential required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "403 SERVICE_CALL_FORBIDDEN: Only message-broker may drive participants",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "409 ALREADY_RELEASED: Finalized work cannot compensate",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "503 SAGA_STORAGE_UNAVAILABLE: Ambiguous: resolve by status/replay",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "504 TASK_TIMEOUT: Ambiguous command deadline",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/dossierSagaApplyV1"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/records/dossier/saga/v1/compensate": {
+      "post": {
+        "operationId": "record.dossierSaga.compensate",
+        "summary": "dossier-saga-v1 ordinary local transaction; see contracts/dossier/saga-v1.json for exact durable outcomes.",
+        "x-owner": "university-record-service",
+        "x-status": "candidate",
+        "x-callers": [
+          "message-broker"
+        ],
+        "x-idempotency": "Serialize commands per workflow. Persist immutable identity and first successful apply input. Same input returns current persisted outcome including terminal tombstones; different identity/input returns 409 SAGA_CONFLICT. Snapshot retry returns original snapshot, not changed facts. status for unseen identity creates NEW journal only. compensate for unseen/snapshotted work creates durable COMPENSATED tombstone; late snapshot/apply/acknowledge/release cannot revive it. A late identical apply returns COMPENSATED/CONFLICT, never COMMITTED.",
+        "security": [
+          {
+            "brokerServiceCredential": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Trace-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Service-Name",
+            "in": "header",
+            "required": true,
+            "description": "set by the message broker to the authenticated caller",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "message-broker"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/dossierSagaReceiptV1"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "400 INVALID_SAGA: Malformed protocol/identity/input/fingerprint",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "401 UNAUTHENTICATED: Target credential required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "403 SERVICE_CALL_FORBIDDEN: Only message-broker may drive participants",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "409 ALREADY_RELEASED: Finalized work cannot compensate",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "503 SAGA_STORAGE_UNAVAILABLE: Ambiguous: resolve by status/replay",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "504 TASK_TIMEOUT: Ambiguous command deadline",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/dossierSagaIdentityV1"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/records/dossier/saga/v1/release": {
+      "post": {
+        "operationId": "record.dossierSaga.release",
+        "summary": "dossier-saga-v1 ordinary local transaction; see contracts/dossier/saga-v1.json for exact durable outcomes.",
+        "x-owner": "university-record-service",
+        "x-status": "candidate",
+        "x-callers": [
+          "message-broker"
+        ],
+        "x-idempotency": "Serialize commands per workflow. Persist immutable identity and first successful apply input. Same input returns current persisted outcome including terminal tombstones; different identity/input returns 409 SAGA_CONFLICT. Snapshot retry returns original snapshot, not changed facts. status for unseen identity creates NEW journal only. compensate for unseen/snapshotted work creates durable COMPENSATED tombstone; late snapshot/apply/acknowledge/release cannot revive it. A late identical apply returns COMPENSATED/CONFLICT, never COMMITTED.",
+        "security": [
+          {
+            "brokerServiceCredential": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Trace-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Service-Name",
+            "in": "header",
+            "required": true,
+            "description": "set by the message broker to the authenticated caller",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "message-broker"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/dossierSagaReceiptV1"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "400 INVALID_SAGA: Malformed protocol/identity/input/fingerprint",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "401 UNAUTHENTICATED: Target credential required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "403 SERVICE_CALL_FORBIDDEN: Only message-broker may drive participants",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "409 ALREADY_RELEASED: Finalized work cannot compensate",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "503 SAGA_STORAGE_UNAVAILABLE: Ambiguous: resolve by status/replay",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "504 TASK_TIMEOUT: Ambiguous command deadline",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/dossierSagaIdentityV1"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/records/dossier/saga/v1/snapshot": {
+      "post": {
+        "operationId": "record.dossierSaga.snapshot",
+        "summary": "dossier-saga-v1 ordinary local transaction; see contracts/dossier/saga-v1.json for exact durable outcomes.",
+        "x-owner": "university-record-service",
+        "x-status": "candidate",
+        "x-callers": [
+          "message-broker"
+        ],
+        "x-idempotency": "Serialize commands per workflow. Persist immutable identity and first successful apply input. Same input returns current persisted outcome including terminal tombstones; different identity/input returns 409 SAGA_CONFLICT. Snapshot retry returns original snapshot, not changed facts. status for unseen identity creates NEW journal only. compensate for unseen/snapshotted work creates durable COMPENSATED tombstone; late snapshot/apply/acknowledge/release cannot revive it. A late identical apply returns COMPENSATED/CONFLICT, never COMMITTED.",
+        "security": [
+          {
+            "brokerServiceCredential": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Trace-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Service-Name",
+            "in": "header",
+            "required": true,
+            "description": "set by the message broker to the authenticated caller",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "message-broker"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/dossierSagaSnapshotV1"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "400 INVALID_SAGA: Malformed protocol/identity/input/fingerprint",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "401 UNAUTHENTICATED: Target credential required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "403 SERVICE_CALL_FORBIDDEN: Only message-broker may drive participants",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "409 ALREADY_RELEASED: Finalized work cannot compensate",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "503 SAGA_STORAGE_UNAVAILABLE: Ambiguous: resolve by status/replay",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "504 TASK_TIMEOUT: Ambiguous command deadline",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/dossierSagaIdentityV1"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/records/dossier/saga/v1/status": {
+      "post": {
+        "operationId": "record.dossierSaga.status",
+        "summary": "dossier-saga-v1 ordinary local transaction; see contracts/dossier/saga-v1.json for exact durable outcomes.",
+        "x-owner": "university-record-service",
+        "x-status": "candidate",
+        "x-callers": [
+          "message-broker"
+        ],
+        "x-idempotency": "Serialize commands per workflow. Persist immutable identity and first successful apply input. Same input returns current persisted outcome including terminal tombstones; different identity/input returns 409 SAGA_CONFLICT. Snapshot retry returns original snapshot, not changed facts. status for unseen identity creates NEW journal only. compensate for unseen/snapshotted work creates durable COMPENSATED tombstone; late snapshot/apply/acknowledge/release cannot revive it. A late identical apply returns COMPENSATED/CONFLICT, never COMMITTED.",
+        "security": [
+          {
+            "brokerServiceCredential": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Trace-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Service-Name",
+            "in": "header",
+            "required": true,
+            "description": "set by the message broker to the authenticated caller",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "message-broker"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/dossierSagaReceiptV1"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "400 INVALID_SAGA: Malformed protocol/identity/input/fingerprint",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "401 UNAUTHENTICATED: Target credential required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "403 SERVICE_CALL_FORBIDDEN: Only message-broker may drive participants",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "409 ALREADY_RELEASED: Finalized work cannot compensate",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "503 SAGA_STORAGE_UNAVAILABLE: Ambiguous: resolve by status/replay",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "504 TASK_TIMEOUT: Ambiguous command deadline",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/dossierSagaIdentityV1"
               }
             }
           }
@@ -10306,6 +12484,283 @@
             }
           }
         ]
+      },
+      "dossierSagaIdentityV1": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "protocol",
+          "version",
+          "workflowId",
+          "initializationId",
+          "applicantId",
+          "stepId",
+          "fingerprint"
+        ],
+        "properties": {
+          "protocol": {
+            "const": "dossier-saga-v1"
+          },
+          "version": {
+            "const": 1
+          },
+          "workflowId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "initializationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "applicantId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "stepId": {
+            "enum": [
+              "credential.create.saga.v1",
+              "record.attach.saga.v1",
+              "applicant.attach.saga.v1"
+            ]
+          },
+          "fingerprint": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          }
+        }
+      },
+      "dossierSagaApplyV1": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "identity",
+          "sourceVersion",
+          "asOf",
+          "inputsJson",
+          "credentialIds",
+          "inputFingerprint"
+        ],
+        "properties": {
+          "identity": {
+            "$ref": "#/components/schemas/dossierSagaIdentityV1"
+          },
+          "sourceVersion": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "asOf": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "inputsJson": {
+            "type": "string",
+            "maxLength": 48000
+          },
+          "credentialIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "maxItems": 32,
+            "uniqueItems": true
+          },
+          "inputFingerprint": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          }
+        }
+      },
+      "dossierSagaReceiptV1": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "protocol",
+          "version",
+          "workflowId",
+          "initializationId",
+          "applicantId",
+          "stepId",
+          "fingerprint",
+          "participant",
+          "state",
+          "inputFingerprint",
+          "effectVersion",
+          "credentialIds",
+          "completionAcknowledged",
+          "ready",
+          "errorCode"
+        ],
+        "properties": {
+          "protocol": {
+            "const": "dossier-saga-v1"
+          },
+          "version": {
+            "const": 1
+          },
+          "workflowId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "initializationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "applicantId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "stepId": {
+            "enum": [
+              "credential.create.saga.v1",
+              "record.attach.saga.v1",
+              "applicant.attach.saga.v1"
+            ]
+          },
+          "fingerprint": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "participant": {
+            "enum": [
+              "credential-service",
+              "university-record-service",
+              "applicant-service"
+            ]
+          },
+          "state": {
+            "enum": [
+              "NEW",
+              "SNAPSHOTTED",
+              "COMMITTED",
+              "ACKNOWLEDGED",
+              "RELEASED",
+              "COMPENSATED",
+              "CONFLICT"
+            ]
+          },
+          "inputFingerprint": {
+            "type": "string"
+          },
+          "effectVersion": {
+            "type": "string"
+          },
+          "credentialIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "maxItems": 32,
+            "uniqueItems": true
+          },
+          "completionAcknowledged": {
+            "type": "boolean"
+          },
+          "ready": {
+            "type": "boolean"
+          },
+          "errorCode": {
+            "type": "string"
+          }
+        }
+      },
+      "dossierSagaSnapshotV1": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "protocol",
+          "version",
+          "workflowId",
+          "initializationId",
+          "applicantId",
+          "stepId",
+          "fingerprint",
+          "participant",
+          "sourceVersion",
+          "facts"
+        ],
+        "properties": {
+          "protocol": {
+            "const": "dossier-saga-v1"
+          },
+          "version": {
+            "const": 1
+          },
+          "workflowId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "initializationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "applicantId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "stepId": {
+            "enum": [
+              "credential.create.saga.v1",
+              "record.attach.saga.v1",
+              "applicant.attach.saga.v1"
+            ]
+          },
+          "fingerprint": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "participant": {
+            "enum": [
+              "credential-service",
+              "university-record-service",
+              "applicant-service"
+            ]
+          },
+          "sourceVersion": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "facts": {
+            "type": "object"
+          }
+        }
+      },
+      "dossierSagaStartV1": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "protocol",
+          "version",
+          "workflowId",
+          "initializationId",
+          "applicantId",
+          "deadlineAt"
+        ],
+        "properties": {
+          "protocol": {
+            "const": "dossier-saga-v1"
+          },
+          "version": {
+            "const": 1
+          },
+          "workflowId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "initializationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "applicantId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "deadlineAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
       },
       "errorEnvelope": {
         "type": "object",
