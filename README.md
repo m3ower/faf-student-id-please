@@ -1881,6 +1881,9 @@ instead of `/actuator/health`.
 ---
 ## Credential and Rules deployment
 
+[Credential's Grade 8 handoff](docs/credential-dossier-grade8-handoff.md) records
+its dossier-v1 implementation and the 61-check joint acceptance with real owner applications.
+
 Marin owns Credential (Java/Spring Boot) and Rules (Go/Fiber). Their published
 `lab4-1.1.0` releases, source SHAs and digests are recorded in the
 [release inventory](deployment/releases.json); gitlinks match their image labels.
