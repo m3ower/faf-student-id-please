@@ -1,0 +1,79 @@
+# Grade 7: append AFTER docker-compose.owned-cache.yml. Three standalone Redis shards per owner.
+# Client-side SHA-256 ring with stable IDs, not Redis Cluster or cache replication.
+services:
+  applicant-read-cache-b:
+    image: redis:7.4-alpine@sha256:7f7d30b7fdd09467bac58198a1f166dd69789d348d4fe859cccb20e0cf287fbe
+    restart: unless-stopped
+    entrypoint: ["sh", "/owned-cache/start.sh"]
+    networks: [applicant-net]
+    environment:
+      CACHE_PASSWORD: ${APPLICANT_CACHE_PASSWORD:?set a distinct private cache credential}
+    volumes:
+      - ./docker/owned-cache/start.sh:/owned-cache/start.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "REDISCLI_AUTH=$$CACHE_PASSWORD redis-cli ping | grep -q PONG"]
+      interval: 5s
+      timeout: 2s
+      retries: 10
+  applicant-read-cache-c:
+    image: redis:7.4-alpine@sha256:7f7d30b7fdd09467bac58198a1f166dd69789d348d4fe859cccb20e0cf287fbe
+    restart: unless-stopped
+    entrypoint: ["sh", "/owned-cache/start.sh"]
+    networks: [applicant-net]
+    environment:
+      CACHE_PASSWORD: ${APPLICANT_CACHE_PASSWORD:?set a distinct private cache credential}
+    volumes:
+      - ./docker/owned-cache/start.sh:/owned-cache/start.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "REDISCLI_AUTH=$$CACHE_PASSWORD redis-cli ping | grep -q PONG"]
+      interval: 5s
+      timeout: 2s
+      retries: 10
+  applicant-service:
+    image: ${SHARDED_APPLICANT_IMAGE:?set a reviewed sharding-capable applicant 1.7.0+ image}
+    environment:
+      CACHE_REDIS_NODES: a=applicant-read-cache:6379,b=applicant-read-cache-b:6379,c=applicant-read-cache-c:6379
+      CACHE_VIRTUAL_NODES: ${OWNED_CACHE_VIRTUAL_NODES:-128}
+  applicant-service-2:
+    image: ${SHARDED_APPLICANT_IMAGE:?set a reviewed sharding-capable applicant 1.7.0+ image}
+    environment:
+      CACHE_REDIS_NODES: a=applicant-read-cache:6379,b=applicant-read-cache-b:6379,c=applicant-read-cache-c:6379
+      CACHE_VIRTUAL_NODES: ${OWNED_CACHE_VIRTUAL_NODES:-128}
+  record-read-cache-b:
+    image: redis:7.4-alpine@sha256:7f7d30b7fdd09467bac58198a1f166dd69789d348d4fe859cccb20e0cf287fbe
+    restart: unless-stopped
+    entrypoint: ["sh", "/owned-cache/start.sh"]
+    networks: [record-net]
+    environment:
+      CACHE_PASSWORD: ${RECORD_CACHE_PASSWORD:?set a distinct private cache credential}
+    volumes:
+      - ./docker/owned-cache/start.sh:/owned-cache/start.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "REDISCLI_AUTH=$$CACHE_PASSWORD redis-cli ping | grep -q PONG"]
+      interval: 5s
+      timeout: 2s
+      retries: 10
+  record-read-cache-c:
+    image: redis:7.4-alpine@sha256:7f7d30b7fdd09467bac58198a1f166dd69789d348d4fe859cccb20e0cf287fbe
+    restart: unless-stopped
+    entrypoint: ["sh", "/owned-cache/start.sh"]
+    networks: [record-net]
+    environment:
+      CACHE_PASSWORD: ${RECORD_CACHE_PASSWORD:?set a distinct private cache credential}
+    volumes:
+      - ./docker/owned-cache/start.sh:/owned-cache/start.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "REDISCLI_AUTH=$$CACHE_PASSWORD redis-cli ping | grep -q PONG"]
+      interval: 5s
+      timeout: 2s
+      retries: 10
+  university-record-service:
+    image: ${SHARDED_RECORD_IMAGE:?set a reviewed sharding-capable record 1.7.0+ image}
+    environment:
+      CACHE_REDIS_NODES: a=record-read-cache:6379,b=record-read-cache-b:6379,c=record-read-cache-c:6379
+      CACHE_VIRTUAL_NODES: ${OWNED_CACHE_VIRTUAL_NODES:-128}
+  university-record-service-2:
+    image: ${SHARDED_RECORD_IMAGE:?set a reviewed sharding-capable record 1.7.0+ image}
+    environment:
+      CACHE_REDIS_NODES: a=record-read-cache:6379,b=record-read-cache-b:6379,c=record-read-cache-c:6379
+      CACHE_VIRTUAL_NODES: ${OWNED_CACHE_VIRTUAL_NODES:-128}

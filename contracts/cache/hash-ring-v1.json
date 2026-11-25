@@ -1,0 +1,239 @@
+{
+  "algorithm": "owned-cache-ring-v1",
+  "virtualNodes": 128,
+  "nodes": [
+    "a",
+    "b",
+    "c"
+  ],
+  "vectors": [
+    {
+      "key": "",
+      "owner": "c"
+    },
+    {
+      "key": "alpha",
+      "owner": "c"
+    },
+    {
+      "key": "beta",
+      "owner": "c"
+    },
+    {
+      "key": "key-0",
+      "owner": "c"
+    },
+    {
+      "key": "key-1",
+      "owner": "b"
+    },
+    {
+      "key": "record:cache:v1:enrollment-facts:example:opaque",
+      "owner": "c"
+    },
+    {
+      "key": "applicant:cache:v1:profile:example:opaque",
+      "owner": "a"
+    },
+    {
+      "key": "café",
+      "owner": "a"
+    },
+    {
+      "key": "中文",
+      "owner": "c"
+    },
+    {
+      "key": "key-2",
+      "owner": "a"
+    },
+    {
+      "key": "key-3",
+      "owner": "b"
+    },
+    {
+      "key": "key-4",
+      "owner": "a"
+    },
+    {
+      "key": "key-5",
+      "owner": "b"
+    },
+    {
+      "key": "key-6",
+      "owner": "a"
+    },
+    {
+      "key": "key-7",
+      "owner": "b"
+    },
+    {
+      "key": "key-8",
+      "owner": "c"
+    },
+    {
+      "key": "key-9",
+      "owner": "a"
+    },
+    {
+      "key": "key-10",
+      "owner": "b"
+    },
+    {
+      "key": "key-11",
+      "owner": "c"
+    },
+    {
+      "key": "key-12",
+      "owner": "c"
+    },
+    {
+      "key": "key-13",
+      "owner": "b"
+    },
+    {
+      "key": "key-14",
+      "owner": "b"
+    },
+    {
+      "key": "key-15",
+      "owner": "c"
+    },
+    {
+      "key": "key-16",
+      "owner": "b"
+    },
+    {
+      "key": "key-17",
+      "owner": "a"
+    },
+    {
+      "key": "key-18",
+      "owner": "b"
+    },
+    {
+      "key": "key-19",
+      "owner": "b"
+    },
+    {
+      "key": "key-20",
+      "owner": "a"
+    },
+    {
+      "key": "key-21",
+      "owner": "a"
+    },
+    {
+      "key": "key-22",
+      "owner": "a"
+    },
+    {
+      "key": "key-23",
+      "owner": "a"
+    },
+    {
+      "key": "key-24",
+      "owner": "b"
+    },
+    {
+      "key": "key-25",
+      "owner": "a"
+    },
+    {
+      "key": "key-26",
+      "owner": "c"
+    },
+    {
+      "key": "key-27",
+      "owner": "c"
+    },
+    {
+      "key": "key-28",
+      "owner": "a"
+    },
+    {
+      "key": "key-29",
+      "owner": "b"
+    },
+    {
+      "key": "key-30",
+      "owner": "c"
+    },
+    {
+      "key": "key-31",
+      "owner": "c"
+    },
+    {
+      "key": "key-32",
+      "owner": "a"
+    },
+    {
+      "key": "key-33",
+      "owner": "b"
+    },
+    {
+      "key": "key-34",
+      "owner": "b"
+    },
+    {
+      "key": "key-35",
+      "owner": "a"
+    },
+    {
+      "key": "key-36",
+      "owner": "c"
+    },
+    {
+      "key": "key-37",
+      "owner": "a"
+    },
+    {
+      "key": "key-38",
+      "owner": "a"
+    },
+    {
+      "key": "key-39",
+      "owner": "b"
+    },
+    {
+      "key": "key-40",
+      "owner": "a"
+    },
+    {
+      "key": "key-41",
+      "owner": "c"
+    },
+    {
+      "key": "key-42",
+      "owner": "b"
+    },
+    {
+      "key": "key-43",
+      "owner": "a"
+    },
+    {
+      "key": "key-44",
+      "owner": "b"
+    },
+    {
+      "key": "key-45",
+      "owner": "b"
+    },
+    {
+      "key": "key-46",
+      "owner": "c"
+    },
+    {
+      "key": "key-47",
+      "owner": "b"
+    },
+    {
+      "key": "key-48",
+      "owner": "b"
+    },
+    {
+      "key": "key-49",
+      "owner": "c"
+    }
+  ]
+}
