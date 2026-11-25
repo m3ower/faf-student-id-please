@@ -1,0 +1,179 @@
+{
+  "protocol": "dossier",
+  "version": 1,
+  "grade": 8,
+  "coordinator": "message-broker",
+  "participants": {
+    "credential-service": {
+      "stepId": "credential.generate.v1",
+      "role": "documents-and-provenance",
+      "status": "owner-implementation-required"
+    },
+    "university-record-service": {
+      "stepId": "record.attach.v1",
+      "role": "credential-metadata-only"
+    },
+    "applicant-service": {
+      "stepId": "applicant.attach.v1",
+      "role": "dossier-metadata-and-presentability"
+    }
+  },
+  "commands": [
+    "snapshot",
+    "prepare",
+    "commit",
+    "abort",
+    "status",
+    "acknowledge",
+    "release",
+    "pending"
+  ],
+  "identityFingerprint": "SHA-256 length-prefixed UTF-8 fields: dossier-v1, workflowId, initializationId, applicantId",
+  "prepareFingerprint": "SHA-256 length-prefixed UTF-8 fields: dossier-v1, workflowId, initializationId, applicantId, stepId, fingerprint, sourceVersion, sorted credentialIds",
+  "decisionStates": [
+    "COMMIT",
+    "ABORT"
+  ],
+  "resourceStates": [
+    "INTENT",
+    "PREPARED",
+    "COMMITTED",
+    "ABORTED",
+    "RELEASED"
+  ],
+  "finalization": "all business commit receipts, then all completion acknowledgments, durable coordinator SUCCEEDED, then release notifications; retry release after success, never compensate",
+  "recovery": "coordinator replays durable decisions; never age-based participant rollback",
+  "$defs": {
+    "identity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "workflowId",
+        "initializationId",
+        "applicantId",
+        "stepId",
+        "fingerprint"
+      ],
+      "properties": {
+        "version": {
+          "const": 1
+        },
+        "workflowId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "initializationId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "applicantId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "stepId": {
+          "enum": [
+            "credential.generate.v1",
+            "record.attach.v1",
+            "applicant.attach.v1"
+          ]
+        },
+        "fingerprint": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      }
+    },
+    "prepare": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "identity",
+        "sourceVersion",
+        "credentialIds"
+      ],
+      "properties": {
+        "identity": {
+          "$ref": "#/$defs/identity"
+        },
+        "sourceVersion": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "credentialIds": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "minItems": 1,
+          "maxItems": 32,
+          "uniqueItems": true
+        }
+      }
+    },
+    "start": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "workflowId",
+        "initializationId",
+        "applicantId",
+        "deadlineAt"
+      ],
+      "properties": {
+        "version": {
+          "type": "integer",
+          "const": 1
+        },
+        "workflowId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "initializationId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "applicantId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "deadlineAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Immutable UTC deadline; new workflows must expire within 30 seconds"
+        }
+      }
+    }
+  },
+  "controlApi": {
+    "start": {
+      "method": "POST",
+      "path": "/internal/v1/dossiers/v1",
+      "request": "#/$defs/start",
+      "allowedCallers": [
+        "credential-service",
+        "university-record-service",
+        "applicant-service"
+      ],
+      "admissionStatus": 202
+    },
+    "status": {
+      "method": "GET",
+      "path": "/internal/v1/dossiers/v1/{workflowId}",
+      "allowedCallers": [
+        "credential-service",
+        "university-record-service",
+        "applicant-service"
+      ]
+    },
+    "publisherIdentity": "message-broker is reserved; no external caller token"
+  },
+  "credentialBoundary": {
+    "snapshot": "Must durably select exclusive DOSSIER_V1 generation ownership and return facts.generationPath=DOSSIER_V1; reject any prior legacy generation/documents/workers/outbox for this initialization.",
+    "prepare": "identity, reliable sourceVersion, inputs containing the agreed Applicant/Record snapshots, persisted asOf. Fingerprint the full request and persist replay-stable credentialIds/provenance intent before real database preparation.",
+    "preparedReceipt": "Includes 1..32 distinct nonzero credentialIds, retrievable from durable control intent after reply loss; prepared document rows are not ordinary committed data.",
+    "completion": "No independent legacy CredentialsReady callbacks for dossier rows; acknowledge/release is coordinator-controlled. Persist notification intent with local changes."
+  }
+}

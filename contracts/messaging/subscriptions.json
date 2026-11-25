@@ -13,6 +13,38 @@
       "group": "applicant-service"
     },
     {
+      "topic": "operation.applicant.dossier.abort.v1",
+      "group": "applicant-service"
+    },
+    {
+      "topic": "operation.applicant.dossier.acknowledge.v1",
+      "group": "applicant-service"
+    },
+    {
+      "topic": "operation.applicant.dossier.commit.v1",
+      "group": "applicant-service"
+    },
+    {
+      "topic": "operation.applicant.dossier.pending.v1",
+      "group": "applicant-service"
+    },
+    {
+      "topic": "operation.applicant.dossier.prepare.v1",
+      "group": "applicant-service"
+    },
+    {
+      "topic": "operation.applicant.dossier.release.v1",
+      "group": "applicant-service"
+    },
+    {
+      "topic": "operation.applicant.dossier.snapshot.v1",
+      "group": "applicant-service"
+    },
+    {
+      "topic": "operation.applicant.dossier.status.v1",
+      "group": "applicant-service"
+    },
+    {
       "topic": "operation.applicant.generate.v1",
       "group": "applicant-service"
     },
@@ -50,6 +82,38 @@
     }
   ],
   "credential-service": [
+    {
+      "topic": "operation.credential.dossier.abort.v1",
+      "group": "credential-service"
+    },
+    {
+      "topic": "operation.credential.dossier.acknowledge.v1",
+      "group": "credential-service"
+    },
+    {
+      "topic": "operation.credential.dossier.commit.v1",
+      "group": "credential-service"
+    },
+    {
+      "topic": "operation.credential.dossier.pending.v1",
+      "group": "credential-service"
+    },
+    {
+      "topic": "operation.credential.dossier.prepare.v1",
+      "group": "credential-service"
+    },
+    {
+      "topic": "operation.credential.dossier.release.v1",
+      "group": "credential-service"
+    },
+    {
+      "topic": "operation.credential.dossier.snapshot.v1",
+      "group": "credential-service"
+    },
+    {
+      "topic": "operation.credential.dossier.status.v1",
+      "group": "credential-service"
+    },
     {
       "topic": "operation.credential.initialization.accept.v1",
       "group": "credential-service"
@@ -172,6 +236,38 @@
     },
     {
       "topic": "operation.record.credentialsReady.v1",
+      "group": "university-record-service"
+    },
+    {
+      "topic": "operation.record.dossier.abort.v1",
+      "group": "university-record-service"
+    },
+    {
+      "topic": "operation.record.dossier.acknowledge.v1",
+      "group": "university-record-service"
+    },
+    {
+      "topic": "operation.record.dossier.commit.v1",
+      "group": "university-record-service"
+    },
+    {
+      "topic": "operation.record.dossier.pending.v1",
+      "group": "university-record-service"
+    },
+    {
+      "topic": "operation.record.dossier.prepare.v1",
+      "group": "university-record-service"
+    },
+    {
+      "topic": "operation.record.dossier.release.v1",
+      "group": "university-record-service"
+    },
+    {
+      "topic": "operation.record.dossier.snapshot.v1",
+      "group": "university-record-service"
+    },
+    {
+      "topic": "operation.record.dossier.status.v1",
       "group": "university-record-service"
     },
     {

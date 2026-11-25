@@ -137,6 +137,974 @@
         }
       }
     },
+    "/internal/v1/applicants/dossier/v1/abort": {
+      "post": {
+        "operationId": "applicant.dossier.abort",
+        "summary": "Dossier v1 resource manager command; exact workflow/initialization identity and input are immutable. PREPARED means actual PostgreSQL preparation; completion is separate from a transport acknowledgment.",
+        "x-owner": "applicant-service",
+        "x-status": "implemented-pending-review",
+        "x-callers": [
+          "message-broker"
+        ],
+        "x-idempotency": "Same workflow and input replays without duplicate effects; conflicting identity/input/decision is 409.",
+        "security": [
+          {
+            "brokerServiceCredential": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Trace-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Service-Name",
+            "in": "header",
+            "required": true,
+            "description": "set by the message broker to the authenticated caller",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "message-broker"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/dossierReceiptV1"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "400 INVALID_DOSSIER: Malformed versioned input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "401 UNAUTHENTICATED: Target credential required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "403 SERVICE_CALL_FORBIDDEN: Coordinator identity required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "409 DOSSIER_CONFLICT: Immutable identity/input/decision or source-version conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "503 DOSSIER_STORAGE_UNAVAILABLE: Recover using the same workflow identity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "504 TASK_TIMEOUT: Command deadline, never a heuristic rollback",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/dossierIdentityV1"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/applicants/dossier/v1/acknowledge": {
+      "post": {
+        "operationId": "applicant.dossier.acknowledge",
+        "summary": "Dossier v1 resource manager command; exact workflow/initialization identity and input are immutable. PREPARED means actual PostgreSQL preparation; completion is separate from a transport acknowledgment.",
+        "x-owner": "applicant-service",
+        "x-status": "implemented-pending-review",
+        "x-callers": [
+          "message-broker"
+        ],
+        "x-idempotency": "Same workflow and input replays without duplicate effects; conflicting identity/input/decision is 409.",
+        "security": [
+          {
+            "brokerServiceCredential": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Trace-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Service-Name",
+            "in": "header",
+            "required": true,
+            "description": "set by the message broker to the authenticated caller",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "message-broker"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/dossierReceiptV1"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "400 INVALID_DOSSIER: Malformed versioned input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "401 UNAUTHENTICATED: Target credential required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "403 SERVICE_CALL_FORBIDDEN: Coordinator identity required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "409 DOSSIER_CONFLICT: Immutable identity/input/decision or source-version conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "503 DOSSIER_STORAGE_UNAVAILABLE: Recover using the same workflow identity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "504 TASK_TIMEOUT: Command deadline, never a heuristic rollback",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/dossierIdentityV1"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/applicants/dossier/v1/commit": {
+      "post": {
+        "operationId": "applicant.dossier.commit",
+        "summary": "Dossier v1 resource manager command; exact workflow/initialization identity and input are immutable. PREPARED means actual PostgreSQL preparation; completion is separate from a transport acknowledgment.",
+        "x-owner": "applicant-service",
+        "x-status": "implemented-pending-review",
+        "x-callers": [
+          "message-broker"
+        ],
+        "x-idempotency": "Same workflow and input replays without duplicate effects; conflicting identity/input/decision is 409.",
+        "security": [
+          {
+            "brokerServiceCredential": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Trace-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Service-Name",
+            "in": "header",
+            "required": true,
+            "description": "set by the message broker to the authenticated caller",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "message-broker"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/dossierReceiptV1"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "400 INVALID_DOSSIER: Malformed versioned input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "401 UNAUTHENTICATED: Target credential required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "403 SERVICE_CALL_FORBIDDEN: Coordinator identity required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "409 DOSSIER_CONFLICT: Immutable identity/input/decision or source-version conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "503 DOSSIER_STORAGE_UNAVAILABLE: Recover using the same workflow identity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "504 TASK_TIMEOUT: Command deadline, never a heuristic rollback",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/dossierIdentityV1"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/applicants/dossier/v1/pending": {
+      "post": {
+        "operationId": "applicant.dossier.pending",
+        "summary": "Dossier v1 resource manager command; exact workflow/initialization identity and input are immutable. PREPARED means actual PostgreSQL preparation; completion is separate from a transport acknowledgment.",
+        "x-owner": "applicant-service",
+        "x-status": "implemented-pending-review",
+        "x-callers": [
+          "message-broker"
+        ],
+        "x-idempotency": "Same workflow and input replays without duplicate effects; conflicting identity/input/decision is 409.",
+        "security": [
+          {
+            "brokerServiceCredential": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Trace-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Service-Name",
+            "in": "header",
+            "required": true,
+            "description": "set by the message broker to the authenticated caller",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "message-broker"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/dossierPendingV1"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "400 INVALID_DOSSIER: Malformed versioned input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "401 UNAUTHENTICATED: Target credential required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "403 SERVICE_CALL_FORBIDDEN: Coordinator identity required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "409 DOSSIER_CONFLICT: Immutable identity/input/decision or source-version conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "503 DOSSIER_STORAGE_UNAVAILABLE: Recover using the same workflow identity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "504 TASK_TIMEOUT: Command deadline, never a heuristic rollback",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/dossierEmptyV1"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/applicants/dossier/v1/prepare": {
+      "post": {
+        "operationId": "applicant.dossier.prepare",
+        "summary": "Dossier v1 resource manager command; exact workflow/initialization identity and input are immutable. PREPARED means actual PostgreSQL preparation; completion is separate from a transport acknowledgment.",
+        "x-owner": "applicant-service",
+        "x-status": "implemented-pending-review",
+        "x-callers": [
+          "message-broker"
+        ],
+        "x-idempotency": "Same workflow and input replays without duplicate effects; conflicting identity/input/decision is 409.",
+        "security": [
+          {
+            "brokerServiceCredential": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Trace-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Service-Name",
+            "in": "header",
+            "required": true,
+            "description": "set by the message broker to the authenticated caller",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "message-broker"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/dossierReceiptV1"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "400 INVALID_DOSSIER: Malformed versioned input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "401 UNAUTHENTICATED: Target credential required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "403 SERVICE_CALL_FORBIDDEN: Coordinator identity required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "409 DOSSIER_CONFLICT: Immutable identity/input/decision or source-version conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "503 DOSSIER_STORAGE_UNAVAILABLE: Recover using the same workflow identity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "504 TASK_TIMEOUT: Command deadline, never a heuristic rollback",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/dossierPrepareV1"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/applicants/dossier/v1/release": {
+      "post": {
+        "operationId": "applicant.dossier.release",
+        "summary": "Dossier v1 resource manager command; exact workflow/initialization identity and input are immutable. PREPARED means actual PostgreSQL preparation; completion is separate from a transport acknowledgment.",
+        "x-owner": "applicant-service",
+        "x-status": "implemented-pending-review",
+        "x-callers": [
+          "message-broker"
+        ],
+        "x-idempotency": "Same workflow and input replays without duplicate effects; conflicting identity/input/decision is 409.",
+        "security": [
+          {
+            "brokerServiceCredential": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Trace-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Service-Name",
+            "in": "header",
+            "required": true,
+            "description": "set by the message broker to the authenticated caller",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "message-broker"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/dossierReceiptV1"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "400 INVALID_DOSSIER: Malformed versioned input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "401 UNAUTHENTICATED: Target credential required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "403 SERVICE_CALL_FORBIDDEN: Coordinator identity required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "409 DOSSIER_CONFLICT: Immutable identity/input/decision or source-version conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "503 DOSSIER_STORAGE_UNAVAILABLE: Recover using the same workflow identity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "504 TASK_TIMEOUT: Command deadline, never a heuristic rollback",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/dossierIdentityV1"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/applicants/dossier/v1/snapshot": {
+      "post": {
+        "operationId": "applicant.dossier.snapshot",
+        "summary": "Dossier v1 resource manager command; exact workflow/initialization identity and input are immutable. PREPARED means actual PostgreSQL preparation; completion is separate from a transport acknowledgment.",
+        "x-owner": "applicant-service",
+        "x-status": "implemented-pending-review",
+        "x-callers": [
+          "message-broker"
+        ],
+        "x-idempotency": "Same workflow and input replays without duplicate effects; conflicting identity/input/decision is 409.",
+        "security": [
+          {
+            "brokerServiceCredential": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Trace-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Service-Name",
+            "in": "header",
+            "required": true,
+            "description": "set by the message broker to the authenticated caller",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "message-broker"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/dossierSnapshotV1"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "400 INVALID_DOSSIER: Malformed versioned input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "401 UNAUTHENTICATED: Target credential required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "403 SERVICE_CALL_FORBIDDEN: Coordinator identity required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "409 DOSSIER_CONFLICT: Immutable identity/input/decision or source-version conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "503 DOSSIER_STORAGE_UNAVAILABLE: Recover using the same workflow identity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "504 TASK_TIMEOUT: Command deadline, never a heuristic rollback",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/dossierIdentityV1"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/applicants/dossier/v1/status": {
+      "post": {
+        "operationId": "applicant.dossier.status",
+        "summary": "Dossier v1 resource manager command; exact workflow/initialization identity and input are immutable. PREPARED means actual PostgreSQL preparation; completion is separate from a transport acknowledgment.",
+        "x-owner": "applicant-service",
+        "x-status": "implemented-pending-review",
+        "x-callers": [
+          "message-broker"
+        ],
+        "x-idempotency": "Same workflow and input replays without duplicate effects; conflicting identity/input/decision is 409.",
+        "security": [
+          {
+            "brokerServiceCredential": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Trace-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Service-Name",
+            "in": "header",
+            "required": true,
+            "description": "set by the message broker to the authenticated caller",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "message-broker"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/dossierReceiptV1"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "400 INVALID_DOSSIER: Malformed versioned input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "401 UNAUTHENTICATED: Target credential required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "403 SERVICE_CALL_FORBIDDEN: Coordinator identity required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "409 DOSSIER_CONFLICT: Immutable identity/input/decision or source-version conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "503 DOSSIER_STORAGE_UNAVAILABLE: Recover using the same workflow identity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "504 TASK_TIMEOUT: Command deadline, never a heuristic rollback",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/dossierIdentityV1"
+              }
+            }
+          }
+        }
+      }
+    },
     "/internal/v1/applicants/events/applicant-initialized": {
       "post": {
         "operationId": "applicant.initialize",
@@ -1929,6 +2897,974 @@
         }
       }
     },
+    "/internal/v1/credentials/dossier/v1/abort": {
+      "post": {
+        "operationId": "credential.dossier.abort",
+        "summary": "Dossier v1 resource manager command; exact workflow/initialization identity and input are immutable. PREPARED means actual PostgreSQL preparation; completion is separate from a transport acknowledgment.",
+        "x-owner": "credential-service",
+        "x-status": "candidate",
+        "x-callers": [
+          "message-broker"
+        ],
+        "x-idempotency": "Same workflow and input replays without duplicate effects; conflicting identity/input/decision is 409.",
+        "security": [
+          {
+            "brokerServiceCredential": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Trace-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Service-Name",
+            "in": "header",
+            "required": true,
+            "description": "set by the message broker to the authenticated caller",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "message-broker"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/dossierReceiptV1"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "400 INVALID_DOSSIER: Malformed versioned input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "401 UNAUTHENTICATED: Target credential required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "403 SERVICE_CALL_FORBIDDEN: Coordinator identity required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "409 DOSSIER_CONFLICT: Immutable identity/input/decision or source-version conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "503 DOSSIER_STORAGE_UNAVAILABLE: Recover using the same workflow identity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "504 TASK_TIMEOUT: Command deadline, never a heuristic rollback",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/dossierIdentityV1"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/credentials/dossier/v1/acknowledge": {
+      "post": {
+        "operationId": "credential.dossier.acknowledge",
+        "summary": "Dossier v1 resource manager command; exact workflow/initialization identity and input are immutable. PREPARED means actual PostgreSQL preparation; completion is separate from a transport acknowledgment.",
+        "x-owner": "credential-service",
+        "x-status": "candidate",
+        "x-callers": [
+          "message-broker"
+        ],
+        "x-idempotency": "Same workflow and input replays without duplicate effects; conflicting identity/input/decision is 409.",
+        "security": [
+          {
+            "brokerServiceCredential": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Trace-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Service-Name",
+            "in": "header",
+            "required": true,
+            "description": "set by the message broker to the authenticated caller",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "message-broker"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/dossierReceiptV1"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "400 INVALID_DOSSIER: Malformed versioned input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "401 UNAUTHENTICATED: Target credential required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "403 SERVICE_CALL_FORBIDDEN: Coordinator identity required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "409 DOSSIER_CONFLICT: Immutable identity/input/decision or source-version conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "503 DOSSIER_STORAGE_UNAVAILABLE: Recover using the same workflow identity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "504 TASK_TIMEOUT: Command deadline, never a heuristic rollback",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/dossierIdentityV1"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/credentials/dossier/v1/commit": {
+      "post": {
+        "operationId": "credential.dossier.commit",
+        "summary": "Dossier v1 resource manager command; exact workflow/initialization identity and input are immutable. PREPARED means actual PostgreSQL preparation; completion is separate from a transport acknowledgment.",
+        "x-owner": "credential-service",
+        "x-status": "candidate",
+        "x-callers": [
+          "message-broker"
+        ],
+        "x-idempotency": "Same workflow and input replays without duplicate effects; conflicting identity/input/decision is 409.",
+        "security": [
+          {
+            "brokerServiceCredential": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Trace-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Service-Name",
+            "in": "header",
+            "required": true,
+            "description": "set by the message broker to the authenticated caller",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "message-broker"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/dossierReceiptV1"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "400 INVALID_DOSSIER: Malformed versioned input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "401 UNAUTHENTICATED: Target credential required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "403 SERVICE_CALL_FORBIDDEN: Coordinator identity required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "409 DOSSIER_CONFLICT: Immutable identity/input/decision or source-version conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "503 DOSSIER_STORAGE_UNAVAILABLE: Recover using the same workflow identity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "504 TASK_TIMEOUT: Command deadline, never a heuristic rollback",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/dossierIdentityV1"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/credentials/dossier/v1/pending": {
+      "post": {
+        "operationId": "credential.dossier.pending",
+        "summary": "Dossier v1 resource manager command; exact workflow/initialization identity and input are immutable. PREPARED means actual PostgreSQL preparation; completion is separate from a transport acknowledgment.",
+        "x-owner": "credential-service",
+        "x-status": "candidate",
+        "x-callers": [
+          "message-broker"
+        ],
+        "x-idempotency": "Same workflow and input replays without duplicate effects; conflicting identity/input/decision is 409.",
+        "security": [
+          {
+            "brokerServiceCredential": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Trace-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Service-Name",
+            "in": "header",
+            "required": true,
+            "description": "set by the message broker to the authenticated caller",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "message-broker"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/dossierPendingV1"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "400 INVALID_DOSSIER: Malformed versioned input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "401 UNAUTHENTICATED: Target credential required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "403 SERVICE_CALL_FORBIDDEN: Coordinator identity required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "409 DOSSIER_CONFLICT: Immutable identity/input/decision or source-version conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "503 DOSSIER_STORAGE_UNAVAILABLE: Recover using the same workflow identity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "504 TASK_TIMEOUT: Command deadline, never a heuristic rollback",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/dossierEmptyV1"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/credentials/dossier/v1/prepare": {
+      "post": {
+        "operationId": "credential.dossier.prepare",
+        "summary": "Dossier v1 resource manager command; exact workflow/initialization identity and input are immutable. PREPARED means actual PostgreSQL preparation; completion is separate from a transport acknowledgment.",
+        "x-owner": "credential-service",
+        "x-status": "candidate",
+        "x-callers": [
+          "message-broker"
+        ],
+        "x-idempotency": "Same workflow and input replays without duplicate effects; conflicting identity/input/decision is 409.",
+        "security": [
+          {
+            "brokerServiceCredential": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Trace-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Service-Name",
+            "in": "header",
+            "required": true,
+            "description": "set by the message broker to the authenticated caller",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "message-broker"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/dossierReceiptV1"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "400 INVALID_DOSSIER: Malformed versioned input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "401 UNAUTHENTICATED: Target credential required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "403 SERVICE_CALL_FORBIDDEN: Coordinator identity required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "409 DOSSIER_CONFLICT: Immutable identity/input/decision or source-version conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "503 DOSSIER_STORAGE_UNAVAILABLE: Recover using the same workflow identity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "504 TASK_TIMEOUT: Command deadline, never a heuristic rollback",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/dossierCredentialPrepareV1"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/credentials/dossier/v1/release": {
+      "post": {
+        "operationId": "credential.dossier.release",
+        "summary": "Dossier v1 resource manager command; exact workflow/initialization identity and input are immutable. PREPARED means actual PostgreSQL preparation; completion is separate from a transport acknowledgment.",
+        "x-owner": "credential-service",
+        "x-status": "candidate",
+        "x-callers": [
+          "message-broker"
+        ],
+        "x-idempotency": "Same workflow and input replays without duplicate effects; conflicting identity/input/decision is 409.",
+        "security": [
+          {
+            "brokerServiceCredential": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Trace-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Service-Name",
+            "in": "header",
+            "required": true,
+            "description": "set by the message broker to the authenticated caller",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "message-broker"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/dossierReceiptV1"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "400 INVALID_DOSSIER: Malformed versioned input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "401 UNAUTHENTICATED: Target credential required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "403 SERVICE_CALL_FORBIDDEN: Coordinator identity required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "409 DOSSIER_CONFLICT: Immutable identity/input/decision or source-version conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "503 DOSSIER_STORAGE_UNAVAILABLE: Recover using the same workflow identity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "504 TASK_TIMEOUT: Command deadline, never a heuristic rollback",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/dossierIdentityV1"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/credentials/dossier/v1/snapshot": {
+      "post": {
+        "operationId": "credential.dossier.snapshot",
+        "summary": "Dossier v1 resource manager command; exact workflow/initialization identity and input are immutable. PREPARED means actual PostgreSQL preparation; completion is separate from a transport acknowledgment.",
+        "x-owner": "credential-service",
+        "x-status": "candidate",
+        "x-callers": [
+          "message-broker"
+        ],
+        "x-idempotency": "Same workflow and input replays without duplicate effects; conflicting identity/input/decision is 409.",
+        "security": [
+          {
+            "brokerServiceCredential": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Trace-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Service-Name",
+            "in": "header",
+            "required": true,
+            "description": "set by the message broker to the authenticated caller",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "message-broker"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/dossierCredentialSnapshotV1"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "400 INVALID_DOSSIER: Malformed versioned input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "401 UNAUTHENTICATED: Target credential required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "403 SERVICE_CALL_FORBIDDEN: Coordinator identity required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "409 DOSSIER_CONFLICT: Immutable identity/input/decision or source-version conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "503 DOSSIER_STORAGE_UNAVAILABLE: Recover using the same workflow identity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "504 TASK_TIMEOUT: Command deadline, never a heuristic rollback",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/dossierIdentityV1"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/credentials/dossier/v1/status": {
+      "post": {
+        "operationId": "credential.dossier.status",
+        "summary": "Dossier v1 resource manager command; exact workflow/initialization identity and input are immutable. PREPARED means actual PostgreSQL preparation; completion is separate from a transport acknowledgment.",
+        "x-owner": "credential-service",
+        "x-status": "candidate",
+        "x-callers": [
+          "message-broker"
+        ],
+        "x-idempotency": "Same workflow and input replays without duplicate effects; conflicting identity/input/decision is 409.",
+        "security": [
+          {
+            "brokerServiceCredential": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Trace-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Service-Name",
+            "in": "header",
+            "required": true,
+            "description": "set by the message broker to the authenticated caller",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "message-broker"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/dossierReceiptV1"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "400 INVALID_DOSSIER: Malformed versioned input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "401 UNAUTHENTICATED: Target credential required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "403 SERVICE_CALL_FORBIDDEN: Coordinator identity required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "409 DOSSIER_CONFLICT: Immutable identity/input/decision or source-version conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "503 DOSSIER_STORAGE_UNAVAILABLE: Recover using the same workflow identity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "504 TASK_TIMEOUT: Command deadline, never a heuristic rollback",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/dossierIdentityV1"
+              }
+            }
+          }
+        }
+      }
+    },
     "/internal/v1/credentials/initializations/{eventId}": {
       "get": {
         "operationId": "credential.initialization.status",
@@ -3056,6 +4992,974 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/playerRef"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/records/dossier/v1/abort": {
+      "post": {
+        "operationId": "record.dossier.abort",
+        "summary": "Dossier v1 resource manager command; exact workflow/initialization identity and input are immutable. PREPARED means actual PostgreSQL preparation; completion is separate from a transport acknowledgment.",
+        "x-owner": "university-record-service",
+        "x-status": "implemented-pending-review",
+        "x-callers": [
+          "message-broker"
+        ],
+        "x-idempotency": "Same workflow and input replays without duplicate effects; conflicting identity/input/decision is 409.",
+        "security": [
+          {
+            "brokerServiceCredential": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Trace-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Service-Name",
+            "in": "header",
+            "required": true,
+            "description": "set by the message broker to the authenticated caller",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "message-broker"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/dossierReceiptV1"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "400 INVALID_DOSSIER: Malformed versioned input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "401 UNAUTHENTICATED: Target credential required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "403 SERVICE_CALL_FORBIDDEN: Coordinator identity required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "409 DOSSIER_CONFLICT: Immutable identity/input/decision or source-version conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "503 DOSSIER_STORAGE_UNAVAILABLE: Recover using the same workflow identity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "504 TASK_TIMEOUT: Command deadline, never a heuristic rollback",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/dossierIdentityV1"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/records/dossier/v1/acknowledge": {
+      "post": {
+        "operationId": "record.dossier.acknowledge",
+        "summary": "Dossier v1 resource manager command; exact workflow/initialization identity and input are immutable. PREPARED means actual PostgreSQL preparation; completion is separate from a transport acknowledgment.",
+        "x-owner": "university-record-service",
+        "x-status": "implemented-pending-review",
+        "x-callers": [
+          "message-broker"
+        ],
+        "x-idempotency": "Same workflow and input replays without duplicate effects; conflicting identity/input/decision is 409.",
+        "security": [
+          {
+            "brokerServiceCredential": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Trace-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Service-Name",
+            "in": "header",
+            "required": true,
+            "description": "set by the message broker to the authenticated caller",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "message-broker"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/dossierReceiptV1"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "400 INVALID_DOSSIER: Malformed versioned input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "401 UNAUTHENTICATED: Target credential required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "403 SERVICE_CALL_FORBIDDEN: Coordinator identity required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "409 DOSSIER_CONFLICT: Immutable identity/input/decision or source-version conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "503 DOSSIER_STORAGE_UNAVAILABLE: Recover using the same workflow identity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "504 TASK_TIMEOUT: Command deadline, never a heuristic rollback",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/dossierIdentityV1"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/records/dossier/v1/commit": {
+      "post": {
+        "operationId": "record.dossier.commit",
+        "summary": "Dossier v1 resource manager command; exact workflow/initialization identity and input are immutable. PREPARED means actual PostgreSQL preparation; completion is separate from a transport acknowledgment.",
+        "x-owner": "university-record-service",
+        "x-status": "implemented-pending-review",
+        "x-callers": [
+          "message-broker"
+        ],
+        "x-idempotency": "Same workflow and input replays without duplicate effects; conflicting identity/input/decision is 409.",
+        "security": [
+          {
+            "brokerServiceCredential": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Trace-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Service-Name",
+            "in": "header",
+            "required": true,
+            "description": "set by the message broker to the authenticated caller",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "message-broker"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/dossierReceiptV1"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "400 INVALID_DOSSIER: Malformed versioned input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "401 UNAUTHENTICATED: Target credential required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "403 SERVICE_CALL_FORBIDDEN: Coordinator identity required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "409 DOSSIER_CONFLICT: Immutable identity/input/decision or source-version conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "503 DOSSIER_STORAGE_UNAVAILABLE: Recover using the same workflow identity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "504 TASK_TIMEOUT: Command deadline, never a heuristic rollback",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/dossierIdentityV1"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/records/dossier/v1/pending": {
+      "post": {
+        "operationId": "record.dossier.pending",
+        "summary": "Dossier v1 resource manager command; exact workflow/initialization identity and input are immutable. PREPARED means actual PostgreSQL preparation; completion is separate from a transport acknowledgment.",
+        "x-owner": "university-record-service",
+        "x-status": "implemented-pending-review",
+        "x-callers": [
+          "message-broker"
+        ],
+        "x-idempotency": "Same workflow and input replays without duplicate effects; conflicting identity/input/decision is 409.",
+        "security": [
+          {
+            "brokerServiceCredential": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Trace-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Service-Name",
+            "in": "header",
+            "required": true,
+            "description": "set by the message broker to the authenticated caller",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "message-broker"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/dossierPendingV1"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "400 INVALID_DOSSIER: Malformed versioned input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "401 UNAUTHENTICATED: Target credential required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "403 SERVICE_CALL_FORBIDDEN: Coordinator identity required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "409 DOSSIER_CONFLICT: Immutable identity/input/decision or source-version conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "503 DOSSIER_STORAGE_UNAVAILABLE: Recover using the same workflow identity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "504 TASK_TIMEOUT: Command deadline, never a heuristic rollback",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/dossierEmptyV1"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/records/dossier/v1/prepare": {
+      "post": {
+        "operationId": "record.dossier.prepare",
+        "summary": "Dossier v1 resource manager command; exact workflow/initialization identity and input are immutable. PREPARED means actual PostgreSQL preparation; completion is separate from a transport acknowledgment.",
+        "x-owner": "university-record-service",
+        "x-status": "implemented-pending-review",
+        "x-callers": [
+          "message-broker"
+        ],
+        "x-idempotency": "Same workflow and input replays without duplicate effects; conflicting identity/input/decision is 409.",
+        "security": [
+          {
+            "brokerServiceCredential": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Trace-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Service-Name",
+            "in": "header",
+            "required": true,
+            "description": "set by the message broker to the authenticated caller",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "message-broker"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/dossierReceiptV1"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "400 INVALID_DOSSIER: Malformed versioned input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "401 UNAUTHENTICATED: Target credential required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "403 SERVICE_CALL_FORBIDDEN: Coordinator identity required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "409 DOSSIER_CONFLICT: Immutable identity/input/decision or source-version conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "503 DOSSIER_STORAGE_UNAVAILABLE: Recover using the same workflow identity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "504 TASK_TIMEOUT: Command deadline, never a heuristic rollback",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/dossierPrepareV1"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/records/dossier/v1/release": {
+      "post": {
+        "operationId": "record.dossier.release",
+        "summary": "Dossier v1 resource manager command; exact workflow/initialization identity and input are immutable. PREPARED means actual PostgreSQL preparation; completion is separate from a transport acknowledgment.",
+        "x-owner": "university-record-service",
+        "x-status": "implemented-pending-review",
+        "x-callers": [
+          "message-broker"
+        ],
+        "x-idempotency": "Same workflow and input replays without duplicate effects; conflicting identity/input/decision is 409.",
+        "security": [
+          {
+            "brokerServiceCredential": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Trace-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Service-Name",
+            "in": "header",
+            "required": true,
+            "description": "set by the message broker to the authenticated caller",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "message-broker"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/dossierReceiptV1"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "400 INVALID_DOSSIER: Malformed versioned input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "401 UNAUTHENTICATED: Target credential required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "403 SERVICE_CALL_FORBIDDEN: Coordinator identity required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "409 DOSSIER_CONFLICT: Immutable identity/input/decision or source-version conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "503 DOSSIER_STORAGE_UNAVAILABLE: Recover using the same workflow identity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "504 TASK_TIMEOUT: Command deadline, never a heuristic rollback",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/dossierIdentityV1"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/records/dossier/v1/snapshot": {
+      "post": {
+        "operationId": "record.dossier.snapshot",
+        "summary": "Dossier v1 resource manager command; exact workflow/initialization identity and input are immutable. PREPARED means actual PostgreSQL preparation; completion is separate from a transport acknowledgment.",
+        "x-owner": "university-record-service",
+        "x-status": "implemented-pending-review",
+        "x-callers": [
+          "message-broker"
+        ],
+        "x-idempotency": "Same workflow and input replays without duplicate effects; conflicting identity/input/decision is 409.",
+        "security": [
+          {
+            "brokerServiceCredential": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Trace-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Service-Name",
+            "in": "header",
+            "required": true,
+            "description": "set by the message broker to the authenticated caller",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "message-broker"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/dossierSnapshotV1"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "400 INVALID_DOSSIER: Malformed versioned input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "401 UNAUTHENTICATED: Target credential required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "403 SERVICE_CALL_FORBIDDEN: Coordinator identity required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "409 DOSSIER_CONFLICT: Immutable identity/input/decision or source-version conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "503 DOSSIER_STORAGE_UNAVAILABLE: Recover using the same workflow identity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "504 TASK_TIMEOUT: Command deadline, never a heuristic rollback",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/dossierIdentityV1"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/records/dossier/v1/status": {
+      "post": {
+        "operationId": "record.dossier.status",
+        "summary": "Dossier v1 resource manager command; exact workflow/initialization identity and input are immutable. PREPARED means actual PostgreSQL preparation; completion is separate from a transport acknowledgment.",
+        "x-owner": "university-record-service",
+        "x-status": "implemented-pending-review",
+        "x-callers": [
+          "message-broker"
+        ],
+        "x-idempotency": "Same workflow and input replays without duplicate effects; conflicting identity/input/decision is 409.",
+        "security": [
+          {
+            "brokerServiceCredential": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Trace-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Service-Name",
+            "in": "header",
+            "required": true,
+            "description": "set by the message broker to the authenticated caller",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "message-broker"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/dossierReceiptV1"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "400 INVALID_DOSSIER: Malformed versioned input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "401 UNAUTHENTICATED: Target credential required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "403 SERVICE_CALL_FORBIDDEN: Coordinator identity required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "409 DOSSIER_CONFLICT: Immutable identity/input/decision or source-version conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "503 DOSSIER_STORAGE_UNAVAILABLE: Recover using the same workflow identity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "504 TASK_TIMEOUT: Command deadline, never a heuristic rollback",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/dossierIdentityV1"
               }
             }
           }
@@ -7139,6 +10043,269 @@
             ]
           }
         }
+      },
+      "dossierIdentityV1": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "version",
+          "workflowId",
+          "initializationId",
+          "applicantId",
+          "stepId",
+          "fingerprint"
+        ],
+        "properties": {
+          "version": {
+            "const": 1
+          },
+          "workflowId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "initializationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "applicantId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "stepId": {
+            "enum": [
+              "credential.generate.v1",
+              "record.attach.v1",
+              "applicant.attach.v1"
+            ]
+          },
+          "fingerprint": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          }
+        }
+      },
+      "dossierPrepareV1": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "identity",
+          "sourceVersion",
+          "credentialIds"
+        ],
+        "properties": {
+          "identity": {
+            "$ref": "#/components/schemas/dossierIdentityV1"
+          },
+          "sourceVersion": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "credentialIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "minItems": 1,
+            "maxItems": 32,
+            "uniqueItems": true
+          }
+        }
+      },
+      "dossierEmptyV1": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": false
+      },
+      "dossierSnapshotV1": {
+        "type": "object",
+        "required": [
+          "version",
+          "workflowId",
+          "initializationId",
+          "applicantId",
+          "participant",
+          "sourceVersion",
+          "facts"
+        ],
+        "properties": {
+          "version": {
+            "const": 1
+          },
+          "workflowId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "initializationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "applicantId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "participant": {
+            "type": "string"
+          },
+          "sourceVersion": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "facts": {
+            "type": "object"
+          }
+        }
+      },
+      "dossierReceiptV1": {
+        "type": "object",
+        "required": [
+          "version",
+          "workflowId",
+          "initializationId",
+          "applicantId",
+          "participant",
+          "stepId",
+          "fingerprint",
+          "state",
+          "ready",
+          "completionAcknowledged"
+        ],
+        "properties": {
+          "version": {
+            "const": 1
+          },
+          "workflowId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "initializationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "applicantId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "participant": {
+            "type": "string"
+          },
+          "stepId": {
+            "type": "string"
+          },
+          "fingerprint": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "state": {
+            "enum": [
+              "INTENT",
+              "PREPARED",
+              "COMMITTED",
+              "ABORTED",
+              "RELEASED"
+            ]
+          },
+          "ready": {
+            "type": "boolean"
+          },
+          "completionAcknowledged": {
+            "type": "boolean"
+          },
+          "credentialIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "minItems": 1,
+            "maxItems": 32,
+            "uniqueItems": true
+          }
+        }
+      },
+      "dossierPendingV1": {
+        "type": "object",
+        "required": [
+          "version",
+          "workflows"
+        ],
+        "properties": {
+          "version": {
+            "const": 1
+          },
+          "workflows": {
+            "type": "array",
+            "maxItems": 20,
+            "items": {
+              "$ref": "#/components/schemas/dossierReceiptV1"
+            }
+          }
+        }
+      },
+      "dossierCredentialPrepareV1": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "identity",
+          "sourceVersion",
+          "inputs",
+          "asOf"
+        ],
+        "properties": {
+          "identity": {
+            "$ref": "#/components/schemas/dossierIdentityV1"
+          },
+          "sourceVersion": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "inputs": {
+            "type": "object",
+            "required": [
+              "applicant-service",
+              "university-record-service"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "applicant-service": {
+                "$ref": "#/components/schemas/dossierSnapshotV1"
+              },
+              "university-record-service": {
+                "$ref": "#/components/schemas/dossierSnapshotV1"
+              }
+            }
+          },
+          "asOf": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "dossierCredentialSnapshotV1": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/dossierSnapshotV1"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "facts": {
+                "type": "object",
+                "required": [
+                  "generationPath"
+                ],
+                "properties": {
+                  "generationPath": {
+                    "type": "string",
+                    "enum": [
+                      "DOSSIER_V1"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        ]
       },
       "errorEnvelope": {
         "type": "object",

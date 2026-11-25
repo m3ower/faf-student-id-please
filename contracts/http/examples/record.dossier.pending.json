@@ -1,0 +1,22 @@
+{
+  "operation": "record.dossier.pending",
+  "note": "Dossier v1 candidate. Broker publishes internally using the target credential; no external Broker caller token exists. Credential is an owner implementation requirement.",
+  "request": {
+    "method": "POST",
+    "path": "/internal/v1/records/dossier/v1/pending",
+    "headers": {
+      "Authorization": "Bearer <target internal credential>",
+      "X-Service-Name": "message-broker",
+      "X-Trace-Id": "dossier-v1-example",
+      "Content-Type": "application/json"
+    },
+    "body": {}
+  },
+  "response": {
+    "status": 200,
+    "body": {
+      "version": 1,
+      "workflows": []
+    }
+  }
+}

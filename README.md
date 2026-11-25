@@ -1,5 +1,9 @@
 # Student ID, please
 
+[Lab 5 Grade 8 dossier protocol and Credential owner handoff](docs/dossier-2pc.md)
+is an opt-in candidate using real participant PostgreSQL preparation. Shared
+activation requires the actual Credential implementation and joint acceptance.
+
 ## Lab 5 Warehouse and ETL candidate
 
 The [Warehouse extraction contract](docs/warehouse-extraction.md) and
