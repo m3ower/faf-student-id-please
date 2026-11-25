@@ -2073,3 +2073,9 @@ The opt-in [owned PostgreSQL HA overlay](docs/applicant-record-postgres-ha.md) a
 a primary and two replicas per service with quorum-backed Patroni failover. It
 uses new volumes and requires an explicit existing-data migration and reviewed
 service images; it does not deploy or alter the teammate replication setup.
+
+## Lab 5 Task 9 dossier saga contract
+
+The executable [saga protocol](contracts/dossier/saga-v1.json) and
+[implementation handoff](docs/dossier-saga.md) define the additive Grade 9 path.
+Grade 8 releases and joint acceptance evidence remain preserved.
