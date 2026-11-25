@@ -15,10 +15,13 @@ all existing Grade 8 commands, releases and evidence remain available unchanged.
 
 New initialization path `DOSSIER_SAGA_V1` is exclusive with `LEGACY` and
 `DOSSIER_V1`. All participants must persist that ownership, validate reliable fact
-versions, suppress independent legacy document generation/callbacks and retain
-their normal peer initialization deliveries. CRUD-created profiles alone are
-insufficient. Snapshot returns `facts.generationPath=DOSSIER_SAGA_V1` and stable
-full facts; repeated snapshot returns its original persisted projection.
+versions and suppress independent legacy document generation/callbacks. Applicant
+and Record retain their normal peer initialization deliveries and require their
+full persisted initialization context; CRUD profiles alone are insufficient.
+Credential reserves ownership at snapshot without receiving a legacy generation
+command; apply supplies complete agreed initialization envelopes in `inputsJson`.
+Snapshot returns `facts.generationPath=DOSSIER_SAGA_V1` and stable owned facts;
+repeated snapshot returns its original persisted projection.
 
 Broker snapshots all three participants before applying any step. It freezes the
 complete Applicant/Record snapshots in `inputsJson` and its `asOf` timestamp.
