@@ -45,6 +45,30 @@
       "group": "applicant-service"
     },
     {
+      "topic": "operation.applicant.dossierSaga.acknowledge.v1",
+      "group": "applicant-service"
+    },
+    {
+      "topic": "operation.applicant.dossierSaga.apply.v1",
+      "group": "applicant-service"
+    },
+    {
+      "topic": "operation.applicant.dossierSaga.compensate.v1",
+      "group": "applicant-service"
+    },
+    {
+      "topic": "operation.applicant.dossierSaga.release.v1",
+      "group": "applicant-service"
+    },
+    {
+      "topic": "operation.applicant.dossierSaga.snapshot.v1",
+      "group": "applicant-service"
+    },
+    {
+      "topic": "operation.applicant.dossierSaga.status.v1",
+      "group": "applicant-service"
+    },
+    {
       "topic": "operation.applicant.generate.v1",
       "group": "applicant-service"
     },
@@ -112,6 +136,30 @@
     },
     {
       "topic": "operation.credential.dossier.status.v1",
+      "group": "credential-service"
+    },
+    {
+      "topic": "operation.credential.dossierSaga.acknowledge.v1",
+      "group": "credential-service"
+    },
+    {
+      "topic": "operation.credential.dossierSaga.apply.v1",
+      "group": "credential-service"
+    },
+    {
+      "topic": "operation.credential.dossierSaga.compensate.v1",
+      "group": "credential-service"
+    },
+    {
+      "topic": "operation.credential.dossierSaga.release.v1",
+      "group": "credential-service"
+    },
+    {
+      "topic": "operation.credential.dossierSaga.snapshot.v1",
+      "group": "credential-service"
+    },
+    {
+      "topic": "operation.credential.dossierSaga.status.v1",
       "group": "credential-service"
     },
     {
@@ -268,6 +316,30 @@
     },
     {
       "topic": "operation.record.dossier.status.v1",
+      "group": "university-record-service"
+    },
+    {
+      "topic": "operation.record.dossierSaga.acknowledge.v1",
+      "group": "university-record-service"
+    },
+    {
+      "topic": "operation.record.dossierSaga.apply.v1",
+      "group": "university-record-service"
+    },
+    {
+      "topic": "operation.record.dossierSaga.compensate.v1",
+      "group": "university-record-service"
+    },
+    {
+      "topic": "operation.record.dossierSaga.release.v1",
+      "group": "university-record-service"
+    },
+    {
+      "topic": "operation.record.dossierSaga.snapshot.v1",
+      "group": "university-record-service"
+    },
+    {
+      "topic": "operation.record.dossierSaga.status.v1",
       "group": "university-record-service"
     },
     {
