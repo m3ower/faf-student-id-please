@@ -1,0 +1,73 @@
+{
+  "protocol": "dossier-saga-v1",
+  "grade": 9,
+  "contractPr": "https://github.com/m3ower/faf-student-id-please/pull/197",
+  "contractImplementationCommit": "f362ceb",
+  "contractClarificationCommit": "e346c7c",
+  "contractSha256NormalizedLf": "ef7638a5b1d8ea6245bf9a1887d2e5cd6748555c2ff24dd95ecfbdb2e9c355b7",
+  "sources": {
+    "applicant": {
+      "commit": "1b59edee145cc7a0fbfaf7553817a36506cd87de",
+      "implementationCommit": "ebd418d",
+      "pr": "https://github.com/Andreiisthebest/student-id-applicant-service/pull/50",
+      "featureCi": "PASS"
+    },
+    "record": {
+      "commit": "183c3339e8a3442405cdb2db85194dddc6665f66",
+      "implementationCommit": "15f9fa9",
+      "pr": "https://github.com/Andreiisthebest/student-id-university-record-service/pull/49",
+      "featureCi": "PASS"
+    },
+    "broker": {
+      "commit": "bba8d2ba58f69436fecf592ca045e21a5845c66c",
+      "implementationCommit": "bba8d2b",
+      "pr": "https://github.com/Andreiisthebest/student-id-message-broker-service/pull/49",
+      "featureCi": "PASS"
+    }
+  },
+  "tests": {
+    "applicant": {
+      "tests": 84,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "coverageGate": "PASS"
+    },
+    "record": {
+      "fullCi": "PASS",
+      "raceDetector": "PASS",
+      "lineCoveragePercent": 76.0,
+      "statementCoveragePercent": 80.6
+    },
+    "broker": {
+      "applicationTests": 165,
+      "coveragePercent": 88,
+      "repositoryPolicyTests": 5,
+      "protoRegeneration": "PASS",
+      "packagedImageSmoke": "PASS",
+      "durableMessagingImageRecovery": "PASS",
+      "sagaEnabledImageAdmissionAndRecreationChecks": 7
+    }
+  },
+  "jointAcceptance": {
+    "result": "NOT_RUN",
+    "credentialOwnerAcceptance": false,
+    "blocker": "Credential saga-capable real image/artifact and owner-reviewed configuration/ports have not been supplied.",
+    "procedure": "Broker PR #49 scripts/verify_dossier_saga.py; requires four real images, no Credential business fixture."
+  },
+  "activation": {
+    "defaultEnabled": false,
+    "grade9ImagesPublished": false,
+    "sharedDeploymentChanged": false,
+    "grade9ReadyForRelease": false
+  },
+  "preservedGrade8Evidence": [
+    "docs/dossier-grade8-evidence.json",
+    "docs/credential-dossier-joint-evidence.json"
+  ],
+  "limits": [
+    "Unit coordinator participant doubles are not final joint acceptance.",
+    "The four-real-application failure procedure is syntax checked but not executed.",
+    "Candidate image smoke/admission tests do not verify participant business integration."
+  ]
+}

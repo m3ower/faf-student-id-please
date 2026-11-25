@@ -2079,3 +2079,6 @@ service images; it does not deploy or alter the teammate replication setup.
 The executable [saga protocol](contracts/dossier/saga-v1.json) and
 [implementation handoff](docs/dossier-saga.md) define the additive Grade 9 path.
 Grade 8 releases and joint acceptance evidence remain preserved.
+
+[Grade 9 verification evidence](docs/dossier-grade9-evidence.json) separates owned
+checks from the pending four-real-application joint acceptance.
