@@ -34,15 +34,11 @@ credential document or authorization assignment is added.
 
 ## Release prerequisites
 
-Keep source-service image values explicit in the private environment;
-`.env.warehouse.example` leaves their selections and secrets blank, and selects
-the published ETL release below. Reviewed source images from owner handoffs:
-
-- Player `vasiok11/student-id-player-service:lab5-1.5.0-build.39`.
-- Session `vasiok11/student-id-session-service:lab5-1.5.0-build.45`.
-- Credential/Rules `cmmarin/student-id-{credential,rules}-service:lab5-1.3.0`.
-- Applicant/Record `andreiisthebest/student-id-{applicant,university-record}-service:lab3-1.4.0`.
-- Moderation/DMs `meow3r/student-id-{moderation,discord-dms}-service:lab3-0.10.0`.
+The example environments now select the published releases verified on 2026-11-26.
+Copy the selections into your private environment; existing `.env` overrides do
+not change automatically. Keep all reporting credentials private. The exact image
+pins, source revisions and populated acceptance scope are recorded in
+[Lab 5 release pins](lab5-release-pins.md).
 
 All eight tags were pulled successfully for the isolated acceptance below.
 Recheck digests and source revisions with owners before a later deployment. The known lab3

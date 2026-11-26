@@ -53,7 +53,7 @@ services:
       retries: 10
 
   credential-service: &credential
-    image: ${CREDENTIAL_IMAGE:-cmmarin/student-id-credential-service:lab4-1.1.0}
+    image: ${CREDENTIAL_IMAGE:-cmmarin/student-id-credential-service:lab5-1.7.3@sha256:7db57ce43ef93a209f182a505c2cf48f00c9ead9d6111cdc54dbc2bc2314a5e4}
     environment: &credential-env
       <<: *registration
       SERVICE_ADVERTISE_URL: http://credential-service:8080
@@ -76,7 +76,7 @@ services:
       SERVICE_ADVERTISE_URL: http://credential-service-2:8080
 
   rules-service: &rules
-    image: ${RULES_IMAGE:-cmmarin/student-id-rules-service:lab4-1.1.0}
+    image: ${RULES_IMAGE:-cmmarin/student-id-rules-service:lab5-1.6.2@sha256:6ea60d1197f7cfc2cae5b9250c0e68de578d7f396cf031c93f3c83b2307e61b6}
     environment: &rules-env
       <<: *registration
       SERVICE_ADVERTISE_URL: http://rules-service:8081
@@ -99,7 +99,7 @@ services:
       SERVICE_ADVERTISE_URL: http://rules-service-2:8081
 
   player-service: &player
-    image: ${PLAYER_IMAGE:-vasiok11/student-id-player-service:lab4-1.3.0-build.31}
+    image: ${PLAYER_IMAGE:-vasiok11/student-id-player-service:lab5-1.8.0-build.50@sha256:89bc6b93c6033e18c8d624b0ca37fa0ebae2434cebd797ea5bcb903ebc926efc}
     ports:
       - "8082:8080"
     environment: &player-env
@@ -173,7 +173,7 @@ services:
       retries: 10
 
   applicant-service: &applicant
-    image: ${APPLICANT_IMAGE:-andreiisthebest/student-id-applicant-service:lab3-1.2.0}
+    image: ${APPLICANT_IMAGE:-andreiisthebest/student-id-applicant-service:lab3-1.8.0@sha256:c8d3423cc22fad68aca114ad3544616a33fe88840717286b06ffa2d618700367}
     networks: [applicant-net]
     environment: &applicant-env
       <<: *registration
@@ -215,7 +215,7 @@ services:
       retries: 10
 
   university-record-service: &record
-    image: ${RECORD_IMAGE:-andreiisthebest/student-id-university-record-service:lab3-1.2.0}
+    image: ${RECORD_IMAGE:-andreiisthebest/student-id-university-record-service:lab3-1.8.0@sha256:e222cd4ee9c8e18a302c901003d0309527ff1bdff95b5c0672aac69efaee9ff4}
     networks: [record-net]
     environment: &record-env
       <<: *registration

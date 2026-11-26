@@ -127,7 +127,7 @@ services:
   # Credential/Rules: gRPC publishers and consumers. Requires the matching Broker
   # release with the identical reviewed per-group transport catalog.
   credential-service: &owned-credential
-    image: ${OWNED_CREDENTIAL_IMAGE:-cmmarin/student-id-credential-service:lab4-1.1.0}
+    image: ${OWNED_CREDENTIAL_IMAGE:-cmmarin/student-id-credential-service:lab5-1.7.3@sha256:7db57ce43ef93a209f182a505c2cf48f00c9ead9d6111cdc54dbc2bc2314a5e4}
     environment: &owned-credential-env
       BROKER_URL: http://message-broker:8093
       BROKER_SERVICE_TOKEN: ${CREDENTIAL_BROKER_SERVICE_TOKEN:?match credential-service in BROKER_CALLER_TOKENS_JSON}
@@ -149,7 +149,7 @@ services:
     environment: *owned-credential-env
 
   rules-service: &owned-rules
-    image: ${OWNED_RULES_IMAGE:-cmmarin/student-id-rules-service:lab4-1.1.0}
+    image: ${OWNED_RULES_IMAGE:-cmmarin/student-id-rules-service:lab5-1.6.2@sha256:6ea60d1197f7cfc2cae5b9250c0e68de578d7f396cf031c93f3c83b2307e61b6}
     environment: &owned-rules-env
       BROKER_URL: http://message-broker:8093
       BROKER_SERVICE_TOKEN: ${RULES_BROKER_SERVICE_TOKEN:?match rules-service in BROKER_CALLER_TOKENS_JSON}
@@ -176,7 +176,7 @@ services:
   # (MessageConsumer on the advertised port + 1000 = 9080) once transports.json names
   # their groups grpc. gRPC ports stay on the private network: none is published.
   moderation-service: &owned-moderation
-    image: ${DOCKERHUB_USER:-meow3r}/student-id-moderation-service:${OWNED_MODERATION_VERSION:-lab3-0.8.0}
+    image: ${DOCKERHUB_USER:-meow3r}/student-id-moderation-service:${OWNED_MODERATION_VERSION:-lab3-0.13.2@sha256:82d648fe90549d31ef3260e2c84eab06eb4e0680b71c68b680bef08b119d3a52}
     ports: !reset []
     environment: &owned-moderation-env
       BROKER_TRANSPORT: grpc
@@ -196,7 +196,7 @@ services:
     environment: *owned-moderation-env
 
   discord-dms-service: &owned-dms
-    image: ${DOCKERHUB_USER:-meow3r}/student-id-discord-dms-service:${OWNED_DMS_VERSION:-lab3-0.8.0}
+    image: ${DOCKERHUB_USER:-meow3r}/student-id-discord-dms-service:${OWNED_DMS_VERSION:-lab3-0.13.0@sha256:e34438ec4b97e14b0ddd2f8bb8ae083f028ca9bf24436e7b91dae7612e6413d7}
     environment: &owned-dms-env
       SESSION_CLIENT: broker
       BROKER_TRANSPORT: grpc
